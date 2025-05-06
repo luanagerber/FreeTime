@@ -9,10 +9,7 @@ import Foundation
 
 struct Child {
     let id: Float
-    // let activityDuration: tempo
-    var hasStarted: Bool
-    var timeItWasStarted: Date?
-    var timeItWasFinished: Date?
+    // resto ...
 }
 
 struct Activity: Identifiable {
