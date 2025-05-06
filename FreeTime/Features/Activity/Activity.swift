@@ -7,11 +7,6 @@
 
 import Foundation
 
-struct Child {
-    let id: Float
-    // resto ...
-}
-
 struct Activity: Identifiable {
     let id = UUID()
     let name: String
@@ -21,21 +16,12 @@ struct Activity: Identifiable {
     
     // States
     var activityState: ActivityState = .notStarted
-    
-    var startedAt: Date?
-    var FinishedAt: Date?
-    
-    // Information that will be provided by the responsible
-    var scheduledDate: Date?
-    var duration: TimeInterval?
-
 }
 
-// Os estados inProgress e completed carregam a data de início e fim da atividade
 enum ActivityState {
     case notStarted
-    case inProgress //(Date)
-    case completed //(Date)
+    case inProgress
+    case completed
 }
 
 enum Tag {
