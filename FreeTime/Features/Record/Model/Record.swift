@@ -8,13 +8,13 @@
 import Foundation
 
 struct Record {
-    let child: Child
+    let child: Kid
     let parent: Parent
     let activity: Activity
     let date: Date
     let duration: TimeInterval
     
-    init (child: Child, parent: Parent,activity: Activity, date: Date, duration: TimeInterval) {
+    init (child: Kid, parent: Parent,activity: Activity, date: Date, duration: TimeInterval) {
         self.child = child
         self.parent = parent
         self.activity = activity

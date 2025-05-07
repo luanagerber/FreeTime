@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Child {
+struct Kid {
     let id = UUID()
     let name: String
     let parentID: UUID
