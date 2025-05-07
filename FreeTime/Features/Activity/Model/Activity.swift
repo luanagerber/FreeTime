@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 struct Activity: Identifiable {
     let id = UUID()
@@ -16,12 +17,24 @@ struct Activity: Identifiable {
     
     // States
     var activityState: ActivityState = .notStarted
+    
+    
 }
 
 enum ActivityState {
     case notStarted
     case inProgress
     case completed
+    
+    var color: Color {
+        switch self {
+            //Provisionally
+            case .notStarted: return .green.opacity(0.3)
+            case .inProgress: return .yellow
+            case .completed: return .gray.opacity(0.3)
+        }
+    }
+    
 }
 
 enum Tag {
