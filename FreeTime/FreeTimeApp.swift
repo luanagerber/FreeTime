@@ -11,7 +11,14 @@ import SwiftUI
 struct FreeTimeApp: App {
     var body: some Scene {
         WindowGroup {
-            ParentView()
+            switch UIDevice.current.userInterfaceIdiom {
+            case .pad:
+                    ChildView()
+            case.phone:
+                    ParentView()
+            default:
+                EmptyView()
+            }
         }
     }
 }
