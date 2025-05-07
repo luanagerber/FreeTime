@@ -9,7 +9,11 @@ import SwiftUI
 
 struct ParentView: View {
     var body: some View {
-        Text("Hello, World!")
+        VStack {
+            ForEach(Record.samples) { record in
+                Text(record.activity.name)
+            }
+        }
     }
 }
 
