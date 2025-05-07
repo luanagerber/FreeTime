@@ -11,7 +11,7 @@ extension Record {
     static let sample1 = Record(
         child: Kid(name: "Fulana", parentID: UUID()),
         parent: Parent(name: "Ciclana", childrenID: UUID()),
-        activity: Activity.sample1,
+        activity: Activity.samples[0],
         date: Date(), // agora
         duration: 3600 // 1 hora
     )
@@ -19,7 +19,7 @@ extension Record {
     static let sample2 = Record(
         child: Kid(name: "Caquita", parentID: UUID()),
         parent: Parent(name: "Bolinha", childrenID: UUID()),
-        activity: Activity.sample2,
+        activity: Activity.samples[1],
         date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
         duration: 5400 // 1h30min
     )

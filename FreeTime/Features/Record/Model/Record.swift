@@ -14,6 +14,9 @@ struct Record {
     let date: Date
     let duration: TimeInterval
     
+    // States
+    var activityState: RecordState = .notStarted
+
     init (child: Kid, parent: Parent,activity: Activity, date: Date, duration: TimeInterval) {
         self.child = child
         self.parent = parent
@@ -21,4 +24,10 @@ struct Record {
         self.date = date
         self.duration = duration
     }
+}
+
+enum RecordState {
+    case notStarted
+    case inProgress
+    case completed
 }

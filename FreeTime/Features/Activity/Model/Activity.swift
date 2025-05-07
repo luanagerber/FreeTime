@@ -14,14 +14,6 @@ struct Activity: Identifiable {
     var description: String
     var necessaryMaterials: [String]
     
-    // States
-    var activityState: ActivityState = .notStarted
-}
-
-enum ActivityState {
-    case notStarted
-    case inProgress
-    case completed
 }
 
 enum Tag {
