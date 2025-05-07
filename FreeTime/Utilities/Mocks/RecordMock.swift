@@ -34,4 +34,9 @@ extension Record {
             recordStatus: .inProgress
         )
     ]
+    
+    static let sample1: Record = .samples[0]
+    static let sample2: Record = .samples[1]
+    static let sample3: Record = .samples[2]
+    static let sample4: Record = .samples[4]
 }
