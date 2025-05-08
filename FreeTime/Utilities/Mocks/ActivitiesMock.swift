@@ -13,7 +13,6 @@ extension Activity {
             tags: [.mentalExercise, .study],
             description: "Uma atividade de pintura livre para estimular a criatividade das crianças.",
             necessaryMaterials: ["Tinta guache", "Papel A3", "Pincéis"],
-            
         ),
         Activity(
             name: "Experimento de Vulcão",

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 //
 //  ParentView.swift
 //  FreeTime
@@ -20,4 +21,6 @@ struct ParentView: View {
 #Preview {
     ParentView()
 }
+=======
+>>>>>>> 168072d4db05b7f6128a66878a568845aaa7c08b
 
