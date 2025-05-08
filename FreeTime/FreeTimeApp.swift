@@ -14,8 +14,8 @@ struct FreeTimeApp: App {
             switch UIDevice.current.userInterfaceIdiom {
             case .pad:
                     ChildView()
-            case.phone:
-                    ParentView()
+            case .phone:
+                    WeekdayPickerView()
             default:
                 EmptyView()
             }
