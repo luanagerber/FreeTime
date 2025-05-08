@@ -8,12 +8,12 @@
 import SwiftUI
 
 struct CardActivity: View {
-    var activity: Activity
+    var record: Record
     
     var body: some View {
         VStack {
             Rectangle()
-//                .fill(activity.activityState.color)
+                .fill(record.recordStatus.color)
                 .frame(width: 120, height: 80)
                 .cornerRadius(12)
                 .overlay(
@@ -22,17 +22,17 @@ struct CardActivity: View {
 //                        Image of the Planned Activity
                     
                         
-                        Text(activity.name)
+                        Text(record.activity.name)
                             .font(.caption)
                             .bold()
                             .lineLimit(1)
                         
-//                        Planned time to carry out the activity
-//
-//                        Text(activity.hour)
-//                            .font(.caption)
-//                            .bold()
-//                            .lineLimit(1)
+
+
+                        Text(record.duration.description)
+                            .font(.caption)
+                            .bold()
+                            .lineLimit(1)
                     }
                     
                         .padding(1),

@@ -23,7 +23,7 @@ extension Record {
             activity: Activity.samples[1],
             date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
             duration: 5400, // 1h30min
-            recordStatus: .inProgress
+            recordStatus: .completed
         ),
         Record(
             child: Kid(name: "Thom", parentID: UUID()),
