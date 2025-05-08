@@ -11,7 +11,7 @@ struct ParentView: View {
     var body: some View {
         VStack {
             ForEach(Record.samples) { record in
-                Text(record.activity.name)
+                ParentDetailView(text: record.activity.name)
             }
         }
     }
