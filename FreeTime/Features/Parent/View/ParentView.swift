@@ -8,10 +8,21 @@
 import SwiftUI
 
 struct ParentView: View {
+    @StateObject private var viewModel = RecordViewModel()
+    
     var body: some View {
-        VStack {
-            ForEach(Record.samples) { record in
-                ParentDetailView(text: record.activity.name)
+        VStack(alignment: .leading, spacing: 20) {
+            Text("Atividades planejadas")
+                .font(.title3)
+                .fontWeight(.medium)
+               
+            ScrollView {
+                VStack(spacing: 16) {
+                    ForEach(viewModel.records) { record in
+                        ParentCardView(record: record)
+                            .padding(.horizontal)
+                    }
+                }
             }
         }
     }
