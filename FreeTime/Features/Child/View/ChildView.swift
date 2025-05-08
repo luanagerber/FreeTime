@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ChildView: View {
     
-    @State var record : Record = Record.sample1
+    
     
     var body: some View {
         ZStack{
@@ -23,9 +23,9 @@ struct ChildView: View {
                                height:100)
                     
                     VStack{
-                        Text(record.child.name)
-                            .font(.largeTitle)
-                            .bold()
+////                        Text(child.name)
+//                            .font(.largeTitle)
+//                            .bold()
                         Text("$100")
                             .font(.title)
                             .bold()
@@ -46,13 +46,13 @@ struct ChildView: View {
                     .font(.largeTitle)
                 Text("Dia da semana, data, mês")
                 
-                ScrollView(.horizontal, showsIndicators: false){
-                    HStack(spacing: 10){
+//                ScrollView(.horizontal, showsIndicators: false){
+//                    HStack(spacing: 10){
 //                        ForEach(record.activity.filter({ $0.activityState == .notStarted })){ activity in
 //                            CardActivity(activity: activity)
 //                        }
-                    }
-                }
+//                    }
+//                }
                 
                 Text("Atividades Concluídas")
                     .font(.largeTitle)

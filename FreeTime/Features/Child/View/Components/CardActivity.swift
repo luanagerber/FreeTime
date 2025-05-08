@@ -13,7 +13,7 @@ struct CardActivity: View {
     var body: some View {
         VStack {
             Rectangle()
-                .fill(activity.activityState.color)
+//                .fill(activity.activityState.color)
                 .frame(width: 120, height: 80)
                 .cornerRadius(12)
                 .overlay(
