@@ -26,7 +26,7 @@ struct Record: Identifiable {
         self.activity = activity
         self.date = date
         self.duration = duration
-        self.recordStatus = .notStarted
+        self.recordStatus = recordStatus
     }
 }
 
