@@ -14,7 +14,7 @@ struct CardActivity: View {
         VStack {
             Rectangle()
                 .fill(record.recordStatus.color)
-                .frame(width: 120, height: 80)
+                .frame(width: 360, height: 200)
                 .cornerRadius(12)
                 .overlay(
                     VStack {

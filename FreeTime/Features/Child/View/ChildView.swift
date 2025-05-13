@@ -18,32 +18,19 @@ struct ChildView: View {
     var body: some View {
         ZStack {
             VStack {
-                // Header
-                HStack {
-                    Circle()
-                        .fill(Color.gray)
-                        .frame(width: 100, height: 100)
+                Rectangle()
+                    .fill(.gray)
+                    .frame(maxWidth: .infinity, maxHeight: 126)
+                    .cornerRadius(12)
                     
-                    VStack {
-                        Text("Nome")
-                            .font(.largeTitle)
-                            .bold()
-                        Text("$100")
-                            .font(.title)
-                            .bold()
-                    }
                     
-                    Rectangle()
-                        .fill(Color.gray)
-                        .frame(width: 100, height: 100)
-                    
-                    Text("Vamos fazer a\natividade de hoje?")
-                        .font(.largeTitle)
-                        .bold()
-                }
+                
+                   
+                
                 
                 Text("Atividades para hoje")
                     .font(.largeTitle)
+                    .font(.system(size: 34, weight: .bold, design: .default))
                 
                 Text("Dia da semana, data, mês")
                 
@@ -64,7 +51,8 @@ struct ChildView: View {
                         }
                     }
                 }
-            }
+            }.frame(maxHeight: .infinity, alignment: .top)
+                .border(.black)
             .ignoresSafeArea()
         }
     }
