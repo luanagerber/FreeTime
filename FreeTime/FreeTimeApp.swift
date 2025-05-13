@@ -15,7 +15,7 @@ struct FreeTimeApp: App {
             case .pad:
                     ChildView()
             case .phone:
-                    WeekdayPickerView()
+                    ParentView()
             default:
                 EmptyView()
             }
