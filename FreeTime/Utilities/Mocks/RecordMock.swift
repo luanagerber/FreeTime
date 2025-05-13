@@ -23,7 +23,7 @@ extension Record {
             activity: Activity.samples[1],
             date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
             duration: 5400, // 1h30min
-            recordStatus: .completed
+            recordStatus: .notStarted
         ),
         Record(
             child: Kid(name: "Thom", parentID: UUID()),
@@ -31,12 +31,11 @@ extension Record {
             activity: Activity.samples[1],
             date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
             duration: 5400, // 1h30min
-            recordStatus: .inProgress
+            recordStatus: .completed
         )
     ]
     
     static let sample1: Record = .samples[0]
     static let sample2: Record = .samples[1]
     static let sample3: Record = .samples[2]
-    static let sample4: Record = .samples[4]
 }
