@@ -55,23 +55,22 @@ struct KidRecord: RecordProtocol {
 // @Tete, Activity virou ScheduledActivityRecord
 struct ScheduledActivityRecord: RecordProtocol {
     var id: CKRecord.ID?
-    var name: String
-    var description: String
-    var points: Int
-    var type: String
-    var status: Bool
+    var kidID: UUID
+    var activityID: UUID
+    var date: Date
+    var duration: TimeInterval
+    var status: RegisterStatus
     var shareReference: CKRecord.Reference?
     
     var record: CKRecord? {
         guard id == nil else { return nil }
         
-        // A zona será especificada quando o objeto for salvo usando o método save
         let newRecord = CKRecord(recordType: RecordType.activity.rawValue)
-        newRecord["activityName"] = name
-        newRecord["activityDescription"] = description
-        newRecord["activityPoints"] = points
-        newRecord["type"] = type
-        newRecord["status"] = status
+        newRecord["kidID"] = kidID.uuidString
+        newRecord["activityID"] = activityID.uuidString
+        newRecord["date"] = date
+        newRecord["duration"] = duration
+        newRecord["status"] = status.rawValue
         
         return newRecord
     }
@@ -80,37 +79,42 @@ struct ScheduledActivityRecord: RecordProtocol {
         guard let recordID = id else { return nil }
         
         let record = CKRecord(recordType: RecordType.activity.rawValue, recordID: recordID)
-        record["activityName"] = name
-        record["activityDescription"] = description
-        record["activityPoints"] = points
-        record["type"] = type
-        record["status"] = status
+        record["kidID"] = kidID.uuidString
+        record["activityID"] = activityID.uuidString
+        record["date"] = date
+        record["duration"] = duration
+        record["status"] = status.rawValue
         
         return record
     }
     
-    init(name: String, description: String, points: Int, type: String, isCompleted: Bool = false) {
-        self.name = name
-        self.description = description
-        self.points = points
-        self.type = type
-        self.status = isCompleted
+    init(register: Register) {
+        self.kidID = register.kid.id
+        self.activityID = register.activity.id
+        self.date = register.date
+        self.duration = register.duration
+        self.status = register.registerStatus
     }
     
     init?(record: CKRecord) {
-        guard let name = record["activityName"] as? String,
-              let description = record["activityDescription"] as? String,
-              let points = record["activityPoints"] as? Int,
-              let type = record["type"] as? String else {
-            return nil
+        guard
+            let kidIDString = record["kidID"] as? String,
+            let kidID = UUID(uuidString: kidIDString),
+            let activityIDString = record["activityID"] as? String,
+            let activityID = UUID(uuidString: activityIDString),
+            let date = record["date"] as? Date,
+            let duration = record["duration"] as? TimeInterval,
+            let statusRawValue = record["status"] as? Int,
+            let status = RegisterStatus(rawValue: statusRawValue) else {
+                return nil
         }
         
         self.id = record.recordID
-        self.name = name
-        self.description = description
-        self.points = points
-        self.type = type
-        self.status = record["isCompleted"] as? Bool ?? false
-        self.shareReference = record.share
+        self.kidID = kidID
+        self.activityID = activityID
+        self.date = date
+        self.duration = duration
+        self.status = status
+        self.shareReference = record["shareReference"] as? CKRecord.Reference
     }
 }
