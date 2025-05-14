@@ -30,14 +30,29 @@ struct Register: Identifiable {
     }
 }
 
-enum RegisterStatus {
-    case notStarted
-    case inProgress
-    case completed
+//enum RegisterStatus {
+//    case notStarted
+//    case inProgress
+//    case completed
+//    
+//    var color: Color {
+//        switch self {
+//            //Provisionally
+//            case .notStarted: return .green.opacity(0.3)
+//            case .inProgress: return .yellow
+//            case .completed: return .gray.opacity(0.3)
+//        }
+//    }
+//}
+
+// @ Alterado para integrar o CloudKit
+enum RegisterStatus: Int {
+    case notStarted = 0
+    case inProgress = 1
+    case completed = 2
     
     var color: Color {
         switch self {
-            //Provisionally
             case .notStarted: return .green.opacity(0.3)
             case .inProgress: return .yellow
             case .completed: return .gray.opacity(0.3)
