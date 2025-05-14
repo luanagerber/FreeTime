@@ -28,7 +28,7 @@ struct GenitorCardView: View {
         .padding(22)
         .frame(width: 350, height: 161, alignment: .bottomLeading)
         .background(Color(.systemGray6))
-        .cornerRadius(Contants.UI.cardCornerRadius)
+        .cornerRadius(Constants.UI.cardCornerRadius)
     }
     
     private func timeRange(from startDate: Date, duration: TimeInterval) -> String {
