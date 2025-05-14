@@ -10,5 +10,4 @@ import Foundation
 struct Kid {
     let id = UUID()
     let name: String
-    let parentID: UUID
 }

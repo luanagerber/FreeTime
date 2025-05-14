@@ -10,7 +10,7 @@ import Foundation
 extension Record {
     static let samples: [Record] = [
         Record(
-            child: Kid(name: "Fulana", parentID: UUID()),
+            child: Kid(name: "Fulana"),
             parent: Genitor(name: "Ciclana", childrenID: UUID()),
             activity: ActivityCloudkit.samples[0],
             date: Date(), // agora
@@ -18,7 +18,7 @@ extension Record {
             recordStatus: .notStarted
         ),
         Record(
-            child: Kid(name: "Caquita", parentID: UUID()),
+            child: Kid(name: "Caquita"),
             parent: Genitor(name: "Bolinha", childrenID: UUID()),
             activity: ActivityCloudkit.samples[1],
             date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
@@ -26,7 +26,7 @@ extension Record {
             recordStatus: .notStarted
         ),
         Record(
-            child: Kid(name: "Thom", parentID: UUID()),
+            child: Kid(name: "Thom"),
             parent: Genitor(name: "Marcos", childrenID: UUID()),
             activity: ActivityCloudkit.samples[1],
             date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
