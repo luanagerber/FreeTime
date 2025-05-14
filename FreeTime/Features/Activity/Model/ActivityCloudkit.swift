@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 
-struct Activity: Identifiable {
+struct ActivityCloudkit: Identifiable {
     let id = UUID()
     let name: String
     var tags: [Tag]
