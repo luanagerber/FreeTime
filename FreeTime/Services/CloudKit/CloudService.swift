@@ -110,6 +110,7 @@ final class CloudService {
     }
     
     // MARK: - Kid Operations
+    // @ Tete, alterei essas funções pra elas se adequarem a organização do código do projeto, com KidRecord no lugar de Kid.
     
     func createKid(_ kid: KidRecord, completion: @escaping (Result<KidRecord, CloudError>) -> Void) async throws {
         // Ensure the Kids zone exists
