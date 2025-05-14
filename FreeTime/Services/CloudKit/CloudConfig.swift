@@ -17,6 +17,8 @@ enum CloudConfig {
 
 enum RecordType: String {
     case kid = "Kid"
+    case activity = "ScheduledActivity"
+
 }
 
 enum CloudError: Error {
