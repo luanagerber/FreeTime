@@ -65,6 +65,6 @@ struct WeekdayPickerView: View {
 }
 
 #Preview {
-    WeekdayPickerView(daysDisplayedOnCalendar: 14)
+    WeekdayPickerView(daysDisplayedOnCalendar: 30)
     
 }
