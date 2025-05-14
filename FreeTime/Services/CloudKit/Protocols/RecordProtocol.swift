@@ -59,7 +59,7 @@ struct ScheduledActivityRecord: RecordProtocol {
     var description: String
     var points: Int
     var type: String
-    var isCompleted: Bool
+    var status: Bool
     var shareReference: CKRecord.Reference?
     
     var record: CKRecord? {
@@ -71,7 +71,7 @@ struct ScheduledActivityRecord: RecordProtocol {
         newRecord["activityDescription"] = description
         newRecord["activityPoints"] = points
         newRecord["type"] = type
-        newRecord["isCompleted"] = isCompleted
+        newRecord["status"] = status
         
         return newRecord
     }
@@ -84,7 +84,7 @@ struct ScheduledActivityRecord: RecordProtocol {
         record["activityDescription"] = description
         record["activityPoints"] = points
         record["type"] = type
-        record["isCompleted"] = isCompleted
+        record["status"] = status
         
         return record
     }
@@ -94,7 +94,7 @@ struct ScheduledActivityRecord: RecordProtocol {
         self.description = description
         self.points = points
         self.type = type
-        self.isCompleted = isCompleted
+        self.status = isCompleted
     }
     
     init?(record: CKRecord) {
@@ -110,7 +110,7 @@ struct ScheduledActivityRecord: RecordProtocol {
         self.description = description
         self.points = points
         self.type = type
-        self.isCompleted = record["isCompleted"] as? Bool ?? false
+        self.status = record["isCompleted"] as? Bool ?? false
         self.shareReference = record.share
     }
 }
