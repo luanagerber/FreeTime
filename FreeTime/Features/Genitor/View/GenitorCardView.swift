@@ -16,7 +16,7 @@ struct GenitorCardView: View {
                 Text(record.activity.name)
                     .font(.body)
                     .fontWeight(.medium)
-                Text(timeRange(from: record.date, duration: record.duration))
+                Text(record.date.timeRange(duration: record.duration))
                     .font(.body)
                     .fontWeight(.regular)
             }
@@ -31,12 +31,6 @@ struct GenitorCardView: View {
         .cornerRadius(Constants.UI.cardCornerRadius)
     }
     
-    private func timeRange(from startDate: Date, duration: TimeInterval) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        let endDate = startDate.addingTimeInterval(duration)
-        return "\(formatter.string(from: startDate)) - \(formatter.string(from: endDate))"
-    }
 }
 
 #Preview {

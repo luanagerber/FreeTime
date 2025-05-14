@@ -13,4 +13,11 @@ extension Date {
         let date = self.formatted(.dateTime.day().month(.wide).locale(locale))
         return "\(weekday) | \(date)"
     }
+    
+    func timeRange(duration: TimeInterval, format: String = "HH:mm") -> String {
+            let formatter = DateFormatter()
+            formatter.dateFormat = format
+            let endDate = self.addingTimeInterval(duration)
+            return "\(formatter.string(from: self)) - \(formatter.string(from: endDate))"
+        }
 }

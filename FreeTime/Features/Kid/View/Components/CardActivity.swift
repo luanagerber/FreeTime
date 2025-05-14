@@ -33,7 +33,7 @@ struct CardActivity: View {
                                     Text(record.activity.name)
                                         .font(.system(size: 22, weight: .medium))
                                     
-                                    Text(timeRange(from: record.date, duration: record.duration))
+                                    Text(record.date.timeRange(duration: record.duration))
                                         .font(.system(size: 17, weight: .medium))
                                     
                                 }
@@ -45,13 +45,6 @@ struct CardActivity: View {
                     
                 )
         }.cornerRadius(20)
-    }
-    
-    private func timeRange(from startDate: Date, duration: TimeInterval) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        let endDate = startDate.addingTimeInterval(duration)
-        return "\(formatter.string(from: startDate)) - \(formatter.string(from: endDate))"
     }
 }
 

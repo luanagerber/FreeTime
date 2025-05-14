@@ -10,18 +10,20 @@ import SwiftUI
 struct KidView: View {
     @StateObject private var kidViewModel = KidViewModel()
     
+    //Testing with mocked-up data
+    let kidExemple : Kid = Record.sample1.kid
     let kidId: UUID = Record.sample1.kid.id
+    //
     
     var body: some View {
         VStack(spacing: 32) {
-            Rectangle()
-                .fill(.gray)
-                .frame(maxWidth: .infinity, maxHeight: 126)
-                .cornerRadius(20)
+            
+            Section {
+                SectionProfile(kid: kidExemple)
+            }
             
             VStack(alignment: .leading, spacing: 32) {
                 headerSection
-                
                 activitySection(
                     title: "Para fazer",
                     records: kidViewModel.notStartedRecords(kidId: kidId),
