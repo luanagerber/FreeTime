@@ -7,22 +7,26 @@
 
 import SwiftUI
 
-struct ChildView: View {
-    //Testing the View with the mocked-up data
-    let childId: UUID = Record.sample1.child.id
+struct KidView: View {
     
-    //Asks to select all the records associated with the child's ID
-    private var childRecords: [Record] {
-        Record.samples.filter { $0.child.id == childId }
+    @StateObject private var kidViewModel = ParentViewModel()
+    
+    //Testing the View with the mocked-up data
+    let kidId: UUID = Record.sample1.child.id
+    
+    //Select the activities assigned to the child for today and organize them by hours.
+    private var kidRecords : [Record] {
+        kidViewModel.records.filter { $0.child.id == kidId && Calendar.current.isDate($0.date, inSameDayAs: Date())}
+        .sorted { $0.date < $1.date }
     }
     
     //Separate activities into pending and completed
     private var notStartedRecords: [Record] {
-        childRecords.filter { $0.recordStatus == .notStarted }
+        kidRecords.filter { $0.recordStatus == .notStarted }
     }
     
     private var completedRecords: [Record] {
-        childRecords.filter { $0.recordStatus == .completed }
+        kidRecords.filter { $0.recordStatus == .completed }
     }
     
     var body: some View {
@@ -37,7 +41,7 @@ struct ChildView: View {
                 activitySection(
                     title: "Para fazer",
                     records: notStartedRecords,
-                    emptyMessage: "Não há atividades atribuídas a serem realizadas."
+                    emptyMessage: "Não há atividades a serem realizadas hoje."
                 )
                 if !completedRecords.isEmpty {
                     activitySection(
@@ -61,13 +65,13 @@ struct ChildView: View {
                 .font(.system(size: 22))
         }
     }
+    
     private func activitySection(title: String, records: [Record], emptyMessage: String) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(title)
                 .font(.system(size: 28, weight: .medium))
             
             if records.isEmpty {
-                //Message for when there are no records in that section
                 Text(emptyMessage)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -88,12 +92,13 @@ struct ChildView: View {
 extension Date {
     func formattedDayTitle(locale: Locale = Locale(identifier: "pt_BR")) -> String {
         let weekday = self.formatted(.dateTime.weekday(.wide).locale(locale)).capitalized
-        let date = self.formatted(.dateTime.day().month(.wide).year().locale(locale))
+        let date = self.formatted(.dateTime.day().month(.wide).locale(locale))
         return "\(weekday) | \(date)"
     }
 }
 
-//Preview
+
+
 #Preview {
-    ChildView()
+    KidView()
 }
