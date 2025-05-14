@@ -22,10 +22,11 @@ struct WeekdayPickerView: View {
             Text(date.formatted(.dateTime.weekday(.short)))
             Text(date.formatted(.dateTime.day()))
         }
-        .padding(10)
+        .frame(width: 25, height: 50)
+        //.padding(5)
         .background(date == selectedDate ? .green : .black)
         .opacity(0.9)
-        .clipShape(.capsule(style: .continuous))
+        //.clipShape(.capsule(style: .continuous))
         
         
         .foregroundColor(.white)
@@ -43,14 +44,12 @@ struct WeekdayPickerView: View {
                         }) {
                             
                            dayWeekCircleView(date: date, selectedDate: selectedDate)
-                                .containerRelativeFrame(.horizontal, count: 7, spacing: 10)
-                            
-                        }
+                                .containerRelativeFrame(.horizontal, count: 7, spacing: 3)                        }
                     }
                 }
                 .scrollTargetLayout()
             }
-            .contentMargins(16, for: .scrollIndicators)
+            //.contentMargins(300, for: .scrollIndicators)
             .scrollTargetBehavior(.paging)
             
             
