@@ -9,7 +9,7 @@ import SwiftUI
 
 struct KidView: View {
     
-    @StateObject private var kidViewModel = ParentViewModel()
+    @StateObject private var kidViewModel = KidViewModel()
     
     //Testing the View with the mocked-up data
     let kidId: UUID = Record.sample1.child.id
