@@ -11,8 +11,8 @@ struct KidView: View {
     @StateObject private var kidViewModel = KidViewModel()
     
     //Testing with mocked-up data
-    let kidExemple : Kid = Record.sample1.kid
-    let kidId: UUID = Record.sample1.kid.id
+    let kidExemple : Kid = Register.sample1.kid
+    let kidId: UUID = Register.sample1.kid.id
     //
     
     var body: some View {

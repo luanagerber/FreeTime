@@ -51,5 +51,5 @@ struct SectionProfile: View {
 }
 
 #Preview {
-    SectionProfile(kid: Record.sample1.kid)
+    SectionProfile(kid: Register.sample1.kid)
 }
