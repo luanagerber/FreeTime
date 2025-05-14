@@ -7,35 +7,35 @@
 
 import Foundation
 
-extension Record {
-    static let samples: [Record] = [
-        Record(
+extension Register {
+    static let samples: [Register] = [
+        Register(
             kid: Kid(name: "Fulana"),
-            parent: Genitor(name: "Ciclana", kidsID: UUID()),
-            activity: ActivityCloudkit.samples[0],
+            genitor: Genitor(name: "Ciclana", kidsID: UUID()),
+            activity: Activity.samples[0],
             date: Date(), // agora
             duration: 3600, // 1 hora
-            recordStatus: .notStarted
+            registerStatus: .notStarted
         ),
-        Record(
+        Register(
             kid: Kid(name: "Caquita"),
-            parent: Genitor(name: "Bolinha", kidsID: UUID()),
-            activity: ActivityCloudkit.samples[1],
+            genitor: Genitor(name: "Bolinha", kidsID: UUID()),
+            activity: Activity.samples[1],
             date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
             duration: 5400, // 1h30min
-            recordStatus: .notStarted
+            registerStatus: .notStarted
         ),
-        Record(
+        Register(
             kid: Kid(name: "Thom"),
-            parent: Genitor(name: "Marcos", kidsID: UUID()),
-            activity: ActivityCloudkit.samples[1],
+            genitor: Genitor(name: "Marcos", kidsID: UUID()),
+            activity: Activity.samples[1],
             date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
             duration: 5400, // 1h30min
-            recordStatus: .completed
+            registerStatus: .completed
         )
     ]
     
-    static let sample1: Record = .samples[0]
-    static let sample2: Record = .samples[1]
-    static let sample3: Record = .samples[2]
+    static let sample1: Register = .samples[0]
+    static let sample2: Register = .samples[1]
+    static let sample3: Register = .samples[2]
 }

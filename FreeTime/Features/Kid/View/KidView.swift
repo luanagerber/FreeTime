@@ -54,7 +54,7 @@ struct KidView: View {
         }
     }
     
-    private func activitySection(title: String, records: [Record], emptyMessage: String) -> some View {
+    private func activitySection(title: String, records: [Register], emptyMessage: String) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(title)
                 .font(.system(size: 28, weight: .medium))

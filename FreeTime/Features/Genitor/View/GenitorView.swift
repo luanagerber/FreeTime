@@ -27,7 +27,7 @@ struct GenitorView: View {
                         
                     
                 } else {
-                    ForEach(viewModel.records.filter({$0.recordStatus == .notStarted})) { record in
+                    ForEach(viewModel.records.filter({$0.registerStatus == .notStarted})) { record in
                         GenitorCardView(record: record)
                     }
                 }
@@ -42,13 +42,13 @@ struct GenitorView: View {
                 .padding(.horizontal)
             
             LazyVStack(alignment: .center, spacing: 20) {
-                if viewModel.records.filter({$0.recordStatus == .completed}).isEmpty {
+                if viewModel.records.filter({$0.registerStatus == .completed}).isEmpty {
                     Text("Nada foi concluído hoje ainda. Que tal checar com seu filho?")
                         .padding(.horizontal)
                         .font(.subheadline)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    ForEach(viewModel.records.filter({$0.recordStatus == .completed})) { record in
+                    ForEach(viewModel.records.filter({$0.registerStatus == .completed})) { record in
                         GenitorCardView(record: record)
                     }
                 }

@@ -9,21 +9,21 @@ import Foundation
 import SwiftUI
 
 class KidViewModel: ObservableObject {
-    @Published var records: [Record] = Record.samples
+    @Published var records: [Register] = Register.samples
     
-    func recordsForToday(kidId: UUID) -> [Record] {
+    func recordsForToday(kidId: UUID) -> [Register] {
         records
             .filter { $0.kid.id == kidId && Calendar.current.isDate($0.date, inSameDayAs: Date()) }
             .sorted { $0.date < $1.date }
     }
     
-    func notStartedRecords(kidId: UUID) -> [Record] {
+    func notStartedRecords(kidId: UUID) -> [Register] {
         recordsForToday(kidId: kidId)
-            .filter { $0.recordStatus == .notStarted }
+            .filter { $0.registerStatus == .notStarted }
     }
     
-    func completedRecords(kidId: UUID) -> [Record] {
+    func completedRecords(kidId: UUID) -> [Register] {
         recordsForToday(kidId: kidId)
-            .filter { $0.recordStatus == .completed }
+            .filter { $0.registerStatus == .completed }
     }
 }

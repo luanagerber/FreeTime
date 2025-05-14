@@ -7,9 +7,9 @@
 
 import SwiftUI
 
-class RecordViewModel: ObservableObject {
+class RegisterViewModel: ObservableObject {
     
-    @Published var records: [Record] = []
+    @Published var records: [Register] = []
     
     init() {
         self.records = [.sample1, .sample2, .sample1, .sample2]
