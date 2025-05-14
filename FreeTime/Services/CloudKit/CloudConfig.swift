@@ -9,7 +9,11 @@ import CloudKit
 
 enum CloudConfig {
     static let containerIndentifier = "iCloud.challenge12.FreeTime"
-    static let recordZone: CKRecordZone = CKRecordZone(zoneName: "Kids")
+
+    static func createCustomZone(withName name: String) -> CKRecordZone {
+        return CKRecordZone(zoneName: name)
+    }
+    
     case privateDB
     case publicDB
     case sharedDB
@@ -18,6 +22,7 @@ enum CloudConfig {
 enum RecordType: String {
     case kid = "Kid"
     case activity = "ScheduledActivity"
+    //Tete, coloquei ScheduledActivity no singular
 
 }
 

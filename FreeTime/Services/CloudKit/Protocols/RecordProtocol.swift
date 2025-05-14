@@ -13,45 +13,46 @@ protocol RecordProtocol {
     init?(record: CKRecord)
 }
 
-struct KidRecord: RecordProtocol, Identifiable {
+// @Tete, Kid virou KidRecord
+struct KidRecord: RecordProtocol {
     var id: CKRecord.ID?
     var name: String
     var shareReference: CKRecord.Reference?
     
-    init?(record: CKRecord) {
-        guard record.recordType == RecordType.kid.rawValue,
-              let kidName = record["kidName"] as? String else {
-            return nil
-        }
+    var record: CKRecord? {
+        guard id == nil else { return nil }
         
-        self.id = record.recordID
-        self.name = kidName
-        self.shareReference = record["shareReference"] as? CKRecord.Reference
+        let newRecord = CKRecord(recordType: RecordType.kid.rawValue)
+        newRecord["kidName"] = name
+        
+        return newRecord
+    }
+    
+    var associatedRecord: CKRecord? {
+        guard let recordID = id else { return nil }
+        
+        let record = CKRecord(recordType: RecordType.kid.rawValue, recordID: recordID)
+        record["kidName"] = name
+        
+        return record
     }
     
     init(name: String) {
         self.name = name
     }
     
-    var record: CKRecord? {
-        guard id == nil else { return nil }
-        
-        let newRecord = CKRecord(recordType: RecordType.kid.rawValue, zoneID: CloudConfig.recordZone.zoneID)
-        newRecord["kidName"] = name
-        
-        if let shareReference = shareReference {
-            newRecord["shareReference"] = shareReference
+    init?(record: CKRecord) {
+        guard let name = record["kidName"] as? String else {
+            return nil
         }
         
-        return newRecord
-    }
-    
-    var associatedRecord: CKRecord? {
-        return nil
+        self.id = record.recordID
+        self.name = name
+        self.shareReference = record.share
     }
 }
 
-
+// @Tete, Activity virou ScheduledActivityRecord
 struct ScheduledActivityRecord: RecordProtocol {
     var id: CKRecord.ID?
     var name: String
