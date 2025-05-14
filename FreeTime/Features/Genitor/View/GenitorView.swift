@@ -7,8 +7,8 @@
 
 import SwiftUI
 
-struct ParentView: View {
-    @StateObject private var viewModel = ParentViewModel()
+struct GenitorView: View {
+    @StateObject private var viewModel = GenitorViewModel()
     
     var body: some View {
         ScrollView {
@@ -28,7 +28,7 @@ struct ParentView: View {
                     
                 } else {
                     ForEach(viewModel.records.filter({$0.recordStatus == .notStarted})) { record in
-                        ParentCardView(record: record)
+                        GenitorCardView(record: record)
                     }
                 }
             }
@@ -49,7 +49,7 @@ struct ParentView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ForEach(viewModel.records.filter({$0.recordStatus == .completed})) { record in
-                        ParentCardView(record: record)
+                        GenitorCardView(record: record)
                     }
                 }
             }
@@ -58,5 +58,5 @@ struct ParentView: View {
 }
 
 #Preview {
-    ParentView()
+    GenitorView()
 }
