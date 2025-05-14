@@ -9,6 +9,9 @@ import SwiftUI
 
 @main
 struct FreeTimeApp: App {
+    
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     var body: some Scene {
         WindowGroup {
             switch UIDevice.current.userInterfaceIdiom {
