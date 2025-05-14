@@ -8,6 +8,6 @@
 import Foundation
 import SwiftUI
 
-class ParentViewModel: ObservableObject {
+class GenitorViewModel: ObservableObject {
     @Published var records: [Record] = Record.samples 
 }
