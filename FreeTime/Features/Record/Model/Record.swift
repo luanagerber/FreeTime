@@ -11,7 +11,7 @@ import SwiftUI
 struct Record: Identifiable {
     var id: UUID
     let child: Kid
-    let parent: Parent
+    let parent: Genitor
     let activity: Activity
     let date: Date
     let duration: TimeInterval
@@ -19,7 +19,7 @@ struct Record: Identifiable {
     // States
     var recordStatus: RecordState
 
-    init (child: Kid, parent: Parent,activity: Activity, date: Date, duration: TimeInterval, recordStatus: RecordState) {
+    init (child: Kid, parent: Genitor,activity: Activity, date: Date, duration: TimeInterval, recordStatus: RecordState) {
         self.id = UUID()
         self.child = child
         self.parent = parent

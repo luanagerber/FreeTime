@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct ParentCardView: View {
+struct GenitorCardView: View {
     let record: Record
     
     var body: some View {
@@ -40,5 +40,5 @@ struct ParentCardView: View {
 }
 
 #Preview {
-    ParentCardView(record: Record.sample1)
+    GenitorCardView(record: Record.sample1)
 }
