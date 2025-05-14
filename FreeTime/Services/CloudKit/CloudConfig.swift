@@ -27,7 +27,7 @@ enum CloudError: Error {
     case couldNotShareRecord
     case couldNotFetch(Error)
     case decodeError
-    case childNotCreated
+    case kidNotCreated
     case activityNotCreated
     case couldNotDelete(Error)
 

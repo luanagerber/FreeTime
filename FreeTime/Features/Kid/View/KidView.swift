@@ -1,5 +1,5 @@
 //
-//  ChildView.swift
+//  KidView.swift
 //  FreeTime
 //
 //  Created by Luana Gerber on 05/05/25.
@@ -8,26 +8,9 @@
 import SwiftUI
 
 struct KidView: View {
-    
     @StateObject private var kidViewModel = KidViewModel()
     
-    //Testing the View with the mocked-up data
-    let kidId: UUID = Record.sample1.child.id
-    
-    //Select the activities assigned to the child for today and organize them by hours.
-    private var kidRecords : [Record] {
-        kidViewModel.records.filter { $0.child.id == kidId && Calendar.current.isDate($0.date, inSameDayAs: Date())}
-        .sorted { $0.date < $1.date }
-    }
-    
-    //Separate activities into pending and completed
-    private var notStartedRecords: [Record] {
-        kidRecords.filter { $0.recordStatus == .notStarted }
-    }
-    
-    private var completedRecords: [Record] {
-        kidRecords.filter { $0.recordStatus == .completed }
-    }
+    let kidId: UUID = Record.sample1.kid.id
     
     var body: some View {
         VStack(spacing: 32) {
@@ -38,15 +21,18 @@ struct KidView: View {
             
             VStack(alignment: .leading, spacing: 32) {
                 headerSection
+                
                 activitySection(
                     title: "Para fazer",
-                    records: notStartedRecords,
+                    records: kidViewModel.notStartedRecords(kidId: kidId),
                     emptyMessage: "Não há atividades a serem realizadas hoje."
                 )
-                if !completedRecords.isEmpty {
+                
+                let completed = kidViewModel.completedRecords(kidId: kidId)
+                if !completed.isEmpty {
                     activitySection(
                         title: "Feito",
-                        records: completedRecords,
+                        records: completed,
                         emptyMessage: ""
                     )
                 }
@@ -88,16 +74,6 @@ struct KidView: View {
         .frame(maxWidth: .infinity, minHeight: 250, alignment: .top)
     }
 }
-
-extension Date {
-    func formattedDayTitle(locale: Locale = Locale(identifier: "pt_BR")) -> String {
-        let weekday = self.formatted(.dateTime.weekday(.wide).locale(locale)).capitalized
-        let date = self.formatted(.dateTime.day().month(.wide).locale(locale))
-        return "\(weekday) | \(date)"
-    }
-}
-
-
 
 #Preview {
     KidView()

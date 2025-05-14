@@ -10,5 +10,5 @@ import Foundation
 struct Genitor {
     let id = UUID()
     let name: String
-    var childrenID: UUID
+    var kidsID: UUID
 }

@@ -1,5 +1,5 @@
 //
-//  Child.swift
+//  Kid.swift
 //  FreeTime
 //
 //  Created by Pedro Larry Rodrigues Lopes on 06/05/25.
