@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct GenitorCardView: View {
-    let record: Record
+    let record: Register
     
     var body: some View {
         HStack {
@@ -40,5 +40,5 @@ struct GenitorCardView: View {
 }
 
 #Preview {
-    GenitorCardView(record: Record.sample1)
+    GenitorCardView(record: Register.sample1)
 }

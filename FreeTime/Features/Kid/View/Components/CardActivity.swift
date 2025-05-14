@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct CardActivity: View {
-    var record: Record
+    var record: Register
     
     var body: some View {
         VStack{
@@ -21,7 +21,7 @@ struct CardActivity: View {
                         
                         //Image of the Planned Activity
                         Rectangle()
-                            .fill(record.recordStatus.color)
+                            .fill(record.registerStatus.color)
                         
                         Rectangle()
                             .fill(.gray)

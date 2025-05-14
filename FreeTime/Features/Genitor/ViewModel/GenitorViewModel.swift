@@ -9,5 +9,5 @@ import Foundation
 import SwiftUI
 
 class GenitorViewModel: ObservableObject {
-    @Published var records: [Record] = Record.samples 
+    @Published var records: [Register] = Register.samples 
 }
