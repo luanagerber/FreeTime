@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct ChildView: View {
+struct KidView: View {
     //testing a view with the mocked-up data
     let childId: UUID =  Record.sample2.child.id
     
@@ -64,5 +64,5 @@ func records(for childID: UUID, from records: [Record]) -> [Record] {
 }
 
 #Preview {
-    ChildView()
+    KidView()
 }
