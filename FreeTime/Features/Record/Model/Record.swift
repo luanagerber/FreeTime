@@ -12,14 +12,14 @@ struct Record: Identifiable {
     var id: UUID
     let child: Kid
     let parent: Genitor
-    let activity: Activity
+    let activity: ActivityCloudkit
     let date: Date
     let duration: TimeInterval
     
     // States
     var recordStatus: RecordState
 
-    init (child: Kid, parent: Genitor,activity: Activity, date: Date, duration: TimeInterval, recordStatus: RecordState) {
+    init (child: Kid, parent: Genitor,activity: ActivityCloudkit, date: Date, duration: TimeInterval, recordStatus: RecordState) {
         self.id = UUID()
         self.child = child
         self.parent = parent

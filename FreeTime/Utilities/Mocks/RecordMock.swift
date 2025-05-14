@@ -12,7 +12,7 @@ extension Record {
         Record(
             child: Kid(name: "Fulana", parentID: UUID()),
             parent: Genitor(name: "Ciclana", childrenID: UUID()),
-            activity: Activity.samples[0],
+            activity: ActivityCloudkit.samples[0],
             date: Date(), // agora
             duration: 3600, // 1 hora
             recordStatus: .notStarted
@@ -20,7 +20,7 @@ extension Record {
         Record(
             child: Kid(name: "Caquita", parentID: UUID()),
             parent: Genitor(name: "Bolinha", childrenID: UUID()),
-            activity: Activity.samples[1],
+            activity: ActivityCloudkit.samples[1],
             date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
             duration: 5400, // 1h30min
             recordStatus: .notStarted
@@ -28,7 +28,7 @@ extension Record {
         Record(
             child: Kid(name: "Thom", parentID: UUID()),
             parent: Genitor(name: "Marcos", childrenID: UUID()),
-            activity: Activity.samples[1],
+            activity: ActivityCloudkit.samples[1],
             date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
             duration: 5400, // 1h30min
             recordStatus: .completed
