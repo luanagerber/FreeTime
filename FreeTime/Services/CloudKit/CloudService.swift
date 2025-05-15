@@ -167,7 +167,7 @@ final class CloudService {
 //    }
     
     // MARK: - Shared Content Handling
-
+    // @ Tete, essas funções são novas, usam apenas a zona Kids
     func acceptSharedKid(shareMetadata: CKShare.Metadata, completion: @escaping (Result<KidRecord, CloudError>) -> Void) {
         let container = CKContainer(identifier: CloudConfig.containerIndentifier)
         
@@ -211,6 +211,16 @@ final class CloudService {
     }
     
     // MARK: - Activity Operations
+    // @ Tete, essas funções são novas, usam apenas a zona Kids e usam a KidId como chave de referência.
+    
+    //    Complete Flow:
+    //    1. When you create a KidRecord, it gets a unique UUID
+    //    2. When you create activities for that kid, you set the kidID field to the kid's UUID
+    //    3. When you share the KidRecord with another user:
+    //    3.1. They receive access to the kid's data
+    //    3.2. They can fetch all activities with the matching kidID
+    //    3.3. They can add, update, or delete activities linked to that kid
+    
 
     func createActivity(_ activity: ScheduledActivityRecord, completion: @escaping (Result<ScheduledActivityRecord, CloudError>) -> Void) async throws {
         // Ensure the Kids zone exists
