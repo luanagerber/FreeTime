@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct GenitorView: View {
-    @StateObject private var viewModel = GenitorViewModel()
+    @StateObject private var viewModel = GenitorViewModel.shared
     
     var body: some View {
         ScrollView {
