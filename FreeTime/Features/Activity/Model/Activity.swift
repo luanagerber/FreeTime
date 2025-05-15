@@ -14,6 +14,7 @@ struct Activity: Identifiable {
     var tags: [Tag]
     var description: String
     var necessaryMaterials: [String]
+    var rewardPoints: Int
 }
 
 enum Tag {

@@ -11,6 +11,7 @@ struct RewardsStoreView: View {
     
     @ObservedObject var store: RewardsStore
     @State var showInsufficientCoinsAlert: Bool = false
+    @EnvironmentObject var coordinator: Coordinator
     
     // Duas colunas iguais
     let columns = [
@@ -19,26 +20,45 @@ struct RewardsStoreView: View {
     ]
     
     var body: some View {
-        VStack {
-            ScrollView {
-                HStack {
-                    KidMiniProfileView(name: store.kid.name)
-                    coinsView
-                }
-                LazyVGrid(columns: columns, spacing: 16) {
-                    ForEach(store.rewards) { reward in
-                        rewardView(reward)
+        ZStack {
+            //Color.white.ignoresSafeArea(.all)
+            VStack {
+                ScrollView(.vertical){
+                    HStack {
+                        KidMiniProfileView(name: store.kid.name)
+                        CoinsView(amount: store.kid.coins, opacity: 0.2)
                     }
+                    
+                    LazyVGrid(columns: columns, spacing: 16) {
+                        ForEach(store.rewards) { reward in
+                            rewardView(reward)
+                        }
+                    }
+                    .padding()
                 }
-                .padding()
+                HStack {
+                    collectedRewards
+                    addCoinsButtonTest
+                }
             }
+        }
+    }
+    
+    private var addCoinsButtonTest: some View {
+        Button {
+            store.kid.addCoins(100000)
+        } label: {
             
-            Button {
-                // Direcionar pra tela de resgatadas
-            } label: {
-                Text("Tela de resgatadas")
-            }
-
+            Text("Tela de resgatadas")
+                .foregroundStyle(.white)
+                .background(Color.yellow)
+        }
+    }
+    private var collectedRewards: some View {
+        Button {
+            coordinator.push(.collectedRewards)
+        } label: {
+            Text("Tela de resgatadas")
         }
     }
     
@@ -57,23 +77,28 @@ struct RewardsStoreView: View {
         } message: {
             Text("Você precisa de mais moedas para comprar este item.")
         }
+        .buttonStyle(.automatic)
         
     }
+}
+
+struct CoinsView : View {
+    let amount: Int
+    let opacity: Double
     
-    private var coinsView: some View {
+    var body: some View {
         HStack(spacing: 4) {
             Image(systemName: "bitcoinsign.circle.fill")
                 .foregroundColor(.yellow)
                 .imageScale(.large)
-            Text("\(store.kid.coins)")
+            Text("\(amount)")
                 .font(.headline)
                 .foregroundColor(.primary)
         }
-        .padding(8)
-        .background(Color.yellow.opacity(0.2))
+        .padding(2)
+        .background(Color.yellow.opacity(opacity))
         .cornerRadius(10)
     }
-    
 }
 
 struct RewardCardView: View {
@@ -87,17 +112,15 @@ struct RewardCardView: View {
             Text(reward.name)
                 .font(.headline)
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.black)
-            
-            Text("\(reward.cost) pontos")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.white)
+            CoinsView(amount: reward.cost, opacity: 0.4)
         }
         .frame(maxWidth: .infinity)
         .padding()
         .background(Color(.systemGray6))
         .cornerRadius(12)
         .shadow(radius: 2)
+        
     }
 }
 

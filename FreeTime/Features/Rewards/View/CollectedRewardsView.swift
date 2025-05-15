@@ -12,12 +12,14 @@ struct CollectedRewardsView: View {
     @StateObject var store: RewardsStore
     
     var body: some View {
-        collectedRewardsList
+        ScrollView(.vertical){
+            collectedRewardsList
+        }
     }
     
     @ViewBuilder
     private var collectedRewardsList: some View {
-        ForEach(store.collectedRewards, id: \.id){ collectedReward in
+        ForEach(store.kid.collectedRewards, id: \.id){ collectedReward in
             CollectedRewardView(collected: collectedReward)
         }
     }
