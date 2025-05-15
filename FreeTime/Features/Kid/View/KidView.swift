@@ -7,7 +7,7 @@
 import SwiftUI
 
 struct KidView: View {
-
+    
     @StateObject private var kidViewModel = KidViewModel()
     
     //Testing with mocked-up data
@@ -75,6 +75,7 @@ struct KidView: View {
         }
         .frame(maxWidth: .infinity, minHeight: 250, alignment: .top)
     }
+}
 
 #Preview {
     KidView()
