@@ -18,6 +18,8 @@ final class CloudService {
         checkCloudStatus()
     }
     
+    // MARK: - Cloud Status
+
     private func checkCloudStatus() {
         CKContainer(identifier: CloudConfig.containerIndentifier).accountStatus { (status, error) in
             if let error = error {
@@ -81,33 +83,7 @@ final class CloudService {
             return nil
         }
     }
-    
-    
-    // MARK: - Utility Methods
-    
-    func checkSharingStatus(completion: @escaping (Bool) -> Void) {
-        CKContainer(identifier: CloudConfig.containerIndentifier).accountStatus { status, error in
-            if let error = error {
-                print("Error checking iCloud status: \(error.localizedDescription)")
-                completion(false)
-                return
-            }
-            
-            completion(status == .available)
-        }
-    }
-    
-    func acceptSharing(shareMetadata: CKShare.Metadata, completion: @escaping (Bool) -> Void) {
-        let container = CKContainer(identifier: CloudConfig.containerIndentifier)
-        container.accept(shareMetadata) { _, error in
-            if let error = error {
-                print("Error accepting share: \(error.localizedDescription)")
-                completion(false)
-                return
-            }
-            completion(true)
-        }
-    }
+
     
     // MARK: - Kid Operations
     // @ Tete, alterei essas funções pra elas se adequarem a organização do código do projeto, com KidRecord no lugar de Kid.
@@ -162,6 +138,183 @@ final class CloudService {
     
     func deleteKidShare(_ kid: KidRecord, completion: @escaping (Result<Void, CloudError>) -> Void) async {
         await client.deleteShare(kid, completion: completion)
+    }
+    
+    // MARK: - Utility Methods
+    
+    func checkSharingStatus(completion: @escaping (Bool) -> Void) {
+        CKContainer(identifier: CloudConfig.containerIndentifier).accountStatus { status, error in
+            if let error = error {
+                print("Error checking iCloud status: \(error.localizedDescription)")
+                completion(false)
+                return
+            }
+            
+            completion(status == .available)
+        }
+    }
+    
+//    func acceptSharing(shareMetadata: CKShare.Metadata, completion: @escaping (Bool) -> Void) {
+//        let container = CKContainer(identifier: CloudConfig.containerIndentifier)
+//        container.accept(shareMetadata) { _, error in
+//            if let error = error {
+//                print("Error accepting share: \(error.localizedDescription)")
+//                completion(false)
+//                return
+//            }
+//            completion(true)
+//        }
+//    }
+    
+    // MARK: - Shared Content Handling
+
+    func acceptSharedKid(shareMetadata: CKShare.Metadata, completion: @escaping (Result<KidRecord, CloudError>) -> Void) {
+        let container = CKContainer(identifier: CloudConfig.containerIndentifier)
+        
+        container.accept(shareMetadata) { _, error in
+            if let error = error {
+                print("Error accepting share: \(error.localizedDescription)")
+                completion(.failure(.couldNotShareRecord))
+                return
+            }
+            
+            // After accepting the share, fetch the shared kid record
+            Task {
+                do {
+                    let sharedZone = try await self.createZoneIfNeeded(zoneName: "Kids")
+                    
+                    // Create a predicate to find the specific shared record
+                    let predicate = NSPredicate(format: "recordID == %@", shareMetadata.rootRecordID)
+                    
+                    self.client.fetch(
+                        recordType: RecordType.kid.rawValue,
+                        dbType: .sharedDB,
+                        inZone: sharedZone.zoneID,
+                        predicate: predicate
+                    ) { (result: Result<[KidRecord], CloudError>) in
+                        switch result {
+                        case .success(let kids):
+                            if let kid = kids.first {
+                                completion(.success(kid))
+                            } else {
+                                completion(.failure(.recordNotFound))
+                            }
+                        case .failure(let error):
+                            completion(.failure(error))
+                        }
+                    }
+                } catch {
+                    completion(.failure(.couldNotFetch(error as NSError)))
+                }
+            }
+        }
+    }
+    
+    // MARK: - Activity Operations
+
+    func createActivity(_ activity: ScheduledActivityRecord, completion: @escaping (Result<ScheduledActivityRecord, CloudError>) -> Void) async throws {
+        // Ensure the Kids zone exists
+        let kidsZone = try await createZoneIfNeeded(zoneName: "Kids")
+        
+        // Save the activity in the private database
+        client.save(activity, dbType: .privateDB) { result in
+            completion(result)
+        }
+    }
+
+    func fetchActivities(forKid kidID: UUID, completion: @escaping (Result<[ScheduledActivityRecord], CloudError>) -> Void) async throws {
+        // Ensure the Kids zone exists
+        let kidsZone = try await createZoneIfNeeded(zoneName: "Kids")
+        
+        // Create a predicate to filter activities by kidID
+        let predicate = NSPredicate(format: "kidID == %@", kidID.uuidString)
+        
+        client.fetch(
+            recordType: RecordType.activity.rawValue,
+            dbType: .privateDB,
+            inZone: kidsZone.zoneID,
+            predicate: predicate
+        ) { (result: Result<[ScheduledActivityRecord], CloudError>) in
+            completion(result)
+        }
+    }
+
+    func fetchSharedActivities(forKid kidID: UUID, completion: @escaping (Result<[ScheduledActivityRecord], CloudError>) -> Void) async throws {
+        // Ensure the Kids zone exists
+        let kidsZone = try await createZoneIfNeeded(zoneName: "Kids")
+        
+        // Create a predicate to filter activities by kidID
+        let predicate = NSPredicate(format: "kidID == %@", kidID.uuidString)
+        
+        // When fetching shared activities, we use the sharedDB
+        client.fetch(
+            recordType: RecordType.activity.rawValue,
+            dbType: .sharedDB,
+            inZone: kidsZone.zoneID,
+            predicate: predicate
+        ) { (result: Result<[ScheduledActivityRecord], CloudError>) in
+            completion(result)
+        }
+    }
+
+    func updateActivity(_ activity: ScheduledActivityRecord, completion: @escaping (Result<ScheduledActivityRecord, CloudError>) -> Void) {
+        // Determine which database to use based on whether the activity is shared
+        let dbType: CloudConfig = activity.shareReference != nil ? .sharedDB : .privateDB
+        
+        client.modify(activity, dbType: dbType) { result in
+            completion(result)
+        }
+    }
+
+    func deleteActivity(_ activity: ScheduledActivityRecord, completion: @escaping (Result<Bool, CloudError>) -> Void) {
+        // Determine which database to use based on whether the activity is shared
+        let dbType: CloudConfig = activity.shareReference != nil ? .sharedDB : .privateDB
+        
+        client.delete(activity, dbType: dbType) { result in
+            completion(result)
+        }
+    }
+
+    // For fetching all activities (both owned and shared)
+    func fetchAllActivities(forKid kidID: UUID, completion: @escaping (Result<[ScheduledActivityRecord], CloudError>) -> Void) async throws {
+        var allActivities: [ScheduledActivityRecord] = []
+        var fetchError: CloudError? = nil
+        
+        let group = DispatchGroup()
+        
+        // Fetch private activities
+        group.enter()
+        try await fetchActivities(forKid: kidID) { result in
+            switch result {
+            case .success(let activities):
+                allActivities.append(contentsOf: activities)
+            case .failure(let error):
+                fetchError = error
+            }
+            group.leave()
+        }
+        
+        // Fetch shared activities
+        group.enter()
+        try await fetchSharedActivities(forKid: kidID) { result in
+            switch result {
+            case .success(let activities):
+                allActivities.append(contentsOf: activities)
+            case .failure(let error):
+                if fetchError == nil {
+                    fetchError = error
+                }
+            }
+            group.leave()
+        }
+        
+        group.notify(queue: .main) {
+            if let error = fetchError {
+                completion(.failure(error))
+            } else {
+                completion(.success(allActivities))
+            }
+        }
     }
     
 }
