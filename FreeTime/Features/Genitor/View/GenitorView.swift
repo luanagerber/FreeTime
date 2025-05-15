@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct GenitorView: View {
-    @StateObject private var viewModel = GenitorViewModel()
+    @StateObject private var viewModel = GenitorViewModel.shared
     
     var body: some View {
         ScrollView {
@@ -19,7 +19,7 @@ struct GenitorView: View {
                 .padding(.horizontal)
             
             LazyVStack(alignment: .center, spacing: 20) {
-                if viewModel.records.isEmpty {
+                if $viewModel.records.isEmpty {
                     Text("Nenhuma atividade foi planejada ainda. Clique em \"+\" para começar!")
                         .padding(.horizontal)
                         .font(.subheadline)

@@ -9,5 +9,9 @@ import Foundation
 import SwiftUI
 
 class GenitorViewModel: ObservableObject {
-    @Published var records: [Register] = Register.samples 
+    
+    static let shared = GenitorViewModel()
+    
+    @Published var records: [Register] = Register.samples
+    @Published var selectedDate = Date()
 }
