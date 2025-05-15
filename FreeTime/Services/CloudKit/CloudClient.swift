@@ -8,6 +8,8 @@
 import CloudKit
 import SwiftUI
 
+// Removemos a definição de RecordType que estava causando conflito
+
 final class CloudClient: CKClient {
     
     private var container: CKContainer = CKContainer(identifier: CloudConfig.containerIndentifier)
@@ -53,41 +55,60 @@ final class CloudClient: CKClient {
         
     }
     
-    func save<T: RecordProtocol>(_ object: T, dbType: CloudConfig, completion: @escaping (Result<T, CloudError>) -> Void) {
+    func save<T: RecordProtocol>(_ object: T, dbType: CloudConfig, inZone: CKRecordZone.ID, completion: @escaping (Result<T, CloudError>) -> Void) {
         var database: CKDatabase
         
-        guard let record = object.record else {
+        // Primeiro tentamos usar o método record do objeto
+        if let record = object.record {
+            // Se o record está disponível, precisamos garantir que ele esteja na zona correta
+            // Como não podemos modificar o recordID, criamos um novo record na zona correta
+            let newRecord = CKRecord(recordType: record.recordType, zoneID: inZone)
+            
+            // Copiamos todos os valores do record original para o novo
+            for (key, value) in record.allKeys().map({ ($0, record[$0]) }) {
+                if let value = value {
+                    newRecord[key] = value
+                }
+            }
+            
+            switch dbType {
+            case .privateDB:
+                database = container.privateCloudDatabase
+            case .publicDB:
+                database = container.publicCloudDatabase
+            case .sharedDB:
+                database = container.sharedCloudDatabase
+            }
+            
+            print("🔄 Salvando registro do tipo \(record.recordType) na zona \(inZone.zoneName)")
+            
+            database.save(newRecord) { result, error in
+                if let error = error {
+                    print("❌ Erro ao salvar registro: \(error.localizedDescription)")
+                    completion(.failure(.couldNotSave(error)))
+                    return
+                }
+                guard let result = result else {
+                    print("❌ Resultado inválido ao salvar registro")
+                    completion(.failure(.resultInvalid))
+                    return
+                }
+                guard let record = T.init(record: result) else {
+                    print("❌ Erro ao decodificar registro salvo")
+                    completion(.failure(.decodeError))
+                    return
+                }
+                print("✅ Registro salvo com sucesso")
+                completion(.success(record))
+            }
+        } else {
+            // Se não temos um record, provavelmente algo está errado com o objeto
+            print("❌ Objeto não forneceu um registro válido")
             completion(.failure(.decodeError))
-            return
-        }
-        
-        switch dbType {
-        case .privateDB:
-            database = container.privateCloudDatabase
-        case .publicDB:
-            database = container.publicCloudDatabase
-        case .sharedDB:
-            database = container.sharedCloudDatabase
-        }
-        
-        database.save(record) { result, error  in
-            if let error {
-                completion(.failure(.couldNotSave(error)))
-                return
-            }
-            guard let result else {
-                completion(.failure(.resultInvalid))
-                return
-            }
-            guard let record = T.init(record: result) else {
-                completion(.failure(.decodeError))
-                return
-            }
-            completion(.success(record))
         }
     }
     
-    func modify<T: RecordProtocol>(_ object: T, dbType: CloudConfig, completion: @escaping (Result<T, CloudError>) -> Void) {
+    func modify<T: RecordProtocol>(_ object: T, dbType: CloudConfig, inZone: CKRecordZone.ID, completion: @escaping (Result<T, CloudError>) -> Void) {
         var database: CKDatabase
         
         guard let record = object.associatedRecord else {
@@ -105,7 +126,7 @@ final class CloudClient: CKClient {
         }
         database.save(record){ result, error in
             if let error {
-                print (error)
+                print(error)
                 completion(.failure(.resultInvalid))
             }
             if let result {
@@ -118,7 +139,7 @@ final class CloudClient: CKClient {
         }
     }
     
-    func delete<T: RecordProtocol>(_ object: T, dbType: CloudConfig, completion: @escaping (Result<Bool, CloudError>) -> Void) {
+    func delete<T: RecordProtocol>(_ object: T, dbType: CloudConfig, inZone: CKRecordZone.ID, completion: @escaping (Result<Bool, CloudError>) -> Void) {
         var database: CKDatabase
         
         // Garantir que o objeto tem um registro associado
@@ -148,33 +169,60 @@ final class CloudClient: CKClient {
         }
     }
     
-    func share<T: RecordProtocol>(_ object: T, completion: @escaping (Result<any View, CloudError>) ->  Void)  async throws{
+    func share<T: RecordProtocol>(_ object: T, inZone: CKRecordZone.ID, completion: @escaping (Result<any View, CloudError>) ->  Void)  async throws{
         
-        print("aqui")
+        print("Iniciando compartilhamento")
         guard let record = object.associatedRecord else {
             completion(.failure(.recordNotFound))
-            
             return
+        }
+        
+        // Verificar se estamos trabalhando na zona correta
+        if record.recordID.zoneID.zoneName != inZone.zoneName {
+            print("⚠️ Aviso: O record não está na zona correta para compartilhamento")
+            
+            // Opcionalmente, pode-se tentar mover o registro para a zona correta,
+            // mas isso exigiria criar um novo registro e copiar todos os dados
         }
         
         guard let existingShare = record.share else {
             let share = CKShare(rootRecord: record)
-            share[CKShare.SystemFieldKey.title] = "Compartilhando filho: \(record["name"] ?? "Unknown")"
+            share[CKShare.SystemFieldKey.title] = "Compartilhando filho: \(record["kidName"] ?? "Unknown")"
+            
+            // Configurar permissões de compartilhamento explicitamente
             share.publicPermission = .readWrite
-            _ = try await container.privateCloudDatabase.modifyRecords(saving: [record, share], deleting: [])
-            completion(.success(CloudSharingView(share: share, container: container)))
+            
+            // Salvar o registro e o compartilhamento juntos
+            do {
+                _ = try await container.privateCloudDatabase.modifyRecords(saving: [record, share], deleting: [])
+                print("✅ Compartilhamento criado com sucesso")
+                completion(.success(CloudSharingView(share: share, container: container)))
+            } catch {
+                print("❌ Erro ao criar compartilhamento: \(error.localizedDescription)")
+                completion(.failure(.couldNotShareRecord))
+            }
             
             return
         }
         
-        guard let share = try await container.privateCloudDatabase.record(for: existingShare.recordID) as? CKShare else {
+        do {
+            let share = try await container.privateCloudDatabase.record(for: existingShare.recordID) as? CKShare
+            if let share = share {
+                // Atualizar permissões de compartilhamento
+                share.publicPermission = .readWrite
+                
+                // Salvar as alterações de permissão
+                _ = try await container.privateCloudDatabase.modifyRecords(saving: [share], deleting: [])
+                
+                print("✅ Usando compartilhamento existente")
+                completion(.success(CloudSharingView(share: share, container: container)))
+            } else {
+                completion(.failure(.couldNotShareRecord))
+            }
+        } catch {
+            print("❌ Erro ao usar compartilhamento existente: \(error.localizedDescription)")
             completion(.failure(.couldNotShareRecord))
-            return
         }
-        
-        share.publicPermission = .readWrite
-        
-        completion(.success(CloudSharingView(share: share, container: container)))
     }
     
     func deleteShare<T: RecordProtocol>(_ object: T, completion: @escaping (Result<Void, CloudError>) -> Void) async {
