@@ -19,16 +19,17 @@ struct CloudSharingView: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIViewControllerType, context: Context) {}
 
     func makeUIViewController(context: Context) -> some UIViewController {
-        print(share.url)
+        // Maneira mais segura de imprimir a URL opcional
+        if let url = share.url {
+            print("Share URL: \(url)")
+        } else {
+            print("Share URL is not available yet")
+        }
+        
         let sharingController = UICloudSharingController(share: share, container: container)
-        
-        
-        sharingController.availablePermissions = [.allowReadWrite, .allowPrivate]
-        sharingController.delegate = context.coordinator
-        sharingController.modalPresentationStyle = .fullScreen
         return sharingController
     }
-
+    
     func makeCoordinator() -> CloudSharingView.Coordinator {
         Coordinator()
     }

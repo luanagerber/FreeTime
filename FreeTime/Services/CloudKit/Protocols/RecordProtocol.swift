@@ -13,14 +13,18 @@ protocol RecordProtocol {
     init?(record: CKRecord)
 }
 
-// @Tete, Kid virou KidRecord
 struct KidRecord: RecordProtocol {
     var id: CKRecord.ID?
     var name: String
     var shareReference: CKRecord.Reference?
+    var associatedRecord: CKRecord?
     
     var record: CKRecord? {
-        guard id == nil else { return nil }
+        // Neste ponto, só queremos criar um novo registro quando estamos adicionando um novo Kid
+        // (não temos um ID existente)
+        if id != nil {
+            return nil
+        }
         
         let newRecord = CKRecord(recordType: RecordType.kid.rawValue)
         newRecord["kidName"] = name
@@ -28,14 +32,14 @@ struct KidRecord: RecordProtocol {
         return newRecord
     }
     
-    var associatedRecord: CKRecord? {
-        guard let recordID = id else { return nil }
-        
-        let record = CKRecord(recordType: RecordType.kid.rawValue, recordID: recordID)
-        record["kidName"] = name
-        
-        return record
-    }
+//    var associatedRecord: CKRecord? {
+//        guard let recordID = id else { return nil }
+//        
+//        let record = CKRecord(recordType: RecordType.kid.rawValue, recordID: recordID)
+//        record["kidName"] = name
+//        
+//        return record
+//    }
     
     init(name: String) {
         self.name = name

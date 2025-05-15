@@ -5,7 +5,6 @@
 //  Created by Luana Gerber on 14/05/25.
 //
 
-
 import CloudKit
 import SwiftUI
 
@@ -60,12 +59,16 @@ final class CloudService {
         
         print("🆕 Criando nova zona: \(zoneName)")
         // Se não existe, cria uma nova zona
-        let newZone = CloudConfig.createCustomZone(withName: zoneName)
+        let newZone = CKRecordZone(zoneName: zoneName)
         
         do {
             try await client.createZone(zone: newZone)
             print("✅ Zona criada com sucesso: \(newZone.zoneID.zoneName)")
             self.currentZone = newZone
+            
+            // Após criar a zona, precisamos configurá-la para permitir compartilhamento
+            // Isso deve ser feito configurando a permissão de compartilhamento ao criar um CKShare
+            
             return newZone
         } catch {
             print("❌ ERRO: Falha ao criar zona personalizada: \(error.localizedDescription)")
@@ -88,14 +91,15 @@ final class CloudService {
 
     
     // MARK: - Kid Operations
-    // @ Tete, alterei essas funções pra elas se adequarem a organização do código do projeto, com KidRecord no lugar de Kid.
     
     func createKid(_ kid: KidRecord, completion: @escaping (Result<KidRecord, CloudError>) -> Void) async throws {
         // Ensure the Kids zone exists
         let kidsZone = try await createZoneIfNeeded(zoneName: "Kids")
         
-        // Save the KidRecord in the private database
-        client.save(kid, dbType: .privateDB) { result in
+        print("🔄 Tentando criar kid na zona: \(kidsZone.zoneID.zoneName)")
+        
+        // Modificamos aqui para especificar a zona Kids ao salvar o KidRecord
+        client.save(kid, dbType: .privateDB, inZone: kidsZone.zoneID) { result in
             completion(result)
         }
     }
@@ -103,6 +107,8 @@ final class CloudService {
     func fetchKids(completion: @escaping (Result<[KidRecord], CloudError>) -> Void) async throws {
         // Ensure the Kids zone exists
         let kidsZone = try await createZoneIfNeeded(zoneName: "Kids")
+        
+        print("🔍 Buscando kids na zona: \(kidsZone.zoneID.zoneName)")
         
         client.fetch(
             recordType: RecordType.kid.rawValue,
@@ -118,27 +124,48 @@ final class CloudService {
         // Ensure the Kids zone exists
         let kidsZone = try await createZoneIfNeeded(zoneName: "Kids")
         
+        print("🔄 Tentando compartilhar kid: \(kid.name) na zona: \(kidsZone.zoneID.zoneName)")
+        
         do {
-            try await client.share(kid, completion: completion)
+            try await client.share(kid, inZone: kidsZone.zoneID, completion: completion)
         } catch {
-            print("Error sharing kid: \(error)")
+            print("❌ Erro ao compartilhar kid: \(error)")
             completion(.failure(.couldNotShareRecord))
         }
     }
     
-    func updateKid(_ kid: KidRecord, completion: @escaping (Result<KidRecord, CloudError>) -> Void) {
-        client.modify(kid, dbType: .privateDB) { result in
+//    func shareKid(_ kid: KidRecord, completion: @escaping (Result<UICloudSharingController, CloudError>) -> Void) async throws {
+//        // Ensure the Kids zone exists
+//        let kidsZone = try await createZoneIfNeeded(zoneName: "Kids")
+//        
+//        print("🔄 Tentando compartilhar kid: \(kid.name) na zona: \(kidsZone.zoneID.zoneName)")
+//        
+//        try await client.share(kid, inZone: kidsZone.zoneID, completion: completion)
+//    }
+    
+    func updateKid(_ kid: KidRecord, completion: @escaping (Result<KidRecord, CloudError>) -> Void) async throws {
+        let kidsZone = try await createZoneIfNeeded(zoneName: "Kids")
+        
+        print("🔄 Atualizando kid: \(kid.name) na zona: \(kidsZone.zoneID.zoneName)")
+        
+        client.modify(kid, dbType: .privateDB, inZone: kidsZone.zoneID) { result in
             completion(result)
         }
     }
     
-    func deleteKid(_ kid: KidRecord, completion: @escaping (Result<Bool, CloudError>) -> Void) {
-        client.delete(kid, dbType: .privateDB) { result in
+    func deleteKid(_ kid: KidRecord, completion: @escaping (Result<Bool, CloudError>) -> Void) async throws {
+        let kidsZone = try await createZoneIfNeeded(zoneName: "Kids")
+        
+        print("🗑️ Deletando kid: \(kid.name) na zona: \(kidsZone.zoneID.zoneName)")
+        
+        client.delete(kid, dbType: .privateDB, inZone: kidsZone.zoneID) { result in
             completion(result)
         }
     }
     
     func deleteKidShare(_ kid: KidRecord, completion: @escaping (Result<Void, CloudError>) -> Void) async {
+        print("🗑️ Removendo compartilhamento para kid: \(kid.name)")
+        
         await client.deleteShare(kid, completion: completion)
     }
     
@@ -156,29 +183,20 @@ final class CloudService {
         }
     }
     
-//    func acceptSharing(shareMetadata: CKShare.Metadata, completion: @escaping (Bool) -> Void) {
-//        let container = CKContainer(identifier: CloudConfig.containerIndentifier)
-//        container.accept(shareMetadata) { _, error in
-//            if let error = error {
-//                print("Error accepting share: \(error.localizedDescription)")
-//                completion(false)
-//                return
-//            }
-//            completion(true)
-//        }
-//    }
-    
     // MARK: - Shared Content Handling
-    // @ Tete, essas funções são novas, usam apenas a zona Kids
     func acceptSharedKid(shareMetadata: CKShare.Metadata, completion: @escaping (Result<KidRecord, CloudError>) -> Void) {
         let container = CKContainer(identifier: CloudConfig.containerIndentifier)
         
+        print("🔄 Aceitando compartilhamento...")
+        
         container.accept(shareMetadata) { _, error in
             if let error = error {
-                print("Error accepting share: \(error.localizedDescription)")
+                print("❌ Erro ao aceitar compartilhamento: \(error.localizedDescription)")
                 completion(.failure(.couldNotShareRecord))
                 return
             }
+            
+            print("✅ Compartilhamento aceito, buscando registro compartilhado...")
             
             // After accepting the share, fetch the shared kid record
             Task {
@@ -197,106 +215,134 @@ final class CloudService {
                         switch result {
                         case .success(let kids):
                             if let kid = kids.first {
+                                print("✅ Registro compartilhado encontrado: \(kid.name)")
                                 completion(.success(kid))
                             } else {
+                                print("❌ Nenhum registro compartilhado encontrado")
                                 completion(.failure(.recordNotFound))
                             }
                         case .failure(let error):
+                            print("❌ Erro ao buscar registro compartilhado: \(error)")
                             completion(.failure(error))
                         }
                     }
                 } catch {
+                    print("❌ Erro: \(error.localizedDescription)")
                     completion(.failure(.couldNotFetch(error as NSError)))
                 }
             }
         }
     }
     
-    // MARK: - Activity Operations
-    // @ Tete, essas funções são novas, usam apenas a zona Kids e usam a KidId como chave de referência.
+    // MARK: - Métodos genéricos para Records
     
-    //    Complete Flow:
-    //    1. When you create a KidRecord, it gets a unique UUID
-    //    2. When you create activities for that kid, you set the kidID field to the kid's UUID
-    //    3. When you share the KidRecord with another user:
-    //    3.1. They receive access to the kid's data
-    //    3.2. They can fetch all activities with the matching kidID
-    //    3.3. They can add, update, or delete activities linked to that kid
-    
-
-    func createActivity(_ activity: ScheduledActivityRecord, completion: @escaping (Result<ScheduledActivityRecord, CloudError>) -> Void) async throws {
+    func createRecord<T: RecordProtocol>(_ record: T, inRecordType recordType: String, completion: @escaping (Result<T, CloudError>) -> Void) async throws {
         // Ensure the Kids zone exists
         let kidsZone = try await createZoneIfNeeded(zoneName: "Kids")
         
-        // Save the activity in the private database
-        client.save(activity, dbType: .privateDB) { result in
+        print("🔄 Criando registro do tipo \(recordType) na zona: \(kidsZone.zoneID.zoneName)")
+        
+        // Save the record in the private database
+        client.save(record, dbType: .privateDB, inZone: kidsZone.zoneID) { result in
             completion(result)
         }
     }
 
-    func fetchActivities(forKid kidID: UUID, completion: @escaping (Result<[ScheduledActivityRecord], CloudError>) -> Void) async throws {
+    func fetchRecords<T: RecordProtocol>(ofType recordType: String, withPredicate predicate: NSPredicate? = nil, completion: @escaping (Result<[T], CloudError>) -> Void) async throws {
         // Ensure the Kids zone exists
         let kidsZone = try await createZoneIfNeeded(zoneName: "Kids")
         
-        // Create a predicate to filter activities by kidID
-        let predicate = NSPredicate(format: "kidID == %@", kidID.uuidString)
+        print("🔍 Buscando registros do tipo \(recordType) na zona: \(kidsZone.zoneID.zoneName)")
         
         client.fetch(
-            recordType: RecordType.activity.rawValue,
+            recordType: recordType,
             dbType: .privateDB,
             inZone: kidsZone.zoneID,
             predicate: predicate
-        ) { (result: Result<[ScheduledActivityRecord], CloudError>) in
+        ) { (result: Result<[T], CloudError>) in
             completion(result)
         }
     }
 
-    func fetchSharedActivities(forKid kidID: UUID, completion: @escaping (Result<[ScheduledActivityRecord], CloudError>) -> Void) async throws {
+    func fetchSharedRecords<T: RecordProtocol>(ofType recordType: String, withPredicate predicate: NSPredicate? = nil, completion: @escaping (Result<[T], CloudError>) -> Void) async throws {
         // Ensure the Kids zone exists
         let kidsZone = try await createZoneIfNeeded(zoneName: "Kids")
         
-        // Create a predicate to filter activities by kidID
-        let predicate = NSPredicate(format: "kidID == %@", kidID.uuidString)
+        print("🔍 Buscando registros compartilhados do tipo \(recordType) na zona: \(kidsZone.zoneID.zoneName)")
         
-        // When fetching shared activities, we use the sharedDB
         client.fetch(
-            recordType: RecordType.activity.rawValue,
+            recordType: recordType,
             dbType: .sharedDB,
             inZone: kidsZone.zoneID,
             predicate: predicate
-        ) { (result: Result<[ScheduledActivityRecord], CloudError>) in
+        ) { (result: Result<[T], CloudError>) in
             completion(result)
         }
     }
 
-    func updateActivity(_ activity: ScheduledActivityRecord, completion: @escaping (Result<ScheduledActivityRecord, CloudError>) -> Void) {
-        // Determine which database to use based on whether the activity is shared
-        let dbType: CloudConfig = activity.shareReference != nil ? .sharedDB : .privateDB
+    func updateRecord<T: RecordProtocol>(_ record: T, isShared: Bool = false, completion: @escaping (Result<T, CloudError>) -> Void) async throws {
+        // Ensure the Kids zone exists
+        let kidsZone = try await createZoneIfNeeded(zoneName: "Kids")
         
-        client.modify(activity, dbType: dbType) { result in
-            completion(result)
-        }
-    }
-
-    func deleteActivity(_ activity: ScheduledActivityRecord, completion: @escaping (Result<Bool, CloudError>) -> Void) {
-        // Determine which database to use based on whether the activity is shared
-        let dbType: CloudConfig = activity.shareReference != nil ? .sharedDB : .privateDB
+        // Determine which database to use based on whether the record is shared
+        let dbType: CloudConfig = isShared ? .sharedDB : .privateDB
         
-        client.delete(activity, dbType: dbType) { result in
+        print("🔄 Atualizando registro na zona: \(kidsZone.zoneID.zoneName), banco: \(dbType)")
+        
+        client.modify(record, dbType: dbType, inZone: kidsZone.zoneID) { result in
             completion(result)
         }
     }
 
-    // For fetching all activities (both owned and shared)
-    func fetchAllActivities(forKid kidID: UUID, completion: @escaping (Result<[ScheduledActivityRecord], CloudError>) -> Void) async throws {
-        var allActivities: [ScheduledActivityRecord] = []
+    func deleteRecord<T: RecordProtocol>(_ record: T, isShared: Bool = false, completion: @escaping (Result<Bool, CloudError>) -> Void) async throws {
+        // Ensure the Kids zone exists
+        let kidsZone = try await createZoneIfNeeded(zoneName: "Kids")
+        
+        // Determine which database to use based on whether the record is shared
+        let dbType: CloudConfig = isShared ? .sharedDB : .privateDB
+        
+        print("🗑️ Deletando registro na zona: \(kidsZone.zoneID.zoneName), banco: \(dbType)")
+        
+        client.delete(record, dbType: dbType, inZone: kidsZone.zoneID) { result in
+            completion(result)
+        }
+    }
+    
+    // MARK: - Métodos de conveniência para atividades
+    // Estes métodos são adaptadores para manter compatibilidade com o código existente
+    
+    func createActivity<T: RecordProtocol>(_ activity: T, completion: @escaping (Result<T, CloudError>) -> Void) async throws {
+        try await createRecord(activity, inRecordType: RecordType.activity.rawValue, completion: completion)
+    }
+
+    func fetchActivities<T: RecordProtocol>(forKid kidID: UUID, completion: @escaping (Result<[T], CloudError>) -> Void) async throws {
+        let predicate = NSPredicate(format: "kidID == %@", kidID.uuidString)
+        try await fetchRecords(ofType: RecordType.activity.rawValue, withPredicate: predicate, completion: completion)
+    }
+
+    func fetchSharedActivities<T: RecordProtocol>(forKid kidID: UUID, completion: @escaping (Result<[T], CloudError>) -> Void) async throws {
+        let predicate = NSPredicate(format: "kidID == %@", kidID.uuidString)
+        try await fetchSharedRecords(ofType: RecordType.activity.rawValue, withPredicate: predicate, completion: completion)
+    }
+
+    func updateActivity<T: RecordProtocol>(_ activity: T, isShared: Bool, completion: @escaping (Result<T, CloudError>) -> Void) async throws {
+        try await updateRecord(activity, isShared: isShared, completion: completion)
+    }
+
+    func deleteActivity<T: RecordProtocol>(_ activity: T, isShared: Bool, completion: @escaping (Result<Bool, CloudError>) -> Void) async throws {
+        try await deleteRecord(activity, isShared: isShared, completion: completion)
+    }
+    
+    // Método auxiliar para buscar todas as atividades (privadas e compartilhadas)
+    func fetchAllActivities<T: RecordProtocol>(forKid kidID: UUID, completion: @escaping (Result<[T], CloudError>) -> Void) async throws {
+        var allActivities: [T] = []
         var fetchError: CloudError? = nil
         
         let group = DispatchGroup()
         
-        // Fetch private activities
+        // Busca atividades privadas
         group.enter()
-        try await fetchActivities(forKid: kidID) { result in
+        try await fetchActivities(forKid: kidID) { (result: Result<[T], CloudError>) in
             switch result {
             case .success(let activities):
                 allActivities.append(contentsOf: activities)
@@ -306,9 +352,9 @@ final class CloudService {
             group.leave()
         }
         
-        // Fetch shared activities
+        // Busca atividades compartilhadas
         group.enter()
-        try await fetchSharedActivities(forKid: kidID) { result in
+        try await fetchSharedActivities(forKid: kidID) { (result: Result<[T], CloudError>) in
             switch result {
             case .success(let activities):
                 allActivities.append(contentsOf: activities)
@@ -320,6 +366,7 @@ final class CloudService {
             group.leave()
         }
         
+        // Quando ambas as buscas terminarem
         group.notify(queue: .main) {
             if let error = fetchError {
                 completion(.failure(error))
@@ -328,5 +375,4 @@ final class CloudService {
             }
         }
     }
-    
 }
