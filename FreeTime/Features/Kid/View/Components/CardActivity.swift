@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct CardActivity: View {
-    var record: Register
+    var register: Register
     
     var body: some View {
         VStack{
@@ -21,7 +21,7 @@ struct CardActivity: View {
                         
                         //Image of the Planned Activity
                         Rectangle()
-                            .fill(record.registerStatus.color)
+                            .fill(register.registerStatus.color)
                         
                         Rectangle()
                             .fill(.gray)
@@ -30,10 +30,10 @@ struct CardActivity: View {
                                 
                                 VStack(spacing: 0){
                                     
-                                    Text(record.activity.name)
+                                    Text(register.activity.name)
                                         .font(.system(size: 22, weight: .medium))
                                     
-                                    Text(record.date.timeRange(duration: record.duration))
+                                    Text(register.date.timeRange(duration: register.duration))
                                         .font(.system(size: 17, weight: .medium))
                                     
                                 }
@@ -46,9 +46,4 @@ struct CardActivity: View {
                 )
         }.cornerRadius(20)
     }
-}
-
-
-#Preview {
-    CardActivity(record: .sample1)
 }

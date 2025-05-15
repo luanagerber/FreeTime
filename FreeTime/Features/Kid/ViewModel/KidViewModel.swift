@@ -9,21 +9,29 @@ import Foundation
 import SwiftUI
 
 class KidViewModel: ObservableObject {
-    @Published var records: [Register] = Register.samples
+    @Published var register: [Register] = Register.samples
     
-    func recordsForToday(kidId: UUID) -> [Register] {
-        records
+    
+    func registerForToday(kidId: UUID) -> [Register] {
+        register
             .filter { $0.kid.id == kidId && Calendar.current.isDate($0.date, inSameDayAs: Date()) }
             .sorted { $0.date < $1.date }
     }
     
-    func notStartedRecords(kidId: UUID) -> [Register] {
-        recordsForToday(kidId: kidId)
+    func notStartedRegister(kidId: UUID) -> [Register] {
+        registerForToday(kidId: kidId)
             .filter { $0.registerStatus == .notStarted }
     }
     
-    func completedRecords(kidId: UUID) -> [Register] {
-        recordsForToday(kidId: kidId)
+    func completedRegister(kidId: UUID) -> [Register] {
+        registerForToday(kidId: kidId)
             .filter { $0.registerStatus == .completed }
     }
+    
+    func concludedActivity(register: Register) {
+        if let index = self.register.firstIndex(where: { $0.id == register.id }) {
+            self.register[index].registerStatus = .completed
+        }
+    }
+
 }

@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct KidView: View {
+    
     @StateObject private var kidViewModel = KidViewModel()
     
     //Testing with mocked-up data
@@ -15,34 +16,41 @@ struct KidView: View {
     let kidId: UUID = Register.sample1.kid.id
     //
     
+    @State private var selectedRegister: Register? = Register.sample1
+    @State private var showActivityModal: Bool = false
+    
     var body: some View {
-        VStack(spacing: 32) {
-            
-            Section {
-                SectionProfile(kid: kidExemple)
-            }
-            
-            VStack(alignment: .leading, spacing: 32) {
-                headerSection
-                activitySection(
-                    title: "Para fazer",
-                    records: kidViewModel.notStartedRecords(kidId: kidId),
-                    emptyMessage: "Não há atividades a serem realizadas hoje."
-                )
-                
-                let completed = kidViewModel.completedRecords(kidId: kidId)
-                if !completed.isEmpty {
-                    activitySection(
-                        title: "Feito",
-                        records: completed,
-                        emptyMessage: ""
-                    )
+        ZStack{
+            VStack(spacing: 0) {
+                Section {
+                    SectionProfile(kid: kidExemple)
                 }
+                
+                VStack(alignment: .leading, spacing: 32) {
+                    headerSection
+                    activitySection(
+                        title: "Para fazer",
+                        registers: kidViewModel.notStartedRegister(kidId: kidId),
+                        emptyMessage: "Não há atividades a serem realizadas hoje."
+                    )
+                    
+                    let completed = kidViewModel.completedRegister(kidId: kidId)
+                    if !completed.isEmpty {
+                        activitySection(
+                            title: "Feito",
+                            registers: completed,
+                            emptyMessage: ""
+                        )
+                    }
+                }
+                .padding(.horizontal, 132.5)
+                .padding(.vertical, 32)
             }
-            .frame(maxWidth: 929)
+            .frame(maxHeight: .infinity, alignment: .top)
         }
-        .frame(maxHeight: .infinity, alignment: .top)
         .ignoresSafeArea()
+        
+        
     }
     
     private var headerSection: some View {
@@ -54,26 +62,36 @@ struct KidView: View {
         }
     }
     
-    private func activitySection(title: String, records: [Register], emptyMessage: String) -> some View {
+    private func activitySection(title: String, registers: [Register], emptyMessage: String) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(title)
                 .font(.system(size: 28, weight: .medium))
             
-            if records.isEmpty {
+            if registers.isEmpty {
                 Text(emptyMessage)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 32) {
-                        ForEach(records) { record in
-                            CardActivity(record: record)
+                        ForEach(registers) { register in
+                            Button {
+                                selectedRegister = register
+                                showActivityModal = true
+                            } label: {
+                                CardActivity(register: register)
+                            }
+                        }
+                        .sheet(isPresented: $showActivityModal) {
+                            if let bindingRegister = Binding($selectedRegister) {
+                                DetailsActivityModal(kidViewModel: kidViewModel, register: bindingRegister)
+                            }
                         }
                     }
                 }
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 250, alignment: .top)
+        .frame(maxWidth: .infinity, minHeight: 250,maxHeight: .infinity, alignment: .top)
     }
 }
 
