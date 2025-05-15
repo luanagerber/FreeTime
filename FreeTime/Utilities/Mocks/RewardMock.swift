@@ -17,7 +17,8 @@ extension Reward {
         Reward(name: "Nintendo Switch", cost: 1000, image: "🎮"),
         Reward(name: "Dormir tarde", cost: 20, image: "🛌"),
         Reward(name: "Comprar um livro", cost: 50, image: "📚"),
-        Reward(name: "Pedir delivery", cost: 70, image: "🍔")
+        Reward(name: "Pedir delivery", cost: 70, image: "🍔"),
+        Reward(name: "Tomar 2l de café", cost: 10, image: "☕️")
         ]
     
 }

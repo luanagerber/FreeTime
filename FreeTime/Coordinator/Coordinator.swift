@@ -39,7 +39,7 @@ class Coordinator: ObservableObject {
         case .kidHome:
             KidView()
         case .genitorHome:
-            ParentView()
+            GenitorView()
         case .rewardsStore:
             RewardsStoreView(store: self.rewardsStore)
         case .collectedRewards:
