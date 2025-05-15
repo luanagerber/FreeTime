@@ -12,14 +12,14 @@ struct Register: Identifiable {
     var id: UUID
     let kid: Kid
     let genitor: Genitor
-    let activityID: Activity.ID
+    let activityID: UUID // Store just the UUID reference to the Activity
     let date: Date
     let duration: TimeInterval
     
     // States
     var registerStatus: RegisterStatus
 
-    init (kid: Kid, genitor: Genitor, activityID: Activity.ID, date: Date, duration: TimeInterval, registerStatus: RegisterStatus) {
+    init (kid: Kid, genitor: Genitor, activityID: UUID, date: Date, duration: TimeInterval, registerStatus: RegisterStatus) {
         self.id = UUID()
         self.kid = kid
         self.genitor = genitor
@@ -27,6 +27,11 @@ struct Register: Identifiable {
         self.date = date
         self.duration = duration
         self.registerStatus = registerStatus
+    }
+    
+    // Computed property to fetch the activity from the catalog
+    var activity: Activity? {
+        Activity.catalog.first { $0.id == activityID }
     }
 }
 

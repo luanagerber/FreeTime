@@ -13,7 +13,7 @@ struct GenitorCardView: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 8) {
-                Text(record.activity.name)
+                Text(record.activity?.name ?? "no name")
                     .font(.body)
                     .fontWeight(.medium)
                 Text(record.date.timeRange(duration: record.duration))

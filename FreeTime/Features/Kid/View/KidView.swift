@@ -1,4 +1,3 @@
-//
 //  KidView.swift
 //  FreeTime
 //
@@ -8,6 +7,7 @@
 import SwiftUI
 
 struct KidView: View {
+    
     @StateObject private var kidViewModel = KidViewModel()
     
     //Testing with mocked-up data

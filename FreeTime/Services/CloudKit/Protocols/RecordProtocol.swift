@@ -90,7 +90,7 @@ struct ScheduledActivityRecord: RecordProtocol {
     
     init(register: Register) {
         self.kidID = register.kid.id
-        self.activityID = register.activity.id
+        self.activityID = register.activityID // Use the ID directly
         self.date = register.date
         self.duration = register.duration
         self.status = register.registerStatus

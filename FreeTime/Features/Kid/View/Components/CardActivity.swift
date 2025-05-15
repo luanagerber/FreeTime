@@ -30,7 +30,7 @@ struct CardActivity: View {
                                 
                                 VStack(spacing: 0){
                                     
-                                    Text(record.activity.name)
+                                    Text(record.activity?.name ?? "no name")
                                         .font(.system(size: 22, weight: .medium))
                                     
                                     Text(record.date.timeRange(duration: record.duration))

@@ -14,19 +14,22 @@ struct Activity: Identifiable {
     var tags: [Tag]
     var description: String
     var necessaryMaterials: [String]
+    var rewardPoints: Int
     
-    init (name: String, tags: [Tag], description: String, materials: [String]) {
+    init (name: String, tags: [Tag], description: String, necessaryMaterials: [String], rewardPoints: Int) {
         self.id = UUID()
         self.name = name
         self.tags = tags
         self.description = description
-        self.necessaryMaterials = materials
+        self.necessaryMaterials = necessaryMaterials
+        self.rewardPoints = rewardPoints
     }
-}
-
-enum Tag {
-    case mentalExercise
-    case physicalExercise
-    case socialActivity
-    case study
+    
+    enum Tag {
+        case mentalExercise
+        case physicalExercise
+        case socialActivity
+        case study
+    }
+    
 }

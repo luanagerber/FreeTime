@@ -12,13 +12,15 @@ extension Activity {
             name: "Pintura Criativa",
             tags: [.mentalExercise, .study],
             description: "Uma atividade de pintura livre para estimular a criatividade das crianças.",
-            materials: ["Tinta guache", "Papel A3", "Pincéis"],
+            necessaryMaterials: ["Tinta guache", "Papel A3", "Pincéis"],
+            rewardPoints: 50
         ),
         Activity(
             name: "Experimento de Vulcão",
             tags: [.mentalExercise, .study],
             description: "Construção de um vulcão com bicarbonato e vinagre.",
-            materials: ["Bicarbonato de sódio", "Vinagre", "Argila", "Corante alimentício"],
+            necessaryMaterials: ["Bicarbonato de sódio", "Vinagre", "Argila", "Corante alimentício"],
+            rewardPoints: 50
         )
     ]
 }
