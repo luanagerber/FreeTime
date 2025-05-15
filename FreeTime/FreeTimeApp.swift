@@ -18,7 +18,8 @@ struct FreeTimeApp: App {
             case .pad:
                     KidView()
             case .phone:
-                    GenitorView()
+//                    GenitorView()
+                SharerTestView()
             default:
                 EmptyView()
             }
