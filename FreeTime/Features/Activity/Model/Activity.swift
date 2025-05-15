@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 struct Activity: Identifiable {
-    let id = UUID()
+    let id: Int
     let name: String
     var tags: [Tag]
     var description: String
