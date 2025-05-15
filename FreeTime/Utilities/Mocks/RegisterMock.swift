@@ -10,7 +10,7 @@ import Foundation
 extension Register {
     static let samples: [Register] = [
         Register(
-            kid: Kid(name: "Fulana"),
+            kid: Kid(name: "Fulana", parentID: UUID()),
             genitor: Genitor(name: "Ciclana", kidsID: UUID()),
             activity: Activity.samples[0],
             date: Date(), // agora
@@ -18,7 +18,7 @@ extension Register {
             registerStatus: .notStarted
         ),
         Register(
-            kid: Kid(name: "Caquita"),
+            kid: Kid(name: "Caquita", parentID: UUID()),
             genitor: Genitor(name: "Bolinha", kidsID: UUID()),
             activity: Activity.samples[1],
             date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
@@ -26,7 +26,7 @@ extension Register {
             registerStatus: .notStarted
         ),
         Register(
-            kid: Kid(name: "Thom"),
+            kid: Kid(name: "Thom", parentID: UUID()),
             genitor: Genitor(name: "Marcos", kidsID: UUID()),
             activity: Activity.samples[1],
             date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
