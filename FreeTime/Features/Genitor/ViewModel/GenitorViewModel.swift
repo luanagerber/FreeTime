@@ -12,6 +12,6 @@ class GenitorViewModel: ObservableObject {
     
     static let shared = GenitorViewModel()
     
-    @Published var records: [Record] = Record.samples
+    @Published var records: [Register] = Register.samples
     @Published var selectedDate = Date()
 }

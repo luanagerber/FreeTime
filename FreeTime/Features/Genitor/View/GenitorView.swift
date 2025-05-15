@@ -19,7 +19,7 @@ struct GenitorView: View {
                 .padding(.horizontal)
             
             LazyVStack(alignment: .center, spacing: 20) {
-                if viewModel.records.isEmpty {
+                if $viewModel.records.isEmpty {
                     Text("Nenhuma atividade foi planejada ainda. Clique em \"+\" para começar!")
                         .padding(.horizontal)
                         .font(.subheadline)
