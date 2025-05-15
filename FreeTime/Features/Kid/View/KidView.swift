@@ -1,5 +1,4 @@
-//
-//  ChildView.swift
+//  KidView.swift
 //  FreeTime
 //
 //  Created by Luana Gerber on 05/05/25.
@@ -8,60 +7,74 @@
 import SwiftUI
 
 struct KidView: View {
-    //testing a view with the mocked-up data
-    let childId: UUID =  Record.sample2.child.id
+
+    @StateObject private var kidViewModel = KidViewModel()
     
-    var childRecords: [Record] { // filter the records associated with the child's id
-        records(for: childId, from: Record.samples)
-    }
+    //Testing with mocked-up data
+    let kidExemple : Kid = Register.sample1.kid
+    let kidId: UUID = Register.sample1.kid.id
+    //
     
     var body: some View {
-        ZStack {
-            VStack {
-                Rectangle()
-                    .fill(.gray)
-                    .frame(maxWidth: .infinity, maxHeight: 126)
-                    .cornerRadius(12)
-                    
-                    
+        VStack(spacing: 32) {
+            
+            Section {
+                SectionProfile(kid: kidExemple)
+            }
+            
+            VStack(alignment: .leading, spacing: 32) {
+                headerSection
+                activitySection(
+                    title: "Para fazer",
+                    records: kidViewModel.notStartedRecords(kidId: kidId),
+                    emptyMessage: "Não há atividades a serem realizadas hoje."
+                )
                 
-                   
-                
-                
-                Text("Atividades para hoje")
-                    .font(.largeTitle)
-                    .font(.system(size: 34, weight: .bold, design: .default))
-                
-                Text("Dia da semana, data, mês")
-                
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
-                        ForEach(childRecords.filter { $0.recordStatus == .notStarted }) { record in
-                            CardActivity(record: record)
-                        }
-                    }
+                let completed = kidViewModel.completedRecords(kidId: kidId)
+                if !completed.isEmpty {
+                    activitySection(
+                        title: "Feito",
+                        records: completed,
+                        emptyMessage: ""
+                    )
                 }
-                Text("Atividades Concluídas")
-                    .font(.largeTitle)
-                
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
-                        ForEach(childRecords.filter { $0.recordStatus == .completed }) { record in
-                            CardActivity(record: record)
-                        }
-                    }
-                }
-            }.frame(maxHeight: .infinity, alignment: .top)
-                .border(.black)
-            .ignoresSafeArea()
+            }
+            .frame(maxWidth: 929)
+        }
+        .frame(maxHeight: .infinity, alignment: .top)
+        .ignoresSafeArea()
+    }
+    
+    private var headerSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Atividades para hoje")
+                .font(.system(size: 34, weight: .semibold))
+            Text(Date().formattedDayTitle())
+                .font(.system(size: 22))
         }
     }
-}
-
-
-func records(for childID: UUID, from records: [Record]) -> [Record] {
-    records.filter { $0.child.id == childID }
-}
+    
+    private func activitySection(title: String, records: [Register], emptyMessage: String) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(title)
+                .font(.system(size: 28, weight: .medium))
+            
+            if records.isEmpty {
+                Text(emptyMessage)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 32) {
+                        ForEach(records) { record in
+                            CardActivity(record: record)
+                        }
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 250, alignment: .top)
+    }
 
 #Preview {
     KidView()

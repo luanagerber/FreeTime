@@ -7,8 +7,8 @@
 
 import SwiftUI
 
-struct ParentCardView: View {
-    let record: Record
+struct GenitorCardView: View {
+    let record: Register
     
     var body: some View {
         HStack {
@@ -16,7 +16,7 @@ struct ParentCardView: View {
                 Text(record.activity.name)
                     .font(.body)
                     .fontWeight(.medium)
-                Text(timeRange(from: record.date, duration: record.duration))
+                Text(record.date.timeRange(duration: record.duration))
                     .font(.body)
                     .fontWeight(.regular)
             }
@@ -28,17 +28,11 @@ struct ParentCardView: View {
         .padding(22)
         .frame(width: 350, height: 161, alignment: .bottomLeading)
         .background(Color(.systemGray6))
-        .cornerRadius(Contants.UI.cardCornerRadius)
+        .cornerRadius(Constants.UI.cardCornerRadius)
     }
     
-    private func timeRange(from startDate: Date, duration: TimeInterval) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        let endDate = startDate.addingTimeInterval(duration)
-        return "\(formatter.string(from: startDate)) - \(formatter.string(from: endDate))"
-    }
 }
 
 #Preview {
-    ParentCardView(record: Record.sample1)
+    GenitorCardView(record: Register.sample1)
 }

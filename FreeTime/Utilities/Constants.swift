@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct Contants {
+struct Constants {
     struct UI{
         static let cardCornerRadius: CGFloat = 26
         static let circleSize: CGFloat = 40

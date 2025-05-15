@@ -7,9 +7,9 @@
 
 import SwiftUI
 
-class RecordViewModel: ObservableObject {
+class RegisterViewModel: ObservableObject {
     
-    @Published var records: [Record] {
+    @Published var records: [Register] {
         didSet {
             // Se a variável records mudar, a função checa se deve recompensar
             rewardKid()
@@ -24,19 +24,11 @@ class RecordViewModel: ObservableObject {
     
     func rewardKid(){
         for record in records {
-            if checkRecordIsDone(record) {
+            // if the activity registered is done
+            if record.registerStatus == .completed {
                 // reward kid with coins
                 coordinator.kid.addCoins(record.activity.rewardPoints)
             }
         }
-    }
-    
-    private func checkRecordIsDone(_ record: Record) -> Bool {
-        if record.recordStatus == .completed {
-            true
-        } else {
-            false
-        }
-    }
-    
+    }    
 }

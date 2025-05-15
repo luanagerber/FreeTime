@@ -7,8 +7,8 @@
 
 import Foundation
 
-struct Parent {
+struct Genitor {
     let id = UUID()
     let name: String
-    var childrenID: UUID
+    var kidsID: UUID
 }

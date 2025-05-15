@@ -8,36 +8,47 @@
 import SwiftUI
 
 struct CardActivity: View {
-    var record: Record
+    var record: Register
     
     var body: some View {
-        VStack {
+        VStack{
             Rectangle()
-                .fill(record.recordStatus.color)
+                .fill(.white)
                 .frame(width: 360, height: 200)
-                .cornerRadius(12)
+            
                 .overlay(
-                    VStack {
+                    VStack(spacing: 0) {
                         
-//                        Image of the Planned Activity
-                    
+                        //Image of the Planned Activity
+                        Rectangle()
+                            .fill(record.registerStatus.color)
                         
-                        Text(record.activity.name)
-                            .font(.caption)
-                            .bold()
-                            .lineLimit(1)
+                        Rectangle()
+                            .fill(.gray)
+                            .frame(height: 55)
+                            .overlay{
+                                
+                                VStack(spacing: 0){
+                                    
+                                    Text(record.activity.name)
+                                        .font(.system(size: 22, weight: .medium))
+                                    
+                                    Text(record.date.timeRange(duration: record.duration))
+                                        .font(.system(size: 17, weight: .medium))
+                                    
+                                }
+                                .lineLimit(1)
+                                .foregroundColor(.white)
+                            }
                         
-
-
-                        Text(record.duration.description)
-                            .font(.caption)
-                            .bold()
-                            .lineLimit(1)
                     }
                     
-                        .padding(1),
-                    alignment: .center
                 )
-        }
+        }.cornerRadius(20)
     }
+}
+
+
+#Preview {
+    CardActivity(record: .sample1)
 }

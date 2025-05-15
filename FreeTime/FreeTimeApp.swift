@@ -9,13 +9,16 @@ import SwiftUI
 
 @main
 struct FreeTimeApp: App {
+    
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     var body: some Scene {
         WindowGroup {
             switch UIDevice.current.userInterfaceIdiom {
             case .pad:
-                    KidView()
-            case .phone:
                     CoordinatorView()
+            case .phone:
+                    GenitorView()
             default:
                 EmptyView()
             }

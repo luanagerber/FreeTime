@@ -7,8 +7,8 @@
 
 import SwiftUI
 
-struct ParentView: View {
-    @StateObject private var viewModel = ParentViewModel()
+struct GenitorView: View {
+    @StateObject private var viewModel = GenitorViewModel.shared
     
     var body: some View {
         ScrollView {
@@ -27,8 +27,8 @@ struct ParentView: View {
                         
                     
                 } else {
-                    ForEach(viewModel.records.filter({$0.recordStatus == .notStarted})) { record in
-                        ParentCardView(record: record)
+                    ForEach(viewModel.records.filter({$0.registerStatus == .notStarted})) { record in
+                        GenitorCardView(record: record)
                     }
                 }
             }
@@ -42,14 +42,14 @@ struct ParentView: View {
                 .padding(.horizontal)
             
             LazyVStack(alignment: .center, spacing: 20) {
-                if viewModel.records.filter({$0.recordStatus == .completed}).isEmpty {
+                if viewModel.records.filter({$0.registerStatus == .completed}).isEmpty {
                     Text("Nada foi concluído hoje ainda. Que tal checar com seu filho?")
                         .padding(.horizontal)
                         .font(.subheadline)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    ForEach(viewModel.records.filter({$0.recordStatus == .completed})) { record in
-                        ParentCardView(record: record)
+                    ForEach(viewModel.records.filter({$0.registerStatus == .completed})) { record in
+                        GenitorCardView(record: record)
                     }
                 }
             }
@@ -58,5 +58,5 @@ struct ParentView: View {
 }
 
 #Preview {
-    ParentView()
+    GenitorView()
 }
