@@ -9,11 +9,13 @@ import Foundation
 import SwiftUI
 
 class KidViewModel: ObservableObject {
-    @Published var register: [Register] = Register.samples
     
+    private var cloudService: CloudService = .shared
+
+    @Published var records: [Register] = Register.samples
     
-    func registerForToday(kidId: UUID) -> [Register] {
-        register
+    func recordsForToday(kidId: UUID) -> [Register] {
+        records
             .filter { $0.kid.id == kidId && Calendar.current.isDate($0.date, inSameDayAs: Date()) }
             .sorted { $0.date < $1.date }
     }

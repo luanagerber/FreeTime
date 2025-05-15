@@ -30,7 +30,7 @@ struct CardActivity: View {
                                 
                                 VStack(spacing: 0){
                                     
-                                    Text(register.activity.name)
+                                    Text(record.activity?.name ?? "no name")
                                         .font(.system(size: 22, weight: .medium))
                                     
                                     Text(register.date.timeRange(duration: register.duration))
@@ -46,4 +46,9 @@ struct CardActivity: View {
                 )
         }.cornerRadius(20)
     }
+}
+
+
+#Preview {
+    CardActivity(record: .sample1)
 }

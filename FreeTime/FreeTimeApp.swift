@@ -16,9 +16,10 @@ struct FreeTimeApp: App {
         WindowGroup {
             switch UIDevice.current.userInterfaceIdiom {
             case .pad:
-                    KidView()
+                    CoordinatorView()
             case .phone:
                     GenitorView()
+//                SharerTestView()
             default:
                 EmptyView()
             }

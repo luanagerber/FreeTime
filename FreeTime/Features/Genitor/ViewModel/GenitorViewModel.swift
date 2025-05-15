@@ -9,5 +9,15 @@ import Foundation
 import SwiftUI
 
 class GenitorViewModel: ObservableObject {
-    @Published var records: [Register] = Register.samples 
+
+    static let shared = GenitorViewModel()
+    private var cloudService: CloudService = .shared
+    
+    @Published var records: [Register] = Register.samples
+//    @Published var recordsCloudKit: [Register] = []
+    @Published var selectedDate = Date()
+    
+//    func fetchRecords() -> [Register] {
+//        
+//    }
 }
