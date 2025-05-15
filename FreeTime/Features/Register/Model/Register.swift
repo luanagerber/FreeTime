@@ -12,38 +12,23 @@ struct Register: Identifiable {
     var id: UUID
     let kid: Kid
     let genitor: Genitor
-    let activity: Activity
+    let activityID: Activity.ID
     let date: Date
     let duration: TimeInterval
     
     // States
     var registerStatus: RegisterStatus
 
-    init (kid: Kid, genitor: Genitor,activity: Activity, date: Date, duration: TimeInterval, registerStatus: RegisterStatus) {
+    init (kid: Kid, genitor: Genitor, activityID: Activity.ID, date: Date, duration: TimeInterval, registerStatus: RegisterStatus) {
         self.id = UUID()
         self.kid = kid
         self.genitor = genitor
-        self.activity = activity
+        self.activityID = activityID
         self.date = date
         self.duration = duration
         self.registerStatus = registerStatus
     }
 }
-
-//enum RegisterStatus {
-//    case notStarted
-//    case inProgress
-//    case completed
-//    
-//    var color: Color {
-//        switch self {
-//            //Provisionally
-//            case .notStarted: return .green.opacity(0.3)
-//            case .inProgress: return .yellow
-//            case .completed: return .gray.opacity(0.3)
-//        }
-//    }
-//}
 
 // @ Alterado para integrar o CloudKit
 enum RegisterStatus: Int {
