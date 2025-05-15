@@ -9,6 +9,9 @@ import Foundation
 import SwiftUI
 
 class KidViewModel: ObservableObject {
+    
+    private var cloudService: CloudService = .shared
+
     @Published var records: [Register] = Register.samples
     
     func recordsForToday(kidId: UUID) -> [Register] {

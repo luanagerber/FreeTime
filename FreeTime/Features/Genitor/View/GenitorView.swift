@@ -54,6 +54,7 @@ struct GenitorView: View {
                 }
             }
         }
+//        .onAppear(perform: viewModel.fetchRecords)
     }
 }
 

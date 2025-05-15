@@ -11,8 +11,8 @@ struct SharerTestView: View {
     @State private var shareView: AnyView?
     @State private var zoneReady = false
     
-    private let cloudService = CloudService()
-    
+    private var cloudService: CloudService = .shared
+
     var body: some View {
         VStack(spacing: 20) {
             Text("Kid Sharing Test")
