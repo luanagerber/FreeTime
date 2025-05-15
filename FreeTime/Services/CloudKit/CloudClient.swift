@@ -225,6 +225,85 @@ final class CloudClient: CKClient {
         }
     }
     
+//    func share<T: RecordProtocol>(_ object: T, inZone: CKRecordZone.ID, completion: @escaping (Result<UICloudSharingController, CloudError>) -> Void) async throws {
+//        
+//        print("Iniciando compartilhamento")
+//        guard let record = object.associatedRecord else {
+//            completion(.failure(.recordNotFound))
+//            return
+//        }
+//        
+//        // Verificar se estamos trabalhando na zona correta
+//        if record.recordID.zoneID.zoneName != inZone.zoneName {
+//            print("⚠️ Aviso: O record não está na zona correta para compartilhamento")
+//        }
+//        
+//        // Criar um UICloudSharingController usando uma abordagem mais direta
+//        let sharingController = await UICloudSharingController { (
+//            controller,
+//            preparationHandler
+//        ) in
+//            Task {
+//                do {
+//                    let share: CKShare
+//                    
+//                    if let existingShare = record.share {
+//                        // Se já existe um compartilhamento, use-o
+//                        share = try await self.container.privateCloudDatabase.record(for: existingShare.recordID) as! CKShare
+//                    } else {
+//                        // Caso contrário, crie um novo
+//                        share = CKShare(rootRecord: record)
+//                        share[CKShare.SystemFieldKey.title] = "Compartilhando filho: \(record["kidName"] ?? "Unknown")"
+//                        share.publicPermission = .readWrite
+//                    }
+//                    
+//                    // Salvar o registro e o compartilhamento juntos
+//                    do {
+//                        let (_, _) = try await self.container.privateCloudDatabase.modifyRecords(saving: [record, share], deleting: [])
+//                        preparationHandler(share, self.container, nil)
+//                        print("✅ Compartilhamento criado com sucesso")
+//                    } catch {
+//                        preparationHandler(nil, nil, error)
+//                        print("❌ Erro ao salvar compartilhamento: \(error.localizedDescription)")
+//                    }
+//                } catch {
+//                    preparationHandler(nil, nil, error)
+//                    print("❌ Erro ao criar compartilhamento: \(error.localizedDescription)")
+//                }
+//            }
+//        }
+//        
+//        // Configurar opções do controlador de compartilhamento
+//        sharingController.availablePermissions = [.allowReadWrite, .allowPrivate]
+//        
+//        // Retornar o controlador de compartilhamento
+//        completion(.success(sharingController))
+//    }
+    
+       // Método auxiliar para tentar obter o share atualizado várias vezes
+       private func getUpdatedShare(_ shareID: CKRecord.ID) async throws -> CKShare {
+           var attempts = 0
+           let maxAttempts = 5
+           
+           while attempts < maxAttempts {
+               do {
+                   let share = try await container.privateCloudDatabase.record(for: shareID) as! CKShare
+                   // Verificar se a URL está disponível
+                   if share.url != nil {
+                       return share
+                   }
+                   print("Tentativa \(attempts+1): Share obtido, mas URL ainda não está disponível")
+               } catch {
+                   print("Tentativa \(attempts+1) falhou: \(error.localizedDescription)")
+               }
+               
+               attempts += 1
+               try await Task.sleep(nanoseconds: 5_000_000_000) // 1 segundo
+           }
+           
+           throw CloudError.couldNotShareRecord
+       }
+    
     func deleteShare<T: RecordProtocol>(_ object: T, completion: @escaping (Result<Void, CloudError>) -> Void) async {
         guard let record = object.associatedRecord, let share = record.share else {
             completion(.failure(.recordNotFound))

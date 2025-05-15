@@ -17,6 +17,7 @@ struct KidRecord: RecordProtocol {
     var id: CKRecord.ID?
     var name: String
     var shareReference: CKRecord.Reference?
+    var associatedRecord: CKRecord?
     
     var record: CKRecord? {
         // Neste ponto, só queremos criar um novo registro quando estamos adicionando um novo Kid
@@ -31,14 +32,14 @@ struct KidRecord: RecordProtocol {
         return newRecord
     }
     
-    var associatedRecord: CKRecord? {
-        guard let recordID = id else { return nil }
-        
-        let record = CKRecord(recordType: RecordType.kid.rawValue, recordID: recordID)
-        record["kidName"] = name
-        
-        return record
-    }
+//    var associatedRecord: CKRecord? {
+//        guard let recordID = id else { return nil }
+//        
+//        let record = CKRecord(recordType: RecordType.kid.rawValue, recordID: recordID)
+//        record["kidName"] = name
+//        
+//        return record
+//    }
     
     init(name: String) {
         self.name = name
@@ -52,5 +53,6 @@ struct KidRecord: RecordProtocol {
         self.id = record.recordID
         self.name = name
         self.shareReference = record.share
+        self.associatedRecord = record
     }
 }

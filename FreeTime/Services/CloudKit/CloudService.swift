@@ -132,6 +132,15 @@ final class CloudService {
         }
     }
     
+//    func shareKid(_ kid: KidRecord, completion: @escaping (Result<UICloudSharingController, CloudError>) -> Void) async throws {
+//        // Ensure the Kids zone exists
+//        let kidsZone = try await createZoneIfNeeded(zoneName: "Kids")
+//        
+//        print("🔄 Tentando compartilhar kid: \(kid.name) na zona: \(kidsZone.zoneID.zoneName)")
+//        
+//        try await client.share(kid, inZone: kidsZone.zoneID, completion: completion)
+//    }
+    
     func updateKid(_ kid: KidRecord, completion: @escaping (Result<KidRecord, CloudError>) -> Void) async throws {
         let kidsZone = try await createZoneIfNeeded(zoneName: "Kids")
         
