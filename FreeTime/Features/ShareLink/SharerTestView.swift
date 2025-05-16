@@ -89,7 +89,7 @@ struct SharerTestView: View {
         
         Task {
             do {
-                // Create the Kids zone once when the view appears
+                //Cria a zona Kids quando a view é carregada
                 try await cloudService.createZoneIfNeeded(zoneName: "Kids")
                 print("✅ Kids zone created or verified")
                 
@@ -118,7 +118,7 @@ struct SharerTestView: View {
         let kid = KidRecord(name: childName)
         print("Attempting to add kid with name: \(kid.name)")
         
-        // Check if record is created properly
+        // Checa se o record está sendo criado corretamente
         if kid.record == nil {
             DispatchQueue.main.async {
                 isLoading = false

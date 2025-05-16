@@ -8,8 +8,6 @@
 import CloudKit
 import SwiftUI
 
-// Removemos a definição de RecordType que estava causando conflito
-
 final class CloudClient: CKClient {
     
     private var container: CKContainer = CKContainer(identifier: CloudConfig.containerIndentifier)
@@ -181,8 +179,6 @@ final class CloudClient: CKClient {
         if record.recordID.zoneID.zoneName != inZone.zoneName {
             print("⚠️ Aviso: O record não está na zona correta para compartilhamento")
             
-            // Opcionalmente, pode-se tentar mover o registro para a zona correta,
-            // mas isso exigiria criar um novo registro e copiar todos os dados
         }
         
         guard let existingShare = record.share else {
@@ -224,61 +220,6 @@ final class CloudClient: CKClient {
             completion(.failure(.couldNotShareRecord))
         }
     }
-    
-//    func share<T: RecordProtocol>(_ object: T, inZone: CKRecordZone.ID, completion: @escaping (Result<UICloudSharingController, CloudError>) -> Void) async throws {
-//        
-//        print("Iniciando compartilhamento")
-//        guard let record = object.associatedRecord else {
-//            completion(.failure(.recordNotFound))
-//            return
-//        }
-//        
-//        // Verificar se estamos trabalhando na zona correta
-//        if record.recordID.zoneID.zoneName != inZone.zoneName {
-//            print("⚠️ Aviso: O record não está na zona correta para compartilhamento")
-//        }
-//        
-//        // Criar um UICloudSharingController usando uma abordagem mais direta
-//        let sharingController = await UICloudSharingController { (
-//            controller,
-//            preparationHandler
-//        ) in
-//            Task {
-//                do {
-//                    let share: CKShare
-//                    
-//                    if let existingShare = record.share {
-//                        // Se já existe um compartilhamento, use-o
-//                        share = try await self.container.privateCloudDatabase.record(for: existingShare.recordID) as! CKShare
-//                    } else {
-//                        // Caso contrário, crie um novo
-//                        share = CKShare(rootRecord: record)
-//                        share[CKShare.SystemFieldKey.title] = "Compartilhando filho: \(record["kidName"] ?? "Unknown")"
-//                        share.publicPermission = .readWrite
-//                    }
-//                    
-//                    // Salvar o registro e o compartilhamento juntos
-//                    do {
-//                        let (_, _) = try await self.container.privateCloudDatabase.modifyRecords(saving: [record, share], deleting: [])
-//                        preparationHandler(share, self.container, nil)
-//                        print("✅ Compartilhamento criado com sucesso")
-//                    } catch {
-//                        preparationHandler(nil, nil, error)
-//                        print("❌ Erro ao salvar compartilhamento: \(error.localizedDescription)")
-//                    }
-//                } catch {
-//                    preparationHandler(nil, nil, error)
-//                    print("❌ Erro ao criar compartilhamento: \(error.localizedDescription)")
-//                }
-//            }
-//        }
-//        
-//        // Configurar opções do controlador de compartilhamento
-//        sharingController.availablePermissions = [.allowReadWrite, .allowPrivate]
-//        
-//        // Retornar o controlador de compartilhamento
-//        completion(.success(sharingController))
-//    }
     
        // Método auxiliar para tentar obter o share atualizado várias vezes
        private func getUpdatedShare(_ shareID: CKRecord.ID) async throws -> CKShare {

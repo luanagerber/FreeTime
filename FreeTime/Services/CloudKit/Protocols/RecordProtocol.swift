@@ -48,7 +48,6 @@ struct KidRecord: RecordProtocol {
     }
 }
 
-// @Tete, Activity virou ScheduledActivityRecord
 struct ScheduledActivityRecord: RecordProtocol {
     var id: CKRecord.ID?
     var kidID: UUID
