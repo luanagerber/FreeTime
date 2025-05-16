@@ -20,13 +20,20 @@ class KidViewModel: ObservableObject {
             .sorted { $0.date < $1.date }
     }
     
-    func notStartedRecords(kidId: UUID) -> [Register] {
-        recordsForToday(kidId: kidId)
+    func notStartedRegister(kidId: UUID) -> [Register] {
+        registerForToday(kidId: kidId)
             .filter { $0.registerStatus == .notStarted }
     }
     
-    func completedRecords(kidId: UUID) -> [Register] {
-        recordsForToday(kidId: kidId)
+    func completedRegister(kidId: UUID) -> [Register] {
+        registerForToday(kidId: kidId)
             .filter { $0.registerStatus == .completed }
     }
+    
+    func concludedActivity(register: Register) {
+        if let index = self.register.firstIndex(where: { $0.id == register.id }) {
+            self.register[index].registerStatus = .completed
+        }
+    }
+
 }
