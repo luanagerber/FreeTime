@@ -11,7 +11,7 @@ import SwiftUI
 final class CloudService {
     private let client: CKClient
     private var currentZone: CKRecordZone?
-        
+    
     init(client: CKClient = CloudClient()) {
         self.client = client
         checkCloudStatus()
