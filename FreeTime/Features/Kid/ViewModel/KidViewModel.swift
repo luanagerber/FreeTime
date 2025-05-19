@@ -12,10 +12,10 @@ class KidViewModel: ObservableObject {
     
     private var cloudService: CloudService = .shared
 
-    @Published var records: [Register] = Register.samples
+    @Published var register: [Register] = Register.samples
     
-    func recordsForToday(kidId: UUID) -> [Register] {
-        records
+    func registerForToday(kidId: UUID) -> [Register] {
+        register
             .filter { $0.kid.id == kidId && Calendar.current.isDate($0.date, inSameDayAs: Date()) }
             .sorted { $0.date < $1.date }
     }

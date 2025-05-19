@@ -15,12 +15,12 @@ struct DetailsActivityModal: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 50){
             HStack {
-                Text(register.activity.name)
+            Text(register.activity?.name ?? "Sem atividade")
                 Spacer()
                 Text("$5")
             }.font(.system(size: 34, weight: .semibold))
             
-            Text(register.activity.description)
+            Text(register.activity?.description ?? "Essa atividade não possui descrição.")
                 .font(.system(size: 22))
             
             HStack {
