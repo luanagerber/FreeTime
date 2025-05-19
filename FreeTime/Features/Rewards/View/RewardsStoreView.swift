@@ -12,40 +12,47 @@ struct RewardsStoreView: View {
     @ObservedObject var store: RewardsStore
     @EnvironmentObject var coordinator: Coordinator
     
-    @State var showInsufficientCoinsAlert: Bool = false
-    
     // grid with 4 columns
     let columns = Array(repeating: GridItem(.flexible()), count: 4)
     
     var body: some View {
         ZStack {
-            //TODO: cor de fundo
+            Constants.UI.Colors.defaultBackground
+                .ignoresSafeArea(.all)
             ScrollView(.vertical){
                 VStack(alignment: .leading){
                     titleText
-                        .padding()
+                    
                     subtitleText
-                        .padding()
-                    HStack {
-                        KidMiniProfileView(name: store.kid.name)
-                        CoinsView(amount: store.kid.coins, opacity: 0.2)
-                            .padding(5)
-                    }
+                    
+                    kidStatus
                     
                     LazyVGrid(columns: columns, spacing: 16) {
+                        
                         ForEach(store.rewards) { reward in
                             rewardView(reward)
                                 .padding()
                         }
+                        
+                        ForEach(store.kid.collectedRewards) { collectedReward in
+                            rewardView(collectedReward.reward, isCollected: true)
+                                .padding()
+                        }
                     }
-                    .padding()
                 }
-                .padding(.leading, 32)
+                .padding(64)
                 HStack {
-                    collectedRewards
                     addCoinsButtonTest
                 }
             }
+        }
+    }
+    
+    private var kidStatus: some View {
+        HStack {
+            KidMiniProfileView(name: store.kid.name)
+            CoinsView(amount: store.kid.coins, opacity: 0.2)
+                .padding(5)
         }
     }
     
@@ -53,22 +60,28 @@ struct RewardsStoreView: View {
         Text("Loja de recompensas")
             .font(.title)
             .bold()
+            .foregroundStyle(Constants.UI.Colors.titleText)
     }
     
     private var subtitleText: some View {
-        Text("Resgate recompensas e mantenha o seu patrão animado!")
+        Text("Clique na recompensa que deseja adquirir")
             .font(.title2)
-            .foregroundColor(.secondary)
+            .foregroundColor(Constants.UI.Colors.subtitleText)
     }
     
     private var addCoinsButtonTest: some View {
         Button {
             store.kid.addCoins(100000)
         } label: {
-            
-            Text("Tela de resgatadas")
-                .foregroundStyle(.white)
-                .background(Color.yellow)
+            HStack {
+                Text("Cheat de 100 000 moedas")
+                Image(systemName: "plus.circle.fill")
+            }
+            .foregroundStyle(.white)
+            .padding()
+            .background(Color.yellow.opacity(0.7))
+            .bold()
+            .clipShape(.capsule)
         }
     }
     
@@ -82,21 +95,23 @@ struct RewardsStoreView: View {
     
     func rewardView(_ reward: Reward) -> some View {
         Button {
-            do {
-                try store.collectReward(reward: reward)
-                
-            } catch {
-                showInsufficientCoinsAlert = true
-            }
+            coordinator.present(.buyRewardConfirmation(reward))
         } label: {
             RewardCardView(reward: reward)
         }
-        .alert("Moedas insuficientes", isPresented: $showInsufficientCoinsAlert) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Você precisa de mais moedas para comprar este item.")
+        .buttonStyle(.automatic)
+        
+        
+    }
+    
+    func rewardView(_ reward: Reward, isCollected: Bool = false) -> some View {
+        Button {
+            coordinator.present(.buyRewardConfirmation(reward))
+        } label: {
+            RewardCardView(reward: reward, isCollected: isCollected)
         }
         .buttonStyle(.automatic)
+        .disabled(isCollected)
         
     }
 }
@@ -112,40 +127,11 @@ struct CoinsView : View {
                 .imageScale(.large)
             Text("\(amount)")
                 .font(.headline)
-                .foregroundColor(.primary)
+                .foregroundColor(.white)
         }
         .padding(2)
         .background(Color.yellow.opacity(opacity))
         .cornerRadius(10)
-    }
-}
-
-struct RewardCardView: View {
-    let reward: Reward
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            Text(reward.image)
-                .font(.system(size: 64))
-                .scaledToFill()
-            
-            HStack {
-                Text(reward.name)
-                    .font(.headline)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.black)
-                CoinsView(amount: reward.cost, opacity: 0.4)
-                
-            }
-            .frame(maxWidth: 250)
-            
-        }
-        //.frame(maxWidth: .infinity)
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-        .shadow(radius: 2)
-        
     }
 }
 
@@ -169,8 +155,23 @@ struct KidMiniProfileView: View {
 
 #Preview {
     RewardsStoreView(store: .init())
+        .environmentObject(Coordinator())
 }
 
-#Preview ("Tela da recompensa") {
-    RewardCardView(reward: Reward.sample)
+#Preview ("Card não coletado") {
+    ZStack {
+        Constants.UI.Colors.defaultBackground
+            .ignoresSafeArea(.all)
+        RewardCardView(reward: Reward.sample)
+    }
 }
+
+#Preview ("Card coletado") {
+    ZStack {
+        Constants.UI.Colors.defaultBackground
+            .ignoresSafeArea(.all)
+        RewardCardView(reward: Reward.sample, isCollected: true)
+    }
+}
+
+

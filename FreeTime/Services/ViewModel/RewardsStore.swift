@@ -21,12 +21,18 @@ class RewardsStore: ObservableObject {
     }
     
     func collectReward(reward: Reward) throws {
-        // add to the collected rewards
-        let collectedReward = CollectedReward(reward: reward, date: Date())
-        kid.collectedRewards.append(collectedReward)
-        
         // remove the kid's coins
         if kid.coins - reward.cost >= 0 {
+            
+            // add to the collected rewards
+            let collectedReward = CollectedReward(reward: reward, date: Date())
+            kid.collectedRewards.append(collectedReward)
+            
+            //remove from the available rewards
+            if let index = rewards.firstIndex(of: reward) {
+                rewards.remove(at: index)
+            }
+            
             kid.removeCoins(reward.cost)
         } else {
             throw RewardsStoreError.notEnoughCoins
