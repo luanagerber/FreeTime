@@ -16,11 +16,12 @@ struct SectionProfile: View {
         ZStack{
             Rectangle()
                 .fill(.gray)
-                .cornerRadius(20)
+                .cornerRadius(18)
+                
             
             HStack{
                 Circle()
-                    .frame(width: 90, height: 90)
+                    .frame(width: 70, height: 70)
                 
                 VStack(alignment: .leading, spacing: 10){
                     Text(kid.name)
@@ -33,7 +34,7 @@ struct SectionProfile: View {
                 
                 VStack{
                     Rectangle()
-                        .frame(width: 70, height: 70)
+                        .frame(width: 50, height: 50)
                         .cornerRadius(20)
                         Text("Lojinha")
                         .font(.system(size: 14, weight: .regular, design: .default))
@@ -45,11 +46,10 @@ struct SectionProfile: View {
             .foregroundColor(.white)
             
             
-        }.frame(maxWidth: .infinity, maxHeight: 126)
+        }
+        .frame(maxWidth: .infinity, maxHeight: 126)
+        //.frame(maxWidth: .infinity, minHeight: 126,maxHeight: .infinity)
+        
         
     }
-}
-
-#Preview {
-    SectionProfile(kid: Register.sample1.kid)
 }

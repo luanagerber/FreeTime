@@ -13,28 +13,23 @@ protocol RecordProtocol {
     init?(record: CKRecord)
 }
 
-// @Tete, Kid virou KidRecord
 struct KidRecord: RecordProtocol {
     var id: CKRecord.ID?
     var name: String
     var shareReference: CKRecord.Reference?
+    var associatedRecord: CKRecord?
     
     var record: CKRecord? {
-        guard id == nil else { return nil }
+        // Neste ponto, só queremos criar um novo registro quando estamos adicionando um novo Kid
+        // (não temos um ID existente)
+        if id != nil {
+            return nil
+        }
         
         let newRecord = CKRecord(recordType: RecordType.kid.rawValue)
         newRecord["kidName"] = name
         
         return newRecord
-    }
-    
-    var associatedRecord: CKRecord? {
-        guard let recordID = id else { return nil }
-        
-        let record = CKRecord(recordType: RecordType.kid.rawValue, recordID: recordID)
-        record["kidName"] = name
-        
-        return record
     }
     
     init(name: String) {
@@ -49,10 +44,10 @@ struct KidRecord: RecordProtocol {
         self.id = record.recordID
         self.name = name
         self.shareReference = record.share
+        self.associatedRecord = record
     }
 }
 
-// @Tete, Activity virou ScheduledActivityRecord
 struct ScheduledActivityRecord: RecordProtocol {
     var id: CKRecord.ID?
     var kidID: UUID
@@ -69,7 +64,7 @@ struct ScheduledActivityRecord: RecordProtocol {
         newRecord["kidID"] = kidID.uuidString
         newRecord["activityID"] = activityID.uuidString
         newRecord["date"] = date
-        newRecord["duration"] = duration
+        newRecord["duration"] = duration  // Stored as Double in CloudKit
         newRecord["status"] = status.rawValue
         
         return newRecord
@@ -90,7 +85,7 @@ struct ScheduledActivityRecord: RecordProtocol {
     
     init(register: Register) {
         self.kidID = register.kid.id
-        self.activityID = register.activity.id
+        self.activityID = register.activityID // Use the ID directly
         self.date = register.date
         self.duration = register.duration
         self.status = register.registerStatus
@@ -103,7 +98,7 @@ struct ScheduledActivityRecord: RecordProtocol {
             let activityIDString = record["activityID"] as? String,
             let activityID = UUID(uuidString: activityIDString),
             let date = record["date"] as? Date,
-            let duration = record["duration"] as? TimeInterval,
+            let duration = record["duration"] as? TimeInterval,  // Cast from Double to TimeInterval
             let statusRawValue = record["status"] as? Int,
             let status = RegisterStatus(rawValue: statusRawValue) else {
                 return nil

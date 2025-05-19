@@ -27,7 +27,7 @@ class RegisterViewModel: ObservableObject {
             // if the activity registered is done
             if record.registerStatus == .completed {
                 // reward kid with coins
-                coordinator.kid.addCoins(record.activity.rewardPoints)
+                coordinator.kid.addCoins(record.activity?.rewardPoints ?? 0)
             }
         }
     }    

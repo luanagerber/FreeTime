@@ -12,7 +12,7 @@ extension Register {
         Register(
             kid: Kid(name: "Fulana", parentID: UUID()),
             genitor: Genitor(name: "Ciclana", kidsID: UUID()),
-            activity: Activity.samples[0],
+            activityID: Activity.catalog[0].id,
             date: Date(), // agora
             duration: 3600, // 1 hora
             registerStatus: .notStarted
@@ -20,7 +20,7 @@ extension Register {
         Register(
             kid: Kid(name: "Caquita", parentID: UUID()),
             genitor: Genitor(name: "Bolinha", kidsID: UUID()),
-            activity: Activity.samples[1],
+            activityID: Activity.catalog[1].id,
             date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
             duration: 5400, // 1h30min
             registerStatus: .notStarted
@@ -28,7 +28,7 @@ extension Register {
         Register(
             kid: Kid(name: "Thom", parentID: UUID()),
             genitor: Genitor(name: "Marcos", kidsID: UUID()),
-            activity: Activity.samples[1],
+            activityID: Activity.catalog[1].id,
             date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
             duration: 5400, // 1h30min
             registerStatus: .completed

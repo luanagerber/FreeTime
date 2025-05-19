@@ -7,7 +7,7 @@
 
 extension Activity {
     
-    static let samples: [Activity] = [
+    static let catalog: [Activity] = [
         Activity(
             name: "Pintura Criativa",
             tags: [.mentalExercise, .study],
