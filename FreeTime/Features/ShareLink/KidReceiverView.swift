@@ -249,13 +249,8 @@ struct KidReceiverView: View {
             }
         }
     }
-<<<<<<< HEAD
 
-    private func loadActivities(for kid: KidRecord, using zoneID: CKRecordZone.ID) {
-=======
-    
-    private func loadActivities(for kid: Kid) {
->>>>>>> ScheludedActivitiesShared2
+    private func loadActivities(for kid: Kid, using zoneID: CKRecordZone.ID) {
         guard let kidID = kid.id?.recordName else {
             feedbackMessage = "ID do filho não encontrado"
             print("FILHO: ID do filho não encontrado")
@@ -267,7 +262,6 @@ struct KidReceiverView: View {
         feedbackMessage = "Carregando atividades..."
         print("FILHO: Buscando atividades para kidID: \(kidID) na zona: \(zoneID.zoneName)")
         
-<<<<<<< HEAD
         // IMPORTANTE: Verificar se temos o rootRecordID
         if let rootRecordID = cloudService.getRootRecordID() {
             print("FILHO: Root Record ID: \(rootRecordID.recordName)")
@@ -289,13 +283,8 @@ struct KidReceiverView: View {
                 // Agora vamos tentar buscar atividades em todas as zonas
                 print("FILHO: Iniciando busca abrangente de atividades em todas as zonas")
                 
-                var allActivities: [ScheduledActivityRecord] = []
-=======
-        cloudService.fetchSharedActivities(forKid: kidID) { (result: Result<[ActivitiesRegister], CloudError>) in
-            DispatchQueue.main.async {
-                self.isLoading = false
->>>>>>> ScheludedActivitiesShared2
-                
+                var allActivities: [ActivitiesRegister] = []
+
                 for zone in zones {
                     print("FILHO: Buscando na zona: \(zone.zoneID.zoneName)")
                     
@@ -320,7 +309,7 @@ struct KidReceiverView: View {
                                 
                                 if recordKidID == kidID || recordKidRef?.recordID.recordName == kidID {
                                     print("FILHO: Registro corresponde ao kidID!")
-                                    if let activity = ScheduledActivityRecord(record: record) {
+                                    if let activity = ActivitiesRegister(record: record) {
                                         allActivities.append(activity)
                                     }
                                 }
@@ -374,16 +363,12 @@ struct KidReceiverView: View {
         }
     }
     
-<<<<<<< HEAD
-    private func updateActivityStatus(_ activity: ScheduledActivityRecord) {
+    private func updateActivityStatus(_ activity: ActivitiesRegister) {
         guard let activityID = activity.id else {
             feedbackMessage = "ID da atividade não encontrado"
             return
         }
-        
-=======
-    private func updateActivityStatus(_ activity: ActivitiesRegister) {
->>>>>>> ScheludedActivitiesShared2
+
         var updatedActivity = activity
         
         // Atualiza o status da atividade
@@ -407,7 +392,7 @@ struct KidReceiverView: View {
                 let record = try await sharedDB.record(for: activityID)
                 
                 // Atualizar o status
-                record["status"] = updatedActivity.status.rawValue
+                record["status"] = updatedActivity.registerStatus.rawValue
                 
                 // Salvar as alterações
                 let updatedRecord = try await sharedDB.save(record)
@@ -417,7 +402,7 @@ struct KidReceiverView: View {
                     self.feedbackMessage = "✅ Status atualizado com sucesso"
                     
                     // Atualizar a atividade na lista
-                    if let updatedActivity = ScheduledActivityRecord(record: updatedRecord),
+                    if let updatedActivity = ActivitiesRegister(record: updatedRecord),
                        let index = self.activities.firstIndex(where: { $0.id == activityID }) {
                         self.activities[index] = updatedActivity
                     }

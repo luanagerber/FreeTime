@@ -18,11 +18,11 @@ struct ActivitiesRegister: Identifiable {
     var registerStatus: RegisterStatus
     
     // CloudKit related properties
-    var kidReference: CKRecord.Reference?
-    var associatedRecord: CKRecord?
-    
+    var shareReference: CKRecord.Reference?
+    var kidReference: CKRecord.Reference? // Nova propriedade
+        
     // For Identifiable conformance (UUID required if id is nil)
-    private let localID = UUID()
+    private let localID = UUID()  // Luana que add
     
     init(kidID: String, activityID: UUID, date: Date, duration: TimeInterval, registerStatus: RegisterStatus = .notStarted) {
         self.kidID = kidID
@@ -41,7 +41,7 @@ struct ActivitiesRegister: Identifiable {
         
         if let kidRecordID = kid.id {
             self.kidReference = CKRecord.Reference(recordID: kidRecordID, action: .deleteSelf)
-        }
+        } //Qualquer coisa, o erro pode estar aqui kk
     }
     
     // Computed property to fetch the activity from the catalog
@@ -52,13 +52,11 @@ struct ActivitiesRegister: Identifiable {
 
 // RecordProtocol extension
 extension ActivitiesRegister: RecordProtocol {
-    var shareReference: CKRecord.Reference? { associatedRecord?.share }
-    
     var record: CKRecord? {
         guard id == nil else { return nil }
         
         let newRecord = CKRecord(recordType: RecordType.activity.rawValue, zoneID: CloudConfig.recordZone.zoneID)
-        newRecord["kidID"] = kidID
+        newRecord["kidID"] = kidID // Salva o recordName como kidID
         newRecord["activityID"] = activityID.uuidString
         newRecord["date"] = date
         newRecord["duration"] = duration
@@ -71,6 +69,24 @@ extension ActivitiesRegister: RecordProtocol {
         
         return newRecord
     }
+    
+    var associatedRecord: CKRecord? {
+           guard let recordID = id else { return nil }
+           
+           let record = CKRecord(recordType: RecordType.activity.rawValue, recordID: recordID)
+           record["kidID"] = kidID
+           record["activityID"] = activityID.uuidString
+           record["date"] = date
+           record["duration"] = duration
+           record["status"] = registerStatus.rawValue
+           
+           // Adicionar referência ao Kid se disponível
+           if let kidRef = kidReference {
+               record["kidReference"] = kidRef
+           }
+           
+           return record
+       }
     
     init?(record: CKRecord) {
         guard
@@ -90,8 +106,8 @@ extension ActivitiesRegister: RecordProtocol {
         self.date = date
         self.duration = duration
         self.registerStatus = status
+        self.shareReference = record.share
         self.kidReference = record["kidReference"] as? CKRecord.Reference
-        self.associatedRecord = record
     }
 }
 
