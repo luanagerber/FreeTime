@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct TaskRowView: View {
-    let record: Register
+    let record: ActivitiesRegister
     
     var body: some View {
         HStack {
@@ -34,5 +34,5 @@ struct TaskRowView: View {
 }
 
 #Preview {
-    TaskRowView(record: Register.sample1)
+    TaskRowView(record: ActivitiesRegister.sample1)
 }

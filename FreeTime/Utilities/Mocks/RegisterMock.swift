@@ -7,27 +7,26 @@
 
 import Foundation
 
-extension Register {
-    static let samples: [Register] = [
-        Register(
-            kid: Kid(name: "Fulana", parentID: UUID()),
-            genitor: Genitor(name: "Ciclana", kidsID: UUID()),
+extension ActivitiesRegister {
+    static let kidTest = Kid.sample
+    
+    static let samples: [ActivitiesRegister] = [
+        ActivitiesRegister(
+            kid: kidTest,
             activityID: Activity.catalog[0].id,
             date: Date(), // agora
             duration: 3600, // 1 hora
             registerStatus: .notStarted
         ),
-        Register(
-            kid: Kid(name: "Caquita", parentID: UUID()),
-            genitor: Genitor(name: "Bolinha", kidsID: UUID()),
+        ActivitiesRegister(
+            kid: kidTest,
             activityID: Activity.catalog[1].id,
             date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(), //ontem
             duration: 5400, // 1h30min
             registerStatus: .notStarted
         ),
-        Register(
-            kid: Kid(name: "Thom", parentID: UUID()),
-            genitor: Genitor(name: "Marcos", kidsID: UUID()),
+        ActivitiesRegister(
+            kid: kidTest,
             activityID: Activity.catalog[1].id,
             date: Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date(), //amanhã
             duration: 5400, // 1h30min
@@ -35,7 +34,7 @@ extension Register {
         )
     ]
     
-    static let sample1: Register = .samples[0]
-    static let sample2: Register = .samples[1]
-    static let sample3: Register = .samples[2]
+    static let sample1: ActivitiesRegister = .samples[0]
+    static let sample2: ActivitiesRegister = .samples[1]
+    static let sample3: ActivitiesRegister = .samples[2]
 }

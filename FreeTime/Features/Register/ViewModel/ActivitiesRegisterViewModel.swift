@@ -7,9 +7,9 @@
 
 import SwiftUI
 
-class RegisterViewModel: ObservableObject {
+class ActivitiesRegisterViewModel: ObservableObject {
     
-    @Published var records: [Register] {
+    @Published var records: [ActivitiesRegister] {
         didSet {
             // Se a variável records mudar, a função checa se deve recompensar
             rewardKid()

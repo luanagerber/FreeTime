@@ -52,5 +52,5 @@ struct SectionProfile: View {
 }
 
 #Preview {
-    SectionProfile(kid: Register.sample1.kid, moedas: 500)
+    SectionProfile(kid: ActivitiesRegister.kidTest, moedas: 500)
 }
