@@ -198,12 +198,131 @@ struct ParentSharerView: View {
     }
     
     // MARK: - Métodos de Cloud
-    
     private func refresh() {
-        if zoneReady {
-            loadKids()
-        } else {
+        isLoading = true
+        feedbackMessage = "Atualizando dados..."
+        
+        if !zoneReady {
             setupCloudKit()
+            return
+        }
+        
+        // Primeiro, carregar as crianças
+        cloudService.fetchAllKids { result in
+            switch result {
+            case .success(let fetchedKids):
+                self.kids = fetchedKids
+                
+                // Se temos crianças e alguma foi selecionada, verificar por atividades atualizadas
+                if let selectedKid = self.selectedKid, !fetchedKids.isEmpty {
+                    // Buscar também no banco compartilhado para pegar atualizações do filho
+                    guard let kidID = selectedKid.id?.recordName else {
+                        self.isLoading = false
+                        self.feedbackMessage = "✅ Dados atualizados"
+                        return
+                    }
+                    
+                    // Buscar atividades tanto no banco privado quanto no compartilhado
+                    self.loadSharedActivities(for: kidID)
+                } else {
+                    self.isLoading = false
+                    let message = fetchedKids.isEmpty
+                        ? "Nenhuma criança encontrada no CloudKit"
+                        : "✅ Carregadas \(fetchedKids.count) crianças"
+                    self.feedbackMessage = message
+                }
+                
+            case .failure(let error):
+                self.isLoading = false
+                let errorMessage = "❌ Erro ao carregar crianças: \(error)"
+                self.feedbackMessage = errorMessage
+                print(errorMessage)
+            }
+        }
+    }
+
+    // Adicionar este método para buscar atividades compartilhadas
+    private func loadSharedActivities(for kidID: String) {
+        // Verificar se há atividades compartilhadas pelo filho que foram modificadas
+        cloudService.fetchSharedActivities(forKid: kidID) { (result: Result<[ScheduledActivityRecord], CloudError>) in
+            
+            DispatchQueue.main.async {
+                self.isLoading = false
+                
+                switch result {
+                case .success(let sharedActivities):
+                    // Se encontrar atividades compartilhadas modificadas, atualizar o banco de dados local
+                    if !sharedActivities.isEmpty {
+                        self.syncActivitiesWithPrivateDB(sharedActivities, kidID: kidID)
+                    } else {
+                        self.feedbackMessage = "✅ Dados atualizados"
+                    }
+                case .failure:
+                    // Continue mesmo se não encontrar atividades compartilhadas
+                    self.feedbackMessage = "✅ Dados atualizados"
+                }
+            }
+        }
+    }
+
+    // Sincronizar atividades do banco compartilhado com o banco privado
+    private func syncActivitiesWithPrivateDB(_ sharedActivities: [ScheduledActivityRecord], kidID: String) {
+        // Buscar atividades privadas primeiro
+        cloudService.fetchAllActivities(forKid: kidID) { (result: Result<[ScheduledActivityRecord], CloudError>) in
+            
+            switch result {
+            case .success(let privateActivities):
+                // Para cada atividade compartilhada, verificar se precisamos atualizar a versão privada
+                var activitiesToUpdate: [ScheduledActivityRecord] = []
+                
+                for sharedActivity in sharedActivities {
+                    // Buscar atividade correspondente no banco privado
+                    if let privateVersion = privateActivities.first(where: { $0.activityID == sharedActivity.activityID }) {
+                        // Se o status da atividade compartilhada é diferente, precisamos atualizar
+                        if privateVersion.status != sharedActivity.status {
+                            // Criar uma versão atualizada para o banco privado
+                            var updatedActivity = privateVersion
+                            updatedActivity.status = sharedActivity.status
+                            activitiesToUpdate.append(updatedActivity)
+                        }
+                    }
+                }
+                
+                // Atualizar atividades que precisam de sincronização
+                if !activitiesToUpdate.isEmpty {
+                    self.updatePrivateActivities(activitiesToUpdate)
+                } else {
+                    self.feedbackMessage = "✅ Dados atualizados - Tudo sincronizado"
+                }
+                
+            case .failure:
+                self.feedbackMessage = "✅ Dados atualizados, mas falha ao sincronizar atividades"
+            }
+        }
+    }
+
+    // Atualizar atividades no banco privado
+    private func updatePrivateActivities(_ activities: [ScheduledActivityRecord]) {
+        let dispatchGroup = DispatchGroup()
+        var updatedCount = 0
+        
+        for activity in activities {
+            dispatchGroup.enter()
+            
+            cloudService.updateActivity(activity, isShared: false) { result in
+                switch result {
+                case .success:
+                    updatedCount += 1
+                case .failure:
+                    // Continue mesmo com falhas
+                    break
+                }
+                dispatchGroup.leave()
+            }
+        }
+        
+        dispatchGroup.notify(queue: .main) {
+            self.feedbackMessage = "✅ Dados atualizados - \(updatedCount) atividades sincronizadas"
         }
     }
     
@@ -218,16 +337,40 @@ struct ParentSharerView: View {
                 print("✅ Zona Kids criada ou verificada")
                 
                 DispatchQueue.main.async {
-                    zoneReady = true
-                    feedbackMessage = "✅ CloudKit configurado com sucesso"
-                    loadKids()
+                    self.zoneReady = true
+                    self.feedbackMessage = "✅ CloudKit configurado com sucesso"
+                    self.loadKids()
                 }
             } catch {
-                let errorMessage = "❌ Erro ao configurar CloudKit: \(error.localizedDescription)"
-                print(errorMessage)
-                DispatchQueue.main.async {
-                    isLoading = false
-                    feedbackMessage = errorMessage
+                print("❌ ERRO CRÍTICO: Falha ao configurar CloudKit: \(error.localizedDescription)")
+                
+                // Se o erro for Zone Not Found, tentar criar novamente após um breve atraso
+                if let ckError = error as? CKError, ckError.code == .zoneNotFound {
+                    print("📋 Tentando criar zona novamente em 2 segundos...")
+                    
+                    // Esperar 2 segundos e tentar novamente
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    
+                    do {
+                        try await self.cloudService.createZoneIfNeeded()
+                        print("✅ Zona Kids criada com sucesso na segunda tentativa")
+                        
+                        DispatchQueue.main.async {
+                            self.zoneReady = true
+                            self.feedbackMessage = "✅ CloudKit configurado com sucesso (segunda tentativa)"
+                            self.loadKids()
+                        }
+                    } catch {
+                        DispatchQueue.main.async {
+                            self.isLoading = false
+                            self.feedbackMessage = "❌ Erro crítico ao configurar CloudKit. Por favor, reinicie o aplicativo."
+                        }
+                    }
+                } else {
+                    DispatchQueue.main.async {
+                        self.isLoading = false
+                        self.feedbackMessage = "❌ Erro: \(error.localizedDescription)"
+                    }
                 }
             }
         }
@@ -283,7 +426,17 @@ struct ParentSharerView: View {
             return
         }
         
+<<<<<<< HEAD
+        // Usar o recordName diretamente como string
+        let kidRecordName = kidRecordID.recordName
+        
+        print("DETALHADO: Criando atividade para \(kid.name) com ID \(kidRecordName)")
+        print("DETALHADO: ActivityID: \(activity.id)")
+        print("DETALHADO: Data: \(scheduledDate)")
+        print("DETALHADO: Adicionando referência ao Kid com ID: \(kidRecordID)")
+=======
         print("Agendando atividade para kid: \(kid.name), recordName: \(kidID)")
+>>>>>>> ScheludedActivitiesShared2
         
         // Criar registro de atividade usando o novo inicializador
         var activityRegister = ActivitiesRegister(
@@ -294,25 +447,219 @@ struct ParentSharerView: View {
             registerStatus: .notStarted
         )
         
+<<<<<<< HEAD
+        // Converter para ScheduledActivityRecord usando o recordName como kidID e passando a referência ao Kid
+        let activityRecord = ScheduledActivityRecord(
+            register: register,
+            kidID: kidRecordName,
+            kidRecordID: kidRecordID  // Passar o CKRecord.ID para criar a referência
+        )
+        
+        // Verificar se a referência foi configurada
+        if activityRecord.kidReference != nil {
+            print("DETALHADO: KidReference configurada corretamente")
+        } else {
+            print("DETALHADO: ERRO - KidReference não configurada!")
+            // Tentar configurar manualmente se não estiver configurada
+            if let record = activityRecord.record {
+                record["kidReference"] = CKRecord.Reference(recordID: kidRecordID, action: .deleteSelf)
+                print("DETALHADO: KidReference configurada manualmente")
+            }
+        }
+        
+        // Salvar a atividade e depois atualizar o compartilhamento
+        cloudService.saveActivity(activityRecord) { result in
+=======
         // Se o kid tiver um ID, definir a referência
         if let kidRecordID = kid.id {
             activityRegister.kidReference = CKRecord.Reference(recordID: kidRecordID, action: .deleteSelf)
         }
         
         cloudService.saveActivity(activityRegister) { result in
+>>>>>>> ScheludedActivitiesShared2
             DispatchQueue.main.async {
-                isLoading = false
+                self.isLoading = false
                 
                 switch result {
+<<<<<<< HEAD
+                case .success(let savedActivity):
+                    print("✅ Atividade criada com sucesso para \(kid.name), recordName: \(kidRecordName)")
+                    print("DETALHADO: Atividade salva com ID: \(savedActivity.id?.recordName ?? "unknown")")
+                    
+                    // Verificar se a criança já tem compartilhamento
+                    if let shareReference = kid.shareReference {
+                        print("DETALHADO: Criança já tem compartilhamento (ID: \(shareReference.recordID.recordName)), atualizando...")
+                        
+                        // Diagnóstico do compartilhamento existente
+                        Task {
+                            await self.diagnosticarCompartilhamento(kidRecordID: kidRecordID)
+                        }
+                        
+                        // Recompartilhar para garantir que as novas atividades sejam incluídas
+                        Task {
+                            do {
+                                try await self.cloudService.shareKid(kid) { result in
+                                    switch result {
+                                    case .success:
+                                        print("DETALHADO: Compartilhamento atualizado após nova atividade")
+                                        
+                                        // Verificar se a atividade foi corretamente incluída no compartilhamento
+                                        Task {
+                                            await self.verificarAtividadeNoCompartilhamento(
+                                                kidID: kidRecordName,
+                                                activityID: savedActivity.id?.recordName ?? ""
+                                            )
+                                        }
+                                        
+                                    case .failure(let error):
+                                        print("DETALHADO: Erro no retorno do compartilhamento: \(error)")
+                                    }
+                                }
+                            } catch {
+                                print("DETALHADO: Erro ao atualizar compartilhamento: \(error)")
+                            }
+                        }
+                    } else {
+                        print("DETALHADO: Criança não tem compartilhamento ainda, criando...")
+                        // Se não tiver compartilhamento, cria um novo
+                        Task {
+                            do {
+                                try await self.cloudService.shareKid(kid) { result in
+                                    switch result {
+                                    case .success:
+                                        print("DETALHADO: Compartilhamento criado após nova atividade")
+                                        DispatchQueue.main.async {
+                                            self.refresh() // Atualizar a lista de kids para obter o shareReference atualizado
+                                        }
+                                    case .failure(let error):
+                                        print("DETALHADO: Erro ao criar compartilhamento: \(error)")
+                                    }
+                                }
+                            } catch {
+                                print("DETALHADO: Erro ao criar compartilhamento: \(error)")
+                            }
+                        }
+                    }
+                    
+                    self.feedbackMessage = "✅ Atividade '\(activity.name)' agendada para \(kid.name)"
+                    self.showActivitySelector = false
+                    
+                    // Executar diagnóstico completo
+                    Task {
+                        await self.cloudService.debugShareStatus(forKid: kid)
+                        await self.cloudService.debugSharedDatabase()
+                    }
+                    
+=======
                 case .success(_):
                     print("✅ Atividade criada com sucesso para \(kid.name), recordName: \(kidID)")
                     feedbackMessage = "✅ Atividade '\(activity.name)' agendada para \(kid.name)"
                     showActivitySelector = false
+>>>>>>> ScheludedActivitiesShared2
                 case .failure(let error):
                     print("❌ Erro ao agendar atividade: \(error)")
-                    feedbackMessage = "❌ Erro ao agendar atividade: \(error)"
+                    self.feedbackMessage = "❌ Erro ao agendar atividade: \(error)"
                 }
             }
+        }
+    }
+
+    private func diagnosticarCompartilhamento(kidRecordID: CKRecord.ID) async {
+        print("DIAGNÓSTICO: Verificando compartilhamento para Kid ID: \(kidRecordID.recordName)")
+        
+        let container = CKContainer(identifier: CloudConfig.containerIndentifier)
+        let privateDB = container.privateCloudDatabase
+        
+        do {
+            // Buscar o registro original
+            let kidRecord = try await privateDB.record(for: kidRecordID)
+            let shareReference = kidRecord.share
+            
+            if let shareReference = shareReference {
+                print("DIAGNÓSTICO: Kid tem referência para share: \(shareReference.recordID.recordName)")
+                
+                // Buscar o CKShare
+                let share = try await privateDB.record(for: shareReference.recordID) as? CKShare
+                
+                if let share = share {
+                    print("DIAGNÓSTICO: Share encontrado com sucesso")
+                    print("DIAGNÓSTICO: - Permissão pública: \(share.publicPermission.rawValue)")
+                    print("DIAGNÓSTICO: - Participantes: \(share.participants.count)")
+                    print("DIAGNÓSTICO: - URL: \(share.url?.absoluteString ?? "nil")")
+                    
+                    // Correção: proprietário é não-opcional e currentUserParticipant pode ser opcional
+                    let owner = share.owner
+                    if let currentUserParticipant = share.currentUserParticipant {
+                        print("DIAGNÓSTICO: - Usuário atual é owner? \(owner.userIdentity == currentUserParticipant.userIdentity)")
+                    } else {
+                        print("DIAGNÓSTICO: - Usuário atual não é participante do compartilhamento")
+                    }
+                } else {
+                    print("DIAGNÓSTICO: Share não encontrado, apesar da referência existir")
+                }
+            } else {
+                print("DIAGNÓSTICO: Kid não tem referência para share")
+            }
+        } catch {
+            print("DIAGNÓSTICO: Erro ao buscar registro ou share: \(error.localizedDescription)")
+        }
+    }
+    
+    private func verificarAtividadeNoCompartilhamento(kidID: String, activityID: String) async {
+        print("VERIFICAÇÃO: Buscando atividade \(activityID) para Kid \(kidID) no banco compartilhado")
+        
+        guard let rootRecordID = cloudService.getRootRecordID() else {
+            print("VERIFICAÇÃO: Nenhum rootRecordID encontrado")
+            return
+        }
+        
+        let container = CKContainer(identifier: CloudConfig.containerIndentifier)
+        let sharedDB = container.sharedCloudDatabase
+        
+        // Primeiro tentar buscar pelo ID exato
+        if !activityID.isEmpty {
+            do {
+                let activityRecordID = CKRecord.ID(recordName: activityID, zoneID: rootRecordID.zoneID)
+                let record = try await sharedDB.record(for: activityRecordID)
+                print("VERIFICAÇÃO: Atividade encontrada diretamente pelo ID!")
+                print("VERIFICAÇÃO: - Fields: \(record.allKeys().map { "\($0): \(String(describing: record[$0]))" }.joined(separator: ", "))")
+                return
+            } catch {
+                print("VERIFICAÇÃO: Não foi possível encontrar a atividade pelo ID: \(error.localizedDescription)")
+            }
+        }
+        
+        // Se não encontrar pelo ID, tentar buscar por query
+        let kidReference = CKRecord.Reference(recordID: CKRecord.ID(recordName: kidID, zoneID: rootRecordID.zoneID), action: .none)
+        
+        let predicates = [
+            NSPredicate(format: "kidID == %@", kidID),
+            NSPredicate(format: "kidReference == %@", kidReference)
+        ]
+        let compoundPredicate = NSCompoundPredicate(orPredicateWithSubpredicates: predicates)
+        
+        let query = CKQuery(recordType: RecordType.activity.rawValue, predicate: compoundPredicate)
+        
+        do {
+            let (results, _) = try await sharedDB.records(matching: query)
+            
+            if results.isEmpty {
+                print("VERIFICAÇÃO: Nenhuma atividade encontrada no banco compartilhado")
+            } else {
+                print("VERIFICAÇÃO: Encontradas \(results.count) atividades no banco compartilhado")
+                
+                for (index, result) in results.enumerated() {
+                    switch result.1 {
+                    case .success(let record):
+                        print("VERIFICAÇÃO: Atividade \(index) - ID: \(record.recordID.recordName)")
+                        print("VERIFICAÇÃO: - Fields: \(record.allKeys().map { "\($0): \(String(describing: record[$0]))" }.joined(separator: ", "))")
+                    case .failure(let error):
+                        print("VERIFICAÇÃO: Erro ao processar registro \(index): \(error.localizedDescription)")
+                    }
+                }
+            }
+        } catch {
+            print("VERIFICAÇÃO: Erro ao buscar atividades: \(error.localizedDescription)")
         }
     }
     

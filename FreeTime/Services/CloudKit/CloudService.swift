@@ -17,27 +17,27 @@ final class CloudService {
     }
     
     static let shared = CloudService()
-
+    
     // MARK: - Cloud Status
-
+    
     private func checkCloudStatus() {
         CKContainer(identifier: CloudConfig.containerIndentifier).accountStatus { (status, error) in
             if let error = error {
                 print("❌ Erro ao verificar status do CloudKit: \(error.localizedDescription)")
             } else {
                 switch status {
-                case .available:
-                    print("✅ CloudKit disponível - status: \(status)")
-                case .noAccount:
-                    print("❌ Sem conta iCloud - status: \(status)")
-                case .restricted:
-                    print("⚠️ Acesso ao CloudKit restrito - status: \(status)")
-                case .couldNotDetermine:
-                    print("❓ Não foi possível determinar o status do CloudKit - status: \(status)")
-                case .temporarilyUnavailable:
-                    print("temporarily Unavailable")
-                @unknown default:
-                    print("❓ Status do CloudKit desconhecido: \(status)")
+                    case .available:
+                        print("✅ CloudKit disponível - status: \(status)")
+                    case .noAccount:
+                        print("❌ Sem conta iCloud - status: \(status)")
+                    case .restricted:
+                        print("⚠️ Acesso ao CloudKit restrito - status: \(status)")
+                    case .couldNotDetermine:
+                        print("❓ Não foi possível determinar o status do CloudKit - status: \(status)")
+                    case .temporarilyUnavailable:
+                        print("temporarily Unavailable")
+                    @unknown default:
+                        print("❓ Status do CloudKit desconhecido: \(status)")
                 }
             }
         }
@@ -47,20 +47,45 @@ final class CloudService {
     // MARK: - Zone Management
     
     func createZoneIfNeeded() async throws {
-        guard !UserDefaults.standard.bool(forKey: "isZoneCreated") else {
-            return
-        }
+        print("📁 Tentando verificar a zona Kids")
+        
+        // Primeiro, vamos verificar se a zona já existe
+        let container = CKContainer(identifier: CloudConfig.containerIndentifier)
         
         do {
-            try await client.createZone(zone: CloudConfig.recordZone)
-            print("✅ Zona criada com sucesso")
-            UserDefaults.standard.setValue(true, forKey: "isZoneCreated")
+            // Tentar listar todas as zonas existentes
+            let zones = try await container.privateCloudDatabase.allRecordZones()
+            print("🔍 Zonas existentes: \(zones.map { $0.zoneID.zoneName })")
+            
+            // Verificar se a zona Kids já existe
+            if zones.contains(where: { $0.zoneID.zoneName == "Kids" }) {
+                print("✅ Zona Kids já existe")
+                return
+            }
+            
+            // Se chegou aqui, a zona não existe e precisamos criá-la
+            print("🆕 Zona Kids não existe, criando...")
+            
+            // Criar a zona
+            let newZone = CKRecordZone(zoneName: "Kids")
+            try await container.privateCloudDatabase.modifyRecordZones(saving: [newZone], deleting: [])
+            
+            // Verificar se a zona foi criada com sucesso
+            let updatedZones = try await container.privateCloudDatabase.allRecordZones()
+            if updatedZones.contains(where: { $0.zoneID.zoneName == "Kids" }) {
+                print("✅ Zona Kids criada com sucesso")
+                
+                // Atualizar a configuração global
+                UserDefaults.standard.setValue(true, forKey: "isZoneCreated")
+            } else {
+                print("❌ Falha ao criar zona Kids - não encontrada após criação")
+                throw CloudError.recordZoneNotFound
+            }
         } catch {
-            print("❌ ERRO: Falha ao criar zona personalizada: \(error.localizedDescription)")
+            print("❌ Erro ao criar/verificar zona Kids: \(error.localizedDescription)")
             throw error
         }
     }
-    
     // MARK: - Kid Operations
     
     func saveKid(_ kid: Kid, completion: @escaping (Result<Kid, CloudError>) -> Void) {
@@ -77,14 +102,14 @@ final class CloudService {
             predicate: predicate
         ) { (result: Result<[Kid], CloudError>) in
             switch result {
-            case .success(let kids):
-                if let kid = kids.first {
-                    completion(.success(kid))
-                } else {
-                    completion(.failure(.recordNotFound))
-                }
-            case .failure(let error):
-                completion(.failure(error))
+                case .success(let kids):
+                    if let kid = kids.first {
+                        completion(.success(kid))
+                    } else {
+                        completion(.failure(.recordNotFound))
+                    }
+                case .failure(let error):
+                    completion(.failure(error))
             }
         }
     }
@@ -97,13 +122,13 @@ final class CloudService {
             predicate: nil
         ) { (result: Result<[Kid], CloudError>) in
             switch result {
-            case .success(let kids):
-                let sortedKids = kids.sorted {
-                    ($0.associatedRecord?.creationDate ?? Date()) < ($1.associatedRecord?.creationDate ?? Date())
-                }
-                completion(.success(sortedKids))
-            case .failure(let error):
-                completion(.failure(error))
+                case .success(let kids):
+                    let sortedKids = kids.sorted {
+                        ($0.associatedRecord?.creationDate ?? Date()) < ($1.associatedRecord?.creationDate ?? Date())
+                    }
+                    completion(.success(sortedKids))
+                case .failure(let error):
+                    completion(.failure(error))
             }
         }
     }
@@ -120,12 +145,12 @@ final class CloudService {
                 print("Kid does have a share, removing it...")
                 await client.deleteShare(kid) { shareResult in
                     switch shareResult {
-                    case .success:
-                        print("CKShare removed with success")
-                    case .failure(let error):
-                        print("Failed removing CKShare:", error)
-                        completion(.failure(error))
-                        return
+                        case .success:
+                            print("CKShare removed with success")
+                        case .failure(let error):
+                            print("Failed removing CKShare:", error)
+                            completion(.failure(error))
+                            return
                     }
                 }
             }
@@ -133,12 +158,12 @@ final class CloudService {
             // Deletes the record
             client.delete(kid, dbType: .privateDB) { result in
                 switch result {
-                case .success:
-                    print("Kid deleted")
-                    completion(.success(()))
-                case .failure(let error):
-                    print("Kid deletion failed:", error)
-                    completion(.failure(error))
+                    case .success:
+                        print("Kid deleted")
+                        completion(.success(()))
+                    case .failure(let error):
+                        print("Kid deletion failed:", error)
+                        completion(.failure(error))
                 }
             }
         }
@@ -160,23 +185,201 @@ final class CloudService {
             predicate: predicate
         ) { (result: Result<[ActivitiesRegister], CloudError>) in
             switch result {
-            case .success(let activities):
-                let sortedActivities = activities.sorted {
-                    $0.date < $1.date
-                }
-                completion(.success(sortedActivities))
-            case .failure(let error):
-                completion(.failure(error))
+                case .success(let activities):
+                    let sortedActivities = activities.sorted {
+                        $0.date < $1.date
+                    }
+                    completion(.success(sortedActivities))
+                case .failure(let error):
+                    completion(.failure(error))
             }
         }
     }
     
+    func updateActivity(_ activity: ActivitiesRegister, isShared: Bool, completion: @escaping (Result<ActivitiesRegister, CloudError>) -> Void) {
+        let dbType: CloudConfig = isShared ? .sharedDB : .privateDB
+        client.modify(activity, dbType: dbType, completion: completion)
+    }
+    
+    func deleteActivity(_ activity: ActivitiesRegister, isShared: Bool, completion: @escaping (Result<Bool, CloudError>) -> Void) {
+        let dbType: CloudConfig = isShared ? .sharedDB : .privateDB
+        client.delete(activity, dbType: dbType, completion: completion)
+    }
+    
+    
+    private var container: CKContainer {
+        return CKContainer(identifier: CloudConfig.containerIndentifier)
+    }
+    
+    func shareKid(_ kid: Kid, completion: @escaping (Result<any View, CloudError>) -> Void) async throws {
+        guard let record = kid.associatedRecord else {
+            print("COMPARTILHAMENTO: Falha - registro associado da criança é nulo")
+            completion(.failure(.recordNotFound))
+            return
+        }
+        
+        // Acessar o container diretamente
+        let container = CKContainer(identifier: CloudConfig.containerIndentifier)
+        let privateDB = container.privateCloudDatabase
+        
+        // Verificar se já existe um compartilhamento
+        if let existingShare = record.share {
+            print("COMPARTILHAMENTO: Usando compartilhamento existente para \(record["kidName"] ?? "Unknown")")
+            
+            do {
+                let share = try await privateDB.record(for: existingShare.recordID) as? CKShare
+                if let share = share {
+                    // Atualizar permissões
+                    share.publicPermission = CKShare.ParticipantPermission.readWrite
+                    
+                    // Buscar atividades relacionadas para recompartilhar
+                    let kidName = record.recordID.recordName
+                    print("COMPARTILHAMENTO: Buscando atividades para recompartilhar com Kid ID: \(kidName)")
+                    
+                    let activities = try await fetchRelatedActivities(kidName: kidName)
+                    print("COMPARTILHAMENTO: Encontradas \(activities.count) atividades para compartilhar")
+                    
+                    for (index, activity) in activities.enumerated() {
+                        print("COMPARTILHAMENTO: Atividade \(index): ID=\(activity.activityID), Data=\(activity.date)")
+                    }
+                    
+                    // Adicionar as atividades ao array de registros para atualizar
+                    var recordsToSave: [CKRecord] = [share]
+                    
+                    // IMPORTANTE: Adicionar o kid record também para atualização
+                    recordsToSave.append(record)
+                    
+                    for activity in activities {
+                        if let activityRecord = activity.associatedRecord {
+                            // Adicionar ou atualizar a referência ao Kid
+                            activityRecord["kidReference"] = CKRecord.Reference(recordID: record.recordID, action: .deleteSelf)
+                            recordsToSave.append(activityRecord)
+                        }
+                    }
+                    
+                    print("COMPARTILHAMENTO: Atualizando \(recordsToSave.count) registros no total")
+                    
+                    // Salvar todos os registros juntos em uma operação de zona
+                    let (saveResults, _) = try await privateDB.modifyRecords(saving: recordsToSave, deleting: [])
+                    print("COMPARTILHAMENTO: Compartilhamento atualizado com sucesso, records salvos: \(saveResults.count)")
+                    
+                    // Verificar se os registros têm share após salvar
+                    for (id, result) in saveResults {
+                        switch result {
+                        case .success(let savedRecord):
+                            let hasShare = savedRecord.share != nil
+                            print("COMPARTILHAMENTO: Record \(id.recordName) (\(savedRecord.recordType)) tem share? \(hasShare)")
+                        case .failure(let error):
+                            print("COMPARTILHAMENTO: Erro ao salvar record \(id.recordName): \(error.localizedDescription)")
+                        }
+                    }
+                    
+                    completion(.success(CloudSharingView(share: share, container: container)))
+                } else {
+                    print("COMPARTILHAMENTO: Falha - compartilhamento existente não encontrado")
+                    completion(.failure(.couldNotShareRecord))
+                }
+            } catch {
+                print("COMPARTILHAMENTO: Erro ao usar compartilhamento existente: \(error.localizedDescription)")
+                completion(.failure(.couldNotShareRecord))
+            }
+            
+            return
+        }
+        
+        // Criar novo compartilhamento
+        print("COMPARTILHAMENTO: Criando novo compartilhamento para \(record["kidName"] ?? "Unknown")")
+        
+        // IMPORTANTE: Usar o construtor que recebe o rootRecord
+        let share = CKShare(rootRecord: record)
+        share[CKShare.SystemFieldKey.title] = "Compartilhando filho: \(record["kidName"] ?? "Unknown")"
+        share.publicPermission = CKShare.ParticipantPermission.readWrite
+        
+        // Buscar todas as atividades relacionadas a este Kid
+        let kidName = record.recordID.recordName
+        print("COMPARTILHAMENTO: Compartilhando Kid com ID: \(kidName)")
+        
+        let activities = try await fetchRelatedActivities(kidName: kidName)
+        print("COMPARTILHAMENTO: Encontradas \(activities.count) atividades para compartilhar")
+        
+        for (index, activity) in activities.enumerated() {
+            print("COMPARTILHAMENTO: Atividade \(index): ID=\(activity.activityID), Data=\(activity.date)")
+        }
+        
+        // Adicionar as atividades ao array de registros a serem salvos
+        var recordsToSave: [CKRecord] = [record, share]
+        
+        for activity in activities {
+            if let activityRecord = activity.associatedRecord {
+                // Certifique-se de definir o kidReference
+                activityRecord["kidReference"] = CKRecord.Reference(recordID: record.recordID, action: .deleteSelf)
+                recordsToSave.append(activityRecord)
+            }
+        }
+        
+        print("COMPARTILHAMENTO: Salvando \(recordsToSave.count) registros no total")
+        
+        do {
+            // Salvar todos os registros juntos
+            let (saveResults, _) = try await privateDB.modifyRecords(saving: recordsToSave, deleting: [])
+            print("COMPARTILHAMENTO: Compartilhamento criado com sucesso, records salvos: \(saveResults.count)")
+            
+            // Verificar se os registros têm share após salvar
+            for (id, result) in saveResults {
+                switch result {
+                case .success(let savedRecord):
+                    let hasShare = savedRecord.share != nil
+                    print("COMPARTILHAMENTO: Record \(id.recordName) (\(savedRecord.recordType)) tem share? \(hasShare)")
+                case .failure(let error):
+                    print("COMPARTILHAMENTO: Erro ao salvar record \(id.recordName): \(error.localizedDescription)")
+                }
+            }
+            
+            completion(.success(CloudSharingView(share: share, container: container)))
+        } catch {
+            print("COMPARTILHAMENTO: Erro ao criar compartilhamento: \(error.localizedDescription)")
+            completion(.failure(.couldNotShareRecord))
+        }
+    }
+    
+<<<<<<< HEAD
+    // Método auxiliar para buscar atividades relacionadas - adicionar ao CloudService
+    private func fetchRelatedActivities(kidName: String) async throws -> [ActivitiesRegister] {
+        print("BUSCA-ATIVIDADES: Buscando atividades para o Kid ID: \(kidName)")
+        let predicate = NSPredicate(format: "kidID == %@", kidName)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            client.fetch(
+                recordType: RecordType.activity.rawValue,
+                dbType: .privateDB,
+                inZone: CloudConfig.recordZone.zoneID,
+                predicate: predicate
+            ) { (result: Result<[ActivitiesRegister], CloudError>) in
+                do {
+                    let activities = try result.get()
+                    print("BUSCA-ATIVIDADES: Encontradas \(activities.count) atividades")
+                    continuation.resume(returning: activities)
+                } catch {
+                    print("BUSCA-ATIVIDADES: Erro ao buscar atividades: \(error)")
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
     func fetchSharedActivities(forKid kidID: String, completion: @escaping (Result<[ActivitiesRegister], CloudError>) -> Void) {
+=======
+    func fetchSharedActivities(forKid kidID: String, completion: @escaping (Result<[ActivitiesRegister], CloudError>) -> Void) {
+>>>>>>> ScheludedActivitiesShared2
         guard let rootRecordID = getRootRecordID() else {
+            print("SHARED: Nenhum rootRecordID encontrado no UserDefaults")
             completion(.failure(.kidNotCreated))
             return
         }
         
+        print("SHARED: Buscando atividades compartilhadas para kidID: \(kidID)")
+        print("SHARED: Usando rootRecordID.zoneID: \(rootRecordID.zoneID.zoneName)")
+        
+        // Buscar usando o campo kidID
         let predicate = NSPredicate(format: "kidID == %@", kidID)
         
         client.fetch(
@@ -186,17 +389,43 @@ final class CloudService {
             predicate: predicate
         ) { (result: Result<[ActivitiesRegister], CloudError>) in
             switch result {
-            case .success(let activities):
-                let sortedActivities = activities.sorted {
-                    $0.date < $1.date
-                }
-                completion(.success(sortedActivities))
-            case .failure(let error):
-                completion(.failure(error))
+                case .success(let activities):
+                    print("SHARED: Sucesso! Encontradas \(activities.count) atividades com predicate kidID")
+                    let sortedActivities = activities.sorted {
+                        $0.date < $1.date
+                    }
+                    completion(.success(sortedActivities))
+                case .failure(let error):
+                    print("SHARED: Falha ao buscar por kidID: \(error)")
+                    
+                    // Se falhar com a busca por kidID, tentar buscar pela referência ao Kid
+                    print("SHARED: Tentando buscar por referência ao Kid")
+                    let parentPredicate = NSPredicate(format: "kidReference == %@", CKRecord.Reference(recordID: rootRecordID, action: .none))
+                    
+                    self.client.fetch(
+                        recordType: RecordType.activity.rawValue,
+                        dbType: .sharedDB,
+                        inZone: rootRecordID.zoneID,
+                        predicate: parentPredicate
+                    ) { (parentResult: Result<[ActivitiesRegister], CloudError>) in
+                        switch parentResult {
+                            case .success(let parentActivities):
+                                print("SHARED: Sucesso! Encontradas \(parentActivities.count) atividades com predicate parentReference")
+                                let sortedActivities = parentActivities.sorted {
+                                    $0.date < $1.date
+                                }
+                                completion(.success(sortedActivities))
+                            case .failure(let parentError):
+                                print("SHARED: Falha também ao buscar por referência: \(parentError)")
+                                completion(.failure(parentError))
+                        }
+                    }
             }
         }
     }
     
+<<<<<<< HEAD
+=======
     func updateActivity(_ activity: ActivitiesRegister, isShared: Bool, completion: @escaping (Result<ActivitiesRegister, CloudError>) -> Void) {
         let dbType: CloudConfig = isShared ? .sharedDB : .privateDB
         client.modify(activity, dbType: dbType, completion: completion)
@@ -213,6 +442,7 @@ final class CloudService {
         try await client.share(kid, completion: completion)
     }
     
+>>>>>>> ScheludedActivitiesShared2
     // MARK: - Utility Methods
     
     func checkSharingStatus(completion: @escaping (Bool) -> Void) {
@@ -226,7 +456,216 @@ final class CloudService {
             completion(status == .available)
         }
     }
+    
+    // Adicione este método diretamente na classe CloudService (não na extensão)
+    func debugSharedDatabase() async {
+        print("DEBUG: Iniciando verificação do banco compartilhado")
+        
+        // Use self.getRootRecordID() para acessar o método da extensão
+        guard let rootRecordID = self.getRootRecordID() else {
+            print("DEBUG: Nenhum rootRecordID encontrado")
+            return
+        }
+        
+        let container = CKContainer(identifier: CloudConfig.containerIndentifier)
+        let sharedDB = container.sharedCloudDatabase
+        
+        do {
+            // Buscar todas as zonas no banco compartilhado
+            let zones = try await sharedDB.allRecordZones()
+            print("DEBUG: Zonas no banco compartilhado: \(zones.map { $0.zoneID.zoneName })")
+            
+            // Buscar todos os registros em cada zona
+            for zone in zones {
+                print("DEBUG: Registros na zona \(zone.zoneID.zoneName):")
+                
+                // Buscar todos os tipos de registro
+                for recordType in ["Kid", "ScheduledActivity"] {
+                    let query = CKQuery(recordType: recordType, predicate: NSPredicate(value: true))
+                    
+                    do {
+                        let (results, _) = try await sharedDB.records(matching: query, inZoneWith: zone.zoneID)
+                        print("DEBUG: - \(recordType): \(results.count) registros")
+                        
+                        for result in results {
+                            switch result.1 {
+                                case .success(let record):
+                                    print("DEBUG:   - ID: \(record.recordID.recordName)")
+                                    print("DEBUG:     Campos: \(record.allKeys().map { "\($0): \(String(describing: record[$0]))" }.joined(separator: ", "))")
+                                case .failure(let error):
+                                    print("DEBUG:   - Erro: \(error.localizedDescription)")
+                            }
+                        }
+                    } catch {
+                        print("DEBUG: Erro ao buscar registros do tipo \(recordType): \(error.localizedDescription)")
+                    }
+                }
+            }
+        } catch {
+            print("DEBUG: Erro ao verificar banco compartilhado: \(error.localizedDescription)")
+        }
+    }
+    
+    func debugShareStatus(forKid kid: Kid) async {
+        guard let record = kid.associatedRecord, let shareReference = record.share else {
+            print("DEBUG: Kid não tem compartilhamento")
+            return
+        }
+        
+        let container = CKContainer(identifier: CloudConfig.containerIndentifier)
+        let privateDB = container.privateCloudDatabase
+        
+        do {
+            let share = try await privateDB.record(for: shareReference.recordID) as? CKShare
+            print("DEBUG: Share encontrado: \(share?.recordID.recordName ?? "unknown")")
+            print("DEBUG: Share permissions: \(share?.publicPermission.rawValue ?? -1)")
+            print("DEBUG: Share participants: \(share?.participants.count ?? 0)")
+            
+            // Verificar atividades vinculadas ao compartilhamento
+            let kidName = record.recordID.recordName
+            // Buscar atividades relacionadas
+            let predicate = NSPredicate(format: "kidID == %@", kidName)
+            
+            // Usamos uma Task aninhada aqui para evitar problemas de completion handler
+            let activities = await withCheckedContinuation { continuation in
+                self.client.fetch(
+                    recordType: RecordType.activity.rawValue,
+                    dbType: .privateDB,
+                    inZone: CloudConfig.recordZone.zoneID,
+                    predicate: predicate
+                ) { (result: Result<[ActivitiesRegister], CloudError>) in
+                    switch result {
+                        case .success(let activities):
+                            continuation.resume(returning: activities)
+                        case .failure:
+                            continuation.resume(returning: [])
+                    }
+                }
+            }
+            
+            print("DEBUG: Encontradas \(activities.count) atividades relacionadas ao Kid")
+            
+            for (index, activity) in activities.enumerated() {
+                if let activityRecord = activity.associatedRecord {
+                    let isShared = activityRecord.share != nil
+                    let hasKidRef = activityRecord["kidReference"] != nil
+                    
+                    print("DEBUG: Atividade \(index): ID=\(activity.activityID)")
+                    print("  - isShared: \(isShared)")
+                    print("  - hasKidRef: \(hasKidRef)")
+                    print("  - Record ID: \(activityRecord.recordID.recordName)")
+                }
+            }
+        } catch {
+            print("DEBUG: Erro ao verificar status do compartilhamento: \(error)")
+        }
+    }
+
+    func inspectSharedDatabase() async {
+        print("INSPEÇÃO: Examinando conteúdo completo do banco compartilhado")
+        
+        let container = CKContainer(identifier: CloudConfig.containerIndentifier)
+        let sharedDB = container.sharedCloudDatabase
+        
+        do {
+            let zones = try await sharedDB.allRecordZones()
+            print("INSPEÇÃO: Zonas disponíveis: \(zones.map { $0.zoneID.zoneName })")
+            
+            if zones.isEmpty {
+                print("INSPEÇÃO: Nenhuma zona encontrada no banco compartilhado!")
+            }
+            
+            for zone in zones {
+                print("\nINSPEÇÃO: Conteúdo da zona \(zone.zoneID.zoneName):")
+                
+                // Buscar todos os tipos de registro possíveis
+                for recordType in ["Kid", "ScheduledActivity"] {
+                    let query = CKQuery(recordType: recordType, predicate: NSPredicate(value: true))
+                    
+                    do {
+                        let (results, _) = try await sharedDB.records(matching: query, inZoneWith: zone.zoneID)
+                        print("INSPEÇÃO: - \(recordType): \(results.count) registros")
+                        
+                        for (id, result) in results {
+                            switch result {
+                            case .success(let record):
+                                print("INSPEÇÃO:   - ID: \(id.recordName)")
+                                print("INSPEÇÃO:     Campos: \(record.allKeys().map { "\($0): \(String(describing: record[$0]))" }.joined(separator: ", "))")
+                                
+                                // Verificar compartilhamento
+                                if let shareRef = record.share {
+                                    print("INSPEÇÃO:     Tem share reference? Sim - \(shareRef.recordID.recordName)")
+                                    
+                                    // Tentar buscar o share em si
+                                    do {
+                                        if let share = try await sharedDB.record(for: shareRef.recordID) as? CKShare {
+                                            print("INSPEÇÃO:     Share encontrado!")
+                                            print("INSPEÇÃO:     Share permissões públicas: \(share.publicPermission.rawValue)")
+                                            print("INSPEÇÃO:     Share participantes: \(share.participants.count)")
+                                        }
+                                    } catch {
+                                        print("INSPEÇÃO:     Erro ao buscar share: \(error.localizedDescription)")
+                                    }
+                                } else {
+                                    print("INSPEÇÃO:     Tem share? Não")
+                                }
+                                
+                                // Verificar referências específicas
+                                if recordType == "ScheduledActivity" {
+                                    if let kidRef = record["kidReference"] as? CKRecord.Reference {
+                                        print("INSPEÇÃO:     kidReference aponta para: \(kidRef.recordID.recordName)")
+                                    } else {
+                                        print("INSPEÇÃO:     Não tem kidReference!")
+                                    }
+                                    
+                                    if let kidID = record["kidID"] as? String {
+                                        print("INSPEÇÃO:     kidID: \(kidID)")
+                                    } else {
+                                        print("INSPEÇÃO:     Não tem kidID!")
+                                    }
+                                }
+                            case .failure(let error):
+                                print("INSPEÇÃO:   - Erro ao buscar \(id.recordName): \(error.localizedDescription)")
+                            }
+                        }
+                    } catch {
+                        print("INSPEÇÃO: Erro ao buscar registros do tipo \(recordType): \(error.localizedDescription)")
+                    }
+                }
+            }
+            
+            // Verificar o rootRecordID salvo
+            if let rootID = self.getRootRecordID() {
+                print("\nINSPEÇÃO: Root Record ID salvo: \(rootID.recordName)")
+                print("INSPEÇÃO: Root Record Zone: \(rootID.zoneID.zoneName)")
+                
+                // Tentar buscar o registro raiz diretamente
+                do {
+                    let rootRecord = try await sharedDB.record(for: rootID)
+                    print("INSPEÇÃO: Root Record encontrado!")
+                    print("INSPEÇÃO: Root Record tipo: \(rootRecord.recordType)")
+                    print("INSPEÇÃO: Root Record campos: \(rootRecord.allKeys().map { "\($0): \(String(describing: rootRecord[$0]))" }.joined(separator: ", "))")
+                    
+                    // Verificar se tem share
+                    if let share = rootRecord.share {
+                        print("INSPEÇÃO: Root Record tem compartilhamento reference: \(share.recordID.recordName)")
+                    } else {
+                        print("INSPEÇÃO: Root Record não tem compartilhamento!")
+                    }
+                } catch {
+                    print("INSPEÇÃO: Erro ao buscar Root Record: \(error.localizedDescription)")
+                }
+            } else {
+                print("\nINSPEÇÃO: Nenhum Root Record ID salvo!")
+            }
+        } catch {
+            print("INSPEÇÃO: Erro ao listar zonas: \(error.localizedDescription)")
+        }
+    }
+    
 }
+
+
 
 extension CloudService {
     func saveRootRecordID(_ recordID: CKRecord.ID) {
