@@ -12,6 +12,7 @@ struct Kid {
     var id: CKRecord.ID?
     let name: String
     var collectedRewards = [CollectedReward]()
+    var shareReference: CKRecord.Reference?
     var associatedRecord: CKRecord?
     
     private(set) var coins: Int
@@ -43,7 +44,6 @@ extension Kid: Hashable, Equatable {
 }
 
 extension Kid: RecordProtocol {
-    var shareReference: CKRecord.Reference? { associatedRecord?.share }
     
     var record: CKRecord? {
         // Only create a new record if we don't have an existing ID
@@ -68,6 +68,7 @@ extension Kid: RecordProtocol {
         self.id = record.recordID
         self.name = name
         self.coins = coins
+        self.shareReference = record.share
         self.associatedRecord = record
     }
 }
