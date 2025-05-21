@@ -195,6 +195,8 @@ struct KidReceiverView: View {
         .cornerRadius(12)
     }
     
+    // MARK: - Cloud methods
+    
     private func refresh() {
         checkForSharedKid()
     }
@@ -208,55 +210,165 @@ struct KidReceiverView: View {
         isLoading = true
         feedbackMessage = "Verificando convite aceito..."
         
-        cloudService.fetchKid(withRecordID: rootRecordID) { result in
-            DispatchQueue.main.async {
-                self.isLoading = false
+        // Não tentar criar zonas - usar diretamente o banco compartilhado e o ID do registro
+        fetchKidInfo(rootRecordID: rootRecordID)
+    }
+
+    private func fetchKidInfo(rootRecordID: CKRecord.ID) {
+        // Obter o container e o banco compartilhado diretamente
+        let container = CKContainer(identifier: CloudConfig.containerIndentifier)
+        let sharedDB = container.sharedCloudDatabase
+        
+        Task {
+            do {
+                // Acessar o registro diretamente pelo ID no banco compartilhado
+                let record = try await sharedDB.record(for: rootRecordID)
+                print("✅ Registro compartilhado encontrado: \(record.recordID.recordName)")
                 
-                switch result {
-                case .success(let sharedKid):
-                    self.kid = sharedKid
-                    self.feedbackMessage = "✅ Conectado como \(sharedKid.name)"
-                    // Agora carregamos as atividades
-                    self.loadActivities(for: sharedKid)
-                case .failure(let error):
+                // Criar um KidRecord a partir do registro
+                if let kid = Kid(record: record) {
+                    DispatchQueue.main.async {
+                        self.kid = kid
+                        self.feedbackMessage = "✅ Conectado como \(kid.name)"
+                        // Agora carregamos as atividades usando a zoneID original do registro
+                        self.loadActivities(for: kid, using: record.recordID.zoneID)
+                    }
+                } else {
+                    print("❌ Falha ao converter o registro para KidRecord")
+                    DispatchQueue.main.async {
+                        self.isLoading = false
+                        self.feedbackMessage = "❌ Erro ao carregar informações do registro compartilhado"
+                    }
+                }
+            } catch {
+                print("❌ Erro ao acessar registro compartilhado: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    self.isLoading = false
                     self.feedbackMessage = "❌ Erro ao carregar convite: \(error)"
                 }
             }
         }
     }
-    
-    private func loadActivities(for kid: Kid) {
+
+    private func loadActivities(for kid: Kid, using zoneID: CKRecordZone.ID) {
         guard let kidID = kid.id?.recordName else {
             feedbackMessage = "ID do filho não encontrado"
+            print("FILHO: ID do filho não encontrado")
+            isLoading = false
             return
         }
         
         isLoading = true
         feedbackMessage = "Carregando atividades..."
+        print("FILHO: Buscando atividades para kidID: \(kidID) na zona: \(zoneID.zoneName)")
         
-        cloudService.fetchSharedActivities(forKid: kidID) { (result: Result<[ActivitiesRegister], CloudError>) in
-            DispatchQueue.main.async {
-                self.isLoading = false
+        // IMPORTANTE: Verificar se temos o rootRecordID
+        if let rootRecordID = cloudService.getRootRecordID() {
+            print("FILHO: Root Record ID: \(rootRecordID.recordName)")
+            print("FILHO: Root Zone: \(rootRecordID.zoneID.zoneName)")
+        } else {
+            print("FILHO: Root Record ID não encontrado!")
+        }
+        
+        // Obter o container e o banco compartilhado diretamente
+        let container = CKContainer(identifier: CloudConfig.containerIndentifier)
+        let sharedDB = container.sharedCloudDatabase
+        
+        // IMPORTANTE: Buscar atividades em todas as zonas disponíveis
+        Task {
+            do {
+                let zones = try await sharedDB.allRecordZones()
+                print("FILHO: Zonas disponíveis no banco compartilhado: \(zones.map { $0.zoneID.zoneName })")
                 
-                switch result {
-                case .success(let fetchedActivities):
+                // Agora vamos tentar buscar atividades em todas as zonas
+                print("FILHO: Iniciando busca abrangente de atividades em todas as zonas")
+                
+                var allActivities: [ActivitiesRegister] = []
+
+                for zone in zones {
+                    print("FILHO: Buscando na zona: \(zone.zoneID.zoneName)")
+                    
+                    // Buscar usando todos os critérios possíveis
+                    let predicate = NSPredicate(value: true)  // Busca todos os registros
+                    let query = CKQuery(recordType: RecordType.activity.rawValue, predicate: predicate)
+                    
+                    do {
+                        let (results, _) = try await sharedDB.records(matching: query, inZoneWith: zone.zoneID)
+                        
+                        print("FILHO: Encontrados \(results.count) registros na zona \(zone.zoneID.zoneName)")
+                        
+                        for result in results {
+                            switch result.1 {
+                            case .success(let record):
+                                print("FILHO: Registro encontrado, ID: \(record.recordID.recordName)")
+                                print("FILHO: Campos: \(record.allKeys().map { "\($0): \(String(describing: record[$0]))" }.joined(separator: ", "))")
+                                
+                                // Verificar se o registro tem kidID ou kidReference que corresponda
+                                let recordKidID = record["kidID"] as? String
+                                let recordKidRef = record["kidReference"] as? CKRecord.Reference
+                                
+                                if recordKidID == kidID || recordKidRef?.recordID.recordName == kidID {
+                                    print("FILHO: Registro corresponde ao kidID!")
+                                    if let activity = ActivitiesRegister(record: record) {
+                                        allActivities.append(activity)
+                                    }
+                                }
+                            case .failure(let error):
+                                print("FILHO: Erro ao processar registro: \(error.localizedDescription)")
+                            }
+                        }
+                    } catch {
+                        print("FILHO: Erro ao buscar na zona \(zone.zoneID.zoneName): \(error.localizedDescription)")
+                    }
+                }
+                
+                // Após varrer todas as zonas, vamos inspecionar completamente o banco compartilhado
+                print("FILHO: Solicitando inspeção completa do banco compartilhado")
+                await cloudService.inspectSharedDatabase()
+                
+                // Processar todas as atividades encontradas
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    
+                    if allActivities.isEmpty {
+                        self.feedbackMessage = "Nenhuma atividade encontrada"
+                        self.activities = []
+                        print("FILHO: Nenhuma atividade encontrada em nenhuma zona")
+                        return
+                    }
+                    
+                    print("FILHO: Encontradas \(allActivities.count) atividades no total")
+                    
                     // Filtra atividades para hoje
                     let calendar = Calendar.current
-                    self.activities = fetchedActivities.filter { activity in
-                        calendar.isDateInToday(activity.date)
+                    self.activities = allActivities.filter { activity in
+                        let isToday = calendar.isDateInToday(activity.date)
+                        print("FILHO: Atividade \(activity.activityID) é hoje? \(isToday)")
+                        return isToday
                     }
+                    
+                    print("FILHO: Após filtrar por hoje, restaram \(self.activities.count) atividades")
                     
                     self.feedbackMessage = self.activities.isEmpty
                         ? "Nenhuma atividade para hoje"
                         : "✅ Encontradas \(self.activities.count) atividades para hoje"
-                case .failure(let error):
-                    self.feedbackMessage = "❌ Erro ao carregar atividades: \(error)"
+                }
+            } catch {
+                print("FILHO: Erro ao listar zonas: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.feedbackMessage = "❌ Erro ao carregar atividades: \(error.localizedDescription)"
                 }
             }
         }
     }
     
     private func updateActivityStatus(_ activity: ActivitiesRegister) {
+        guard let activityID = activity.id else {
+            feedbackMessage = "ID da atividade não encontrado"
+            return
+        }
+
         var updatedActivity = activity
         
         // Atualiza o status da atividade
@@ -269,21 +381,37 @@ struct KidReceiverView: View {
         isLoading = true
         feedbackMessage = "Atualizando status da atividade..."
         
-        cloudService.updateActivity(updatedActivity, isShared: true) { result in
-            DispatchQueue.main.async {
-                self.isLoading = false
+        // Obter o container e o banco compartilhado diretamente
+        let container = CKContainer(identifier: CloudConfig.containerIndentifier)
+        let sharedDB = container.sharedCloudDatabase
+        
+        // Atualizar diretamente no banco compartilhado
+        Task {
+            do {
+                // Buscar o registro atual
+                let record = try await sharedDB.record(for: activityID)
                 
-                switch result {
-                case .success:
+                // Atualizar o status
+                record["status"] = updatedActivity.registerStatus.rawValue
+                
+                // Salvar as alterações
+                let updatedRecord = try await sharedDB.save(record)
+                
+                DispatchQueue.main.async {
+                    self.isLoading = false
                     self.feedbackMessage = "✅ Status atualizado com sucesso"
                     
-                    // Atualiza a atividade na lista
-                    if let index = self.activities.firstIndex(where: { $0.id == activity.id }) {
+                    // Atualizar a atividade na lista
+                    if let updatedActivity = ActivitiesRegister(record: updatedRecord),
+                       let index = self.activities.firstIndex(where: { $0.id == activityID }) {
                         self.activities[index] = updatedActivity
                     }
-                    
-                case .failure(let error):
-                    self.feedbackMessage = "❌ Erro ao atualizar status: \(error)"
+                }
+            } catch {
+                print("FILHO: Erro ao atualizar status: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.feedbackMessage = "❌ Erro ao atualizar status: \(error.localizedDescription)"
                 }
             }
         }
