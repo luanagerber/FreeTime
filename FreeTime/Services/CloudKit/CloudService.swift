@@ -342,7 +342,6 @@ final class CloudService {
         }
     }
     
-<<<<<<< HEAD
     // Método auxiliar para buscar atividades relacionadas - adicionar ao CloudService
     private func fetchRelatedActivities(kidName: String) async throws -> [ActivitiesRegister] {
         print("BUSCA-ATIVIDADES: Buscando atividades para o Kid ID: \(kidName)")
@@ -367,9 +366,6 @@ final class CloudService {
         }
     }
     func fetchSharedActivities(forKid kidID: String, completion: @escaping (Result<[ActivitiesRegister], CloudError>) -> Void) {
-=======
-    func fetchSharedActivities(forKid kidID: String, completion: @escaping (Result<[ActivitiesRegister], CloudError>) -> Void) {
->>>>>>> ScheludedActivitiesShared2
         guard let rootRecordID = getRootRecordID() else {
             print("SHARED: Nenhum rootRecordID encontrado no UserDefaults")
             completion(.failure(.kidNotCreated))
@@ -423,26 +419,7 @@ final class CloudService {
             }
         }
     }
-    
-<<<<<<< HEAD
-=======
-    func updateActivity(_ activity: ActivitiesRegister, isShared: Bool, completion: @escaping (Result<ActivitiesRegister, CloudError>) -> Void) {
-        let dbType: CloudConfig = isShared ? .sharedDB : .privateDB
-        client.modify(activity, dbType: dbType, completion: completion)
-    }
-    
-    func deleteActivity(_ activity: ActivitiesRegister, isShared: Bool, completion: @escaping (Result<Bool, CloudError>) -> Void) {
-        let dbType: CloudConfig = isShared ? .sharedDB : .privateDB
-        client.delete(activity, dbType: dbType, completion: completion)
-    }
-    
-    // MARK: - Sharing Operations
-    
-    func shareKid(_ kid: Kid, completion: @escaping (Result<any View, CloudError>) -> Void) async throws {
-        try await client.share(kid, completion: completion)
-    }
-    
->>>>>>> ScheludedActivitiesShared2
+
     // MARK: - Utility Methods
     
     func checkSharingStatus(completion: @escaping (Bool) -> Void) {

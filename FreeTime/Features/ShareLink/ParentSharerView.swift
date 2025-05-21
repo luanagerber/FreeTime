@@ -457,7 +457,7 @@ struct ParentSharerView: View {
             print("DETALHADO: ERRO - KidReference não configurada!")
             // Tentar configurar manualmente se não estiver configurada
             if let record = activityRecord.record {
-                record["kidReference"] = CKRecord.Reference(recordID: kidRecordID, action: .deleteSelf)
+                record["kidReference"] = CKRecord.Reference(recordID: kidID, action: .deleteSelf)
                 print("DETALHADO: KidReference configurada manualmente")
             }
         }
@@ -544,15 +544,15 @@ struct ParentSharerView: View {
         }
     }
 
-    private func diagnosticarCompartilhamento(kidRecordID: CKRecord.ID) async {
-        print("DIAGNÓSTICO: Verificando compartilhamento para Kid ID: \(kidRecordID.recordName)")
+    private func diagnosticarCompartilhamento(kidID: CKRecord.ID) async {
+        print("DIAGNÓSTICO: Verificando compartilhamento para Kid ID: \(kidID.recordName)")
         
         let container = CKContainer(identifier: CloudConfig.containerIndentifier)
         let privateDB = container.privateCloudDatabase
         
         do {
             // Buscar o registro original
-            let kidRecord = try await privateDB.record(for: kidRecordID)
+            let kidRecord = try await privateDB.record(for: kidID)
             let shareReference = kidRecord.share
             
             if let shareReference = shareReference {
