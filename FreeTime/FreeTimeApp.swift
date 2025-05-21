@@ -18,7 +18,8 @@ struct FreeTimeApp: App {
             case .pad:
                     CoordinatorView()
             case .phone:
-                    GenitorView()
+//                    GenitorView()
+                SendingShare2()
 //                SharerTestView()
 //                    RoleBasedView()
             default:
