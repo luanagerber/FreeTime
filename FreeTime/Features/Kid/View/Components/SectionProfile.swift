@@ -48,8 +48,9 @@ struct SectionProfile: View {
             
         }
         .frame(maxWidth: .infinity, maxHeight: 126)
-        //.frame(maxWidth: .infinity, minHeight: 126,maxHeight: .infinity)
-        
-        
     }
+}
+
+#Preview {
+    SectionProfile(kid: Register.sample1.kid, moedas: 500)
 }

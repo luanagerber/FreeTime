@@ -13,59 +13,94 @@ struct DetailsActivityModal: View {
     @Binding var register: Register
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 50){
-            HStack {
-            Text(register.activity?.name ?? "Sem atividade")
-                Spacer()
-                Text("$5")
-            }.font(.system(size: 34, weight: .semibold))
+        
+        VStack(spacing: 32){
+            headerDetails(title: register.activity?.name ?? "Sem atividade", coins: 500)
             
-            Text(register.activity?.description ?? "Essa atividade não possui descrição.")
-                .font(.system(size: 22))
+            informationBox(title: "Descrição", descripition: register.activity?.description ?? "Essa atividade não possui descrição.",heightBox: 208)
             
-            HStack {
-                Text("Hora:")
-                Spacer()
-                Text(register.date.timeRange(duration: register.duration))
-            }.font(.system(size: 22))
+            informationBox(title: "Horário", descripition: register.date.timeRange(duration: register.duration),heightBox: 92)
             
             Button {
                 register.registerStatus = .completed
                 kidViewModel.concludedActivity(register: register)
                 dismiss()
                 
-                //Ajeitar
-                
             } label: {
                 Rectangle()
-                    .frame(width: 150, height: 50)
-                    .cornerRadius(20)
+                    .fill(.gray.opacity(0.4))
+                    .frame(width: 228, height: 48)
+                    .cornerRadius(24)
                     .overlay {
-                        Text("Concluído")
-                            .font(.system(size: 17, weight: .bold))
-                            .foregroundColor(.white)
+                        Text("Concluir")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(.black)
                     }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .frame(maxHeight: .infinity, alignment: .bottom)
+            .padding(.bottom, 32)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .padding(100)
-        .background(Color.gray.opacity(0.5))
-        .overlay(alignment: .topTrailing) {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 30))
-                    .background(Color.white)
-                    .clipShape(Circle())
-                    .shadow(radius: 2)
-            }
-            .padding(10)
-        }
+
     }
+    
+    private func headerDetails(title: String, coins: Int) -> some View {
+        ZStack{
+            Rectangle()
+                .fill(.gray.opacity(0.4))
+                .cornerRadius(10)
+            HStack{
+                Text(title)
+                    .font(.system(size: 28, weight: .semibold))
+                
+                Rectangle()
+                    .fill(.white.opacity(0.5))
+                    .frame(width: 98, height: 42)
+                    .overlay{
+                        HStack{
+                            
+                            Circle()
+                                .fill(.gray.opacity(0.4))
+                                .frame(width: 24, height: 24)
+                            
+                            Text(coins.description)
+                                .font(.system(size: 22))
+                        }
+                    }
+                    .cornerRadius(20)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: 116)
+        
+    }
+    
+    private func informationBox(title: String, descripition: String, heightBox: CGFloat) -> some View {
+        ZStack{
+            Rectangle()
+                .fill(.gray.opacity(0.2))
+                .cornerRadius(16)
+            
+            VStack(spacing: 12){
+                Rectangle()
+                    .fill(.gray.opacity(0.4))
+                    .overlay(alignment: .center){
+                        Text(title)
+                            .font(.system(size: 20))
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: 42)
+                    .cornerRadius(16)
+                
+                Text(descripition)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(6)
+                    .font(.system(size: 17))
+                    .font(.body)
+                    .padding(.horizontal, 12)
+                
+            }.frame(maxHeight: .infinity, alignment: .top)
+        }
+        .frame(maxWidth: .infinity, maxHeight: heightBox)
+        .padding(.horizontal, 42)
+    }
+    
 }
-//
-//#Preview {
-//    DetailsActivityModal(kidViewModel: KidViewModel(), register: Register.sample1)
-//}
