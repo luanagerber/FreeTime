@@ -279,10 +279,10 @@ struct ParentSharerView: View {
                     // Buscar atividade correspondente no banco privado
                     if let privateVersion = privateActivities.first(where: { $0.activityID == sharedActivity.activityID }) {
                         // Se o status da atividade compartilhada é diferente, precisamos atualizar
-                        if privateVersion.status != sharedActivity.registerStatus {
+                        if privateVersion.registerStatus != sharedActivity.registerStatus {
                             // Criar uma versão atualizada para o banco privado
                             var updatedActivity = privateVersion
-                            updatedActivity.status = sharedActivity.registerStatus
+                            updatedActivity.registerStatus = sharedActivity.registerStatus
                             activitiesToUpdate.append(updatedActivity)
                         }
                     }
@@ -413,63 +413,50 @@ struct ParentSharerView: View {
         }
     }
     
+    // MEXEMOS AQUI 21 MAIO
     private func scheduleActivity() {
         guard let kid = selectedKid, let activity = selectedActivity else { return }
         
         isLoading = true
         feedbackMessage = "Agendando atividade para \(kid.name)..."
         
-        // Obter o recordName diretamente
-        guard let kidID = kid.id?.recordName else {
+        // Obter o recordName como string
+        guard let kidIDString = kid.id?.recordName else {
             feedbackMessage = "❌ Erro: ID da criança não encontrado"
             isLoading = false
             return
         }
         
-        // Usar o recordName diretamente como string
-        let kidName = kid.id
-        
-        print("DETALHADO: Criando atividade para \(kid.name) com ID \(kidName)")
+        print("DETALHADO: Criando atividade para \(kid.name) com ID \(kidIDString)")
         print("DETALHADO: ActivityID: \(activity.id)")
         print("DETALHADO: Data: \(scheduledDate)")
-        print("DETALHADO: Adicionando referência ao Kid com ID: \(kidID)")
+        print("DETALHADO: Adicionando referência ao Kid com ID: \(kidIDString)")
 
-        // Criar registro de atividade usando o novo inicializador
-        var activityRegister = ActivitiesRegister(
-            kidID: kidID,
+        // Criar registro de atividade usando o inicializador com Kid
+        let activityRegister = ActivitiesRegister(
+            kid: kid,  // Passar o objeto Kid diretamente
             activityID: activity.id,
             date: scheduledDate,
             duration: duration,
             registerStatus: .notStarted
         )
         
-        // Converter para ActivitiesRegister usando o recordName como kidID e passando a referência ao Kid
-        let activity = ActivitiesRegister(
-            register: register,
-            kidID: kidName,
-            kidID: kidID  // Passar o CKRecord.ID para criar a referência
-        )
-        
         // Verificar se a referência foi configurada
-        if activity.kidReference != nil {
+        if activityRegister.kidReference != nil {
             print("DETALHADO: KidReference configurada corretamente")
         } else {
             print("DETALHADO: ERRO - KidReference não configurada!")
-            // Tentar configurar manualmente se não estiver configurada
-            if let record = activityRecord.record {
-                record["kidReference"] = CKRecord.Reference(recordID: kidID, action: .deleteSelf)
-                print("DETALHADO: KidReference configurada manualmente")
-            }
+            // Não precisamos mais configurar manualmente, pois o inicializador já faz isso
         }
         
         // Salvar a atividade e depois atualizar o compartilhamento
-        cloudService.saveActivity(activity) { result in
+        cloudService.saveActivity(activityRegister) { result in
             DispatchQueue.main.async {
                 self.isLoading = false
                 
                 switch result {
                 case .success(let savedActivity):
-                    print("✅ Atividade criada com sucesso para \(kid.name), recordName: \(kidName)")
+                    print("✅ Atividade criada com sucesso para \(kid.name), recordName: \(kidIDString)")
                     print("DETALHADO: Atividade salva com ID: \(savedActivity.id?.recordName ?? "unknown")")
                     
                     // Verificar se a criança já tem compartilhamento
@@ -478,7 +465,7 @@ struct ParentSharerView: View {
                         
                         // Diagnóstico do compartilhamento existente
                         Task {
-                            await self.diagnosticarCompartilhamento(kidID: kidID)
+                            await self.diagnosticarCompartilhamento(kidID: kid.id!)
                         }
                         
                         // Recompartilhar para garantir que as novas atividades sejam incluídas
@@ -492,7 +479,7 @@ struct ParentSharerView: View {
                                         // Verificar se a atividade foi corretamente incluída no compartilhamento
                                         Task {
                                             await self.verificarAtividadeNoCompartilhamento(
-                                                kidID: kidName,
+                                                kidID: kidIDString,
                                                 activityID: savedActivity.id?.recordName ?? ""
                                             )
                                         }

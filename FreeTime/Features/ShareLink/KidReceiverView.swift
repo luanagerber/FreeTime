@@ -226,12 +226,12 @@ struct KidReceiverView: View {
                 print("✅ Registro compartilhado encontrado: \(record.recordID.recordName)")
                 
                 // Criar um KidRecord a partir do registro
-                if let kidRecord = KidRecord(record: record) {
+                if let kid = Kid(record: record) {
                     DispatchQueue.main.async {
-                        self.kid = kidRecord
-                        self.feedbackMessage = "✅ Conectado como \(kidRecord.name)"
+                        self.kid = kid
+                        self.feedbackMessage = "✅ Conectado como \(kid.name)"
                         // Agora carregamos as atividades usando a zoneID original do registro
-                        self.loadActivities(for: kidRecord, using: record.recordID.zoneID)
+                        self.loadActivities(for: kid, using: record.recordID.zoneID)
                     }
                 } else {
                     print("❌ Falha ao converter o registro para KidRecord")
