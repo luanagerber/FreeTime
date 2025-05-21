@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct GenitorCardView: View {
+struct TaskRowView: View {
     let record: Register
     
     var body: some View {
@@ -20,13 +20,13 @@ struct GenitorCardView: View {
                     .font(.body)
                     .fontWeight(.regular)
             }
-            Spacer()
-            Circle()
-                .fill(Color.gray)
-                .frame(width: 40, height: 40)
+            
+//            Circle()
+//                .fill(Color.gray)
+//                .frame(width: 40, height: 40)
         }
         .padding(22)
-        .frame(width: 350, height: 161, alignment: .bottomLeading)
+        .frame(width: 350, height: 116, alignment: .leading)
         .background(Color(.systemGray6))
         .cornerRadius(Constants.UI.cardCornerRadius)
     }
@@ -34,5 +34,5 @@ struct GenitorCardView: View {
 }
 
 #Preview {
-    GenitorCardView(record: Register.sample1)
+    TaskRowView(record: Register.sample1)
 }
