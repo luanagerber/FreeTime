@@ -8,6 +8,8 @@
 import SwiftUI
 
 enum Page: Hashable {
+    //invite
+    case kidWaitingInvite
     
     // home
     case genitorHome
@@ -36,14 +38,16 @@ class Coordinator: ObservableObject {
     @ViewBuilder
     func build(page: Page) -> some View {
         switch page {
-        case .kidHome:
-            KidView()
-        case .genitorHome:
-            GenitorView()
-        case .rewardsStore:
-            RewardsStoreView(store: self.rewardsStore)
-        case .collectedRewards:
-            CollectedRewardsView(store: self.rewardsStore)
+            case .kidWaitingInvite:
+                kidWaitingInvite()
+            case .kidHome:
+                KidView()
+            case .genitorHome:
+                GenitorView()
+            case .rewardsStore:
+                RewardsStoreView(store: self.rewardsStore)
+            case .collectedRewards:
+                CollectedRewardsView(store: self.rewardsStore)
         }
     }
 }

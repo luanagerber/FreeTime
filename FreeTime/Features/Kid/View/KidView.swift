@@ -11,7 +11,7 @@ struct KidView: View {
     @StateObject private var kidViewModel = KidViewModel()
     
     //Testing with mocked-up data
-    let kidExemple : Kid = Register.sample1.kid
+    let kidExample : Kid = Register.sample1.kid
     let kidId: UUID = Register.sample1.kid.id
     //
     
@@ -22,7 +22,7 @@ struct KidView: View {
         ZStack{
             VStack(spacing: 0) {
                 Section {
-                    SectionProfile(kid: kidExemple)
+                    SectionProfile(kid: kidExample, currentPage: .kidHome)
                 }
                 
                 VStack(alignment: .leading, spacing: 32) {
@@ -48,6 +48,7 @@ struct KidView: View {
             .frame(maxHeight: .infinity, alignment: .top)
         }
         .ignoresSafeArea()
+        .navigationBarBackButtonHidden(true)
         
         
     }
