@@ -244,7 +244,7 @@ struct ParentSharerView: View {
     // Adicionar este método para buscar atividades compartilhadas
     private func loadSharedActivities(for kidID: String) {
         // Verificar se há atividades compartilhadas pelo filho que foram modificadas
-        cloudService.fetchSharedActivities(forKid: kidID) { (result: Result<[ScheduledActivityRecord], CloudError>) in
+        cloudService.fetchSharedActivities(forKid: kidID) { (result: Result<[ActivitiesRegister], CloudError>) in
             
             DispatchQueue.main.async {
                 self.isLoading = false
@@ -266,23 +266,23 @@ struct ParentSharerView: View {
     }
 
     // Sincronizar atividades do banco compartilhado com o banco privado
-    private func syncActivitiesWithPrivateDB(_ sharedActivities: [ScheduledActivityRecord], kidID: String) {
+    private func syncActivitiesWithPrivateDB(_ sharedActivities: [ActivitiesRegister], kidID: String) {
         // Buscar atividades privadas primeiro
-        cloudService.fetchAllActivities(forKid: kidID) { (result: Result<[ScheduledActivityRecord], CloudError>) in
+        cloudService.fetchAllActivities(forKid: kidID) { (result: Result<[ActivitiesRegister], CloudError>) in
             
             switch result {
             case .success(let privateActivities):
                 // Para cada atividade compartilhada, verificar se precisamos atualizar a versão privada
-                var activitiesToUpdate: [ScheduledActivityRecord] = []
+                var activitiesToUpdate: [ActivitiesRegister] = []
                 
                 for sharedActivity in sharedActivities {
                     // Buscar atividade correspondente no banco privado
                     if let privateVersion = privateActivities.first(where: { $0.activityID == sharedActivity.activityID }) {
                         // Se o status da atividade compartilhada é diferente, precisamos atualizar
-                        if privateVersion.status != sharedActivity.status {
+                        if privateVersion.status != sharedActivity.registerStatus {
                             // Criar uma versão atualizada para o banco privado
                             var updatedActivity = privateVersion
-                            updatedActivity.status = sharedActivity.status
+                            updatedActivity.status = sharedActivity.registerStatus
                             activitiesToUpdate.append(updatedActivity)
                         }
                     }
@@ -302,7 +302,7 @@ struct ParentSharerView: View {
     }
 
     // Atualizar atividades no banco privado
-    private func updatePrivateActivities(_ activities: [ScheduledActivityRecord]) {
+    private func updatePrivateActivities(_ activities: [ActivitiesRegister]) {
         let dispatchGroup = DispatchGroup()
         var updatedCount = 0
         
@@ -426,18 +426,14 @@ struct ParentSharerView: View {
             return
         }
         
-<<<<<<< HEAD
         // Usar o recordName diretamente como string
-        let kidRecordName = kidRecordID.recordName
+        let kidName = kid.id
         
-        print("DETALHADO: Criando atividade para \(kid.name) com ID \(kidRecordName)")
+        print("DETALHADO: Criando atividade para \(kid.name) com ID \(kidName)")
         print("DETALHADO: ActivityID: \(activity.id)")
         print("DETALHADO: Data: \(scheduledDate)")
-        print("DETALHADO: Adicionando referência ao Kid com ID: \(kidRecordID)")
-=======
-        print("Agendando atividade para kid: \(kid.name), recordName: \(kidID)")
->>>>>>> ScheludedActivitiesShared2
-        
+        print("DETALHADO: Adicionando referência ao Kid com ID: \(kidID)")
+
         // Criar registro de atividade usando o novo inicializador
         var activityRegister = ActivitiesRegister(
             kidID: kidID,
@@ -447,16 +443,15 @@ struct ParentSharerView: View {
             registerStatus: .notStarted
         )
         
-<<<<<<< HEAD
-        // Converter para ScheduledActivityRecord usando o recordName como kidID e passando a referência ao Kid
-        let activityRecord = ScheduledActivityRecord(
+        // Converter para ActivitiesRegister usando o recordName como kidID e passando a referência ao Kid
+        let activity = ActivitiesRegister(
             register: register,
-            kidID: kidRecordName,
-            kidRecordID: kidRecordID  // Passar o CKRecord.ID para criar a referência
+            kidID: kidName,
+            kidID: kidID  // Passar o CKRecord.ID para criar a referência
         )
         
         // Verificar se a referência foi configurada
-        if activityRecord.kidReference != nil {
+        if activity.kidReference != nil {
             print("DETALHADO: KidReference configurada corretamente")
         } else {
             print("DETALHADO: ERRO - KidReference não configurada!")
@@ -468,22 +463,13 @@ struct ParentSharerView: View {
         }
         
         // Salvar a atividade e depois atualizar o compartilhamento
-        cloudService.saveActivity(activityRecord) { result in
-=======
-        // Se o kid tiver um ID, definir a referência
-        if let kidRecordID = kid.id {
-            activityRegister.kidReference = CKRecord.Reference(recordID: kidRecordID, action: .deleteSelf)
-        }
-        
-        cloudService.saveActivity(activityRegister) { result in
->>>>>>> ScheludedActivitiesShared2
+        cloudService.saveActivity(activity) { result in
             DispatchQueue.main.async {
                 self.isLoading = false
                 
                 switch result {
-<<<<<<< HEAD
                 case .success(let savedActivity):
-                    print("✅ Atividade criada com sucesso para \(kid.name), recordName: \(kidRecordName)")
+                    print("✅ Atividade criada com sucesso para \(kid.name), recordName: \(kidName)")
                     print("DETALHADO: Atividade salva com ID: \(savedActivity.id?.recordName ?? "unknown")")
                     
                     // Verificar se a criança já tem compartilhamento
@@ -492,7 +478,7 @@ struct ParentSharerView: View {
                         
                         // Diagnóstico do compartilhamento existente
                         Task {
-                            await self.diagnosticarCompartilhamento(kidRecordID: kidRecordID)
+                            await self.diagnosticarCompartilhamento(kidID: kidID)
                         }
                         
                         // Recompartilhar para garantir que as novas atividades sejam incluídas
@@ -506,7 +492,7 @@ struct ParentSharerView: View {
                                         // Verificar se a atividade foi corretamente incluída no compartilhamento
                                         Task {
                                             await self.verificarAtividadeNoCompartilhamento(
-                                                kidID: kidRecordName,
+                                                kidID: kidName,
                                                 activityID: savedActivity.id?.recordName ?? ""
                                             )
                                         }
@@ -549,13 +535,7 @@ struct ParentSharerView: View {
                         await self.cloudService.debugShareStatus(forKid: kid)
                         await self.cloudService.debugSharedDatabase()
                     }
-                    
-=======
-                case .success(_):
-                    print("✅ Atividade criada com sucesso para \(kid.name), recordName: \(kidID)")
-                    feedbackMessage = "✅ Atividade '\(activity.name)' agendada para \(kid.name)"
-                    showActivitySelector = false
->>>>>>> ScheludedActivitiesShared2
+
                 case .failure(let error):
                     print("❌ Erro ao agendar atividade: \(error)")
                     self.feedbackMessage = "❌ Erro ao agendar atividade: \(error)"
