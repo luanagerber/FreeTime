@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct GenitorView: View {
+struct GenitorView: View {    
     @StateObject private var viewModel = GenitorViewModel.shared
     
     var body: some View {
@@ -28,7 +28,7 @@ struct GenitorView: View {
                     
                 } else {
                     ForEach(viewModel.records.filter({$0.registerStatus == .notStarted})) { record in
-                        GenitorCardView(record: record)
+                        TaskRowView(record: record)
                     }
                 }
             }
@@ -49,7 +49,7 @@ struct GenitorView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ForEach(viewModel.records.filter({$0.registerStatus == .completed})) { record in
-                        GenitorCardView(record: record)
+                        TaskRowView(record: record)
                     }
                 }
             }
