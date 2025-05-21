@@ -12,25 +12,25 @@ class KidViewModel: ObservableObject {
     
     private var cloudService: CloudService = .shared
 
-    @Published var register: [Register] = Register.samples
+    @Published var register: [ActivitiesRegister] = ActivitiesRegister.samples
     
-    func registerForToday(kidId: UUID) -> [Register] {
+    func registerForToday(kidID: String) -> [ActivitiesRegister] {
         register
-            .filter { $0.kid.id == kidId && Calendar.current.isDate($0.date, inSameDayAs: Date()) }
+            .filter { $0.kidID == kidID && Calendar.current.isDate($0.date, inSameDayAs: Date()) }
             .sorted { $0.date < $1.date }
     }
     
-    func notStartedRegister(kidId: UUID) -> [Register] {
-        registerForToday(kidId: kidId)
+    func notStartedRegister(kidID: String) -> [ActivitiesRegister] {
+        registerForToday(kidID: kidID)
             .filter { $0.registerStatus == .notStarted }
     }
     
-    func completedRegister(kidId: UUID) -> [Register] {
-        registerForToday(kidId: kidId)
+    func completedRegister(kidID: String) -> [ActivitiesRegister] {
+        registerForToday(kidID: kidID)
             .filter { $0.registerStatus == .completed }
     }
     
-    func concludedActivity(register: Register) {
+    func concludedActivity(register: ActivitiesRegister) {
         if let index = self.register.firstIndex(where: { $0.id == register.id }) {
             self.register[index].registerStatus = .completed
         }

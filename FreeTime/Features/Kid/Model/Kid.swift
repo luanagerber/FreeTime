@@ -6,18 +6,18 @@
 //
 
 import Foundation
+import CloudKit
 
 struct Kid {
-    let id = UUID()
+    var id: CKRecord.ID?
     let name: String
-    let parentID: UUID
     var collectedRewards = [CollectedReward]()
+    var associatedRecord: CKRecord?
     
     private(set) var coins: Int
     
-    init(name: String, parentID: UUID, coins: Int = 0) {
+    init(name: String, coins: Int = 0) {
         self.name = name
-        self.parentID = parentID
         self.coins = coins
     }
     
@@ -27,5 +27,47 @@ struct Kid {
     
     mutating func removeCoins(_ amount: Int) {
         coins -= amount
+    }
+}
+
+// Extensão para tornar KidRecord Hashable e Equatable
+extension Kid: Hashable, Equatable {
+    static func == (lhs: Kid, rhs: Kid) -> Bool {
+        return lhs.id?.recordName == rhs.id?.recordName && lhs.name == rhs.name
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id?.recordName)
+        hasher.combine(name)
+    }
+}
+
+extension Kid: RecordProtocol {
+    var shareReference: CKRecord.Reference? { associatedRecord?.share }
+    
+    var record: CKRecord? {
+        // Only create a new record if we don't have an existing ID
+        guard id == nil else {
+            return nil
+        }
+        
+        // Create a record in the correct zone
+        let newRecord = CKRecord(recordType: RecordType.kid.rawValue, zoneID: CloudConfig.recordZone.zoneID)
+        newRecord["kidName"] = name
+        newRecord["coins"] = coins
+        
+        return newRecord
+    }
+    
+    init?(record: CKRecord) {
+        guard let name = record["kidName"] as? String,
+              let coins = record["coins"] as? Int else {
+            return nil
+        }
+        
+        self.id = record.recordID
+        self.name = name
+        self.coins = coins
+        self.associatedRecord = record
     }
 }

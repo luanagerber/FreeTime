@@ -10,10 +10,9 @@ import SwiftUI
 struct DetailsActivityModal: View {
     @ObservedObject var kidViewModel: KidViewModel
     @Environment(\.dismiss) var dismiss
-    @Binding var register: Register
+    @Binding var register: ActivitiesRegister
     
     var body: some View {
-        
         VStack(spacing: 32){
             headerDetails(title: register.activity?.name ?? "Sem atividade", coins: 500)
             
@@ -23,7 +22,7 @@ struct DetailsActivityModal: View {
             
             Button {
                 register.registerStatus = .completed
-                kidViewModel.concludedActivity(register: register)
+//                kidViewModel.concludedActivity(register: register)
                 dismiss()
                 
             } label: {

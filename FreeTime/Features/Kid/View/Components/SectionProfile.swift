@@ -75,5 +75,5 @@ struct SectionProfile: View {
 }
 
 #Preview {
-    CoordinatorView()
+    SectionProfile(kid: ActivitiesRegister.kidTest, moedas: 500)
 }

@@ -9,11 +9,7 @@ import CloudKit
 
 enum CloudConfig {
     static let containerIndentifier = "iCloud.TesteFreeTime"
-
-    // Método atualizado para criar zona
-    static func createCustomZone(withName name: String) -> CKRecordZone {
-        return CKRecordZone(zoneName: name)
-    }
+    static let recordZone: CKRecordZone = CKRecordZone(zoneName: "Kids")
     
     case privateDB
     case publicDB
@@ -23,7 +19,6 @@ enum CloudConfig {
 enum RecordType: String {
     case kid = "Kid"
     case activity = "ScheduledActivity"
-    //Tete, coloquei ScheduledActivity no singular
 }
 
 enum CloudError: Error {

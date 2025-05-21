@@ -20,6 +20,7 @@ struct FreeTimeApp: App {
             case .phone:
                     GenitorView()
 //                SharerTestView()
+//                    RoleBasedView()
             default:
                 EmptyView()
             }

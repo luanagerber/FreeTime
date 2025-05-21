@@ -5,17 +5,18 @@
 //
 
 import SwiftUI
+import CloudKit
 
 struct KidView: View {
     
     @StateObject private var kidViewModel = KidViewModel()
     
     //Testing with mocked-up data
-    let kidExample : Kid = Register.sample1.kid
-    let kidId: UUID = Register.sample1.kid.id
+    let kidExample : Kid = Kid.sample
+    let kidId: CKRecord.ID? = Kid.sample.id
     //
     
-    @State private var selectedRegister: Register? = Register.sample1
+    @State private var selectedRegister: ActivitiesRegister? = ActivitiesRegister.sample1
     @State private var showActivityModal: Bool = false
     
     var body: some View {

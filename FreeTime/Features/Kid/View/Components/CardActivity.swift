@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct CardActivity: View {
-    var register: Register
+    var register: ActivitiesRegister
     
     var body: some View {
         VStack{
