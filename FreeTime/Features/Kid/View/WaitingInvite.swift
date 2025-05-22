@@ -6,10 +6,13 @@
 //
 
 import SwiftUI
+import CloudKit
 
 struct WaitingInvite: View {
     
     @EnvironmentObject var coordinator: Coordinator
+    
+    @StateObject private var kidViewModel = KidViewModel()
     
     var body: some View {
         VStack(spacing: 20) {
@@ -28,8 +31,10 @@ struct WaitingInvite: View {
                 .font(.system(size: 23))
             
             // Botão de refresh
-            Button(action: nextView) {
-                Label("Próxima Tela", systemImage: "arrowshape.right.circle")
+//            Button(action: nextView) {
+//                Label("Próxima Tela", systemImage: "arrowshape.right.circle")
+            Button(action: kidViewModel.refresh) {
+                Label("Atualizar dados", systemImage: "arrow.clockwise")
                     .padding()
                     .frame(maxWidth: 200)
                     .background(Color.blue)
@@ -37,7 +42,17 @@ struct WaitingInvite: View {
                     .font(.system(size: 17, weight: .bold))
                     .cornerRadius(8)
             }
+            .disabled(kidViewModel.isLoading)
             
+            Text(kidViewModel.feedbackMessage)
+                .foregroundColor(.secondary)
+                .font(.system(size: 17, weight: .bold))
+            
+            
+            if kidViewModel.isLoading {
+                ProgressView()
+                    .padding()
+            }
             
         }
         .padding(.vertical, 100)
@@ -55,7 +70,6 @@ struct WaitingInvite: View {
         //print("sdfd")
         coordinator.push(.kidHome)
     }
-    
 }
 
 

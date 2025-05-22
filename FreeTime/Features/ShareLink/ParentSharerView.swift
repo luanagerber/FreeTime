@@ -26,6 +26,24 @@ struct ParentSharerView: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
+                    
+                    Button("🗑️ RESETAR APP") {
+                        resetAllData()
+                    }
+                    .padding()
+                    .background(Color.red.opacity(0.2))
+                    .cornerRadius(8)
+                    .foregroundColor(.red)
+                    
+                    Button("🔍 Debug Banco Compartilhado") {
+                        debugSharedDatabase()
+                        debugSharedFromParent()
+                    }
+                    .padding()
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(8)
+                    
+                    
                     Text("Gerenciador de Atividades")
                         .font(.title)
                         .padding()
@@ -198,6 +216,28 @@ struct ParentSharerView: View {
     }
     
     // MARK: - Métodos de Cloud
+    
+    private func resetAllData() {
+        // 1. Limpar @AppStorage (são salvos no UserDefaults internamente)
+        UserDefaults.standard.removeObject(forKey: "userRole")
+        UserDefaults.standard.removeObject(forKey: "rootRecordID")
+        UserDefaults.standard.removeObject(forKey: "isZoneCreated")
+        
+        // 2. Sincronizar para garantir que foi salvo
+        UserDefaults.standard.synchronize()
+        
+        // 3. Limpar dados locais da view
+        kids.removeAll()
+        selectedKid = nil
+        childName = ""
+        feedbackMessage = "✅ App resetado completamente!"
+        
+        // 4. Resetar o @AppStorage diretamente (isso vai funcionar imediatamente)
+        userRole = nil
+        
+        print("🗑️ Todos os dados foram limpos!")
+    }
+    
     private func refresh() {
         isLoading = true
         feedbackMessage = "Atualizando dados..."
@@ -241,6 +281,68 @@ struct ParentSharerView: View {
         }
     }
 
+
+    private func debugSharedFromParent() {
+        print("🔍 PAI: Verificando banco compartilhado do lado do pai...")
+        
+        let container = CKContainer(identifier: CloudConfig.containerIndentifier)
+        let sharedDB = container.sharedCloudDatabase
+        
+        Task {
+            do {
+                let zones = try await sharedDB.allRecordZones()
+                print("🔍 PAI: Zonas compartilhadas: \(zones.map { $0.zoneID.zoneName })")
+                
+                for zone in zones {
+                    for recordType in ["Kid", "ScheduledActivity"] {
+                        let query = CKQuery(recordType: recordType, predicate: NSPredicate(value: true))
+                        let (results, _) = try await sharedDB.records(matching: query, inZoneWith: zone.zoneID)
+                        print("🔍 PAI: \(recordType) na zona \(zone.zoneID.zoneName): \(results.count)")
+                    }
+                }
+            } catch {
+                print("🔍 PAI: Erro: \(error)")
+            }
+        }
+    }
+
+    private func debugSharedDatabase() {
+        print("🔍 PAI: Verificando banco compartilhado...")
+        
+        let container = CKContainer(identifier: CloudConfig.containerIndentifier)
+        let sharedDB = container.sharedCloudDatabase
+        
+        Task {
+            do {
+                let zones = try await sharedDB.allRecordZones()
+                print("🔍 PAI: Zonas no banco compartilhado: \(zones.map { $0.zoneID.zoneName })")
+                
+                for zone in zones {
+                    print("🔍 PAI: Verificando zona: \(zone.zoneID.zoneName)")
+                    
+                    // Buscar ScheduledActivity
+                    let query = CKQuery(recordType: RecordType.activity.rawValue, predicate: NSPredicate(value: true))
+                    let (results, _) = try await sharedDB.records(matching: query, inZoneWith: zone.zoneID)
+                    print("🔍 PAI: ScheduledActivity na zona \(zone.zoneID.zoneName): \(results.count)")
+                    
+                    for (id, result) in results {
+                        switch result {
+                        case .success(let record):
+                            print("🔍 PAI: Atividade encontrada: \(id.recordName)")
+                            print("  - kidID: \(record["kidID"] ?? "nil")")
+                            print("  - activityID: \(record["activityID"] ?? "nil")")
+                            print("  - status: \(record["status"] ?? "nil")")
+                        case .failure(let error):
+                            print("🔍 PAI: Erro: \(error)")
+                        }
+                    }
+                }
+            } catch {
+                print("🔍 PAI: Erro ao verificar: \(error)")
+            }
+        }
+    }
+    
     // Adicionar este método para buscar atividades compartilhadas
     private func loadSharedActivities(for kidID: String) {
         // Verificar se há atividades compartilhadas pelo filho que foram modificadas
@@ -446,7 +548,6 @@ struct ParentSharerView: View {
             print("DETALHADO: KidReference configurada corretamente")
         } else {
             print("DETALHADO: ERRO - KidReference não configurada!")
-            // Não precisamos mais configurar manualmente, pois o inicializador já faz isso
         }
         
         // Salvar a atividade e depois atualizar o compartilhamento
@@ -459,6 +560,19 @@ struct ParentSharerView: View {
                     print("✅ Atividade criada com sucesso para \(kid.name), recordName: \(kidIDString)")
                     print("DETALHADO: Atividade salva com ID: \(savedActivity.id?.recordName ?? "unknown")")
                     
+                    // NOVOS DEBUGS ADICIONADOS
+                    if let activityRecord = savedActivity.associatedRecord {
+                        print("DETALHADO: ✅ Atividade tem record associado")
+                        print("DETALHADO: Atividade tem share? \(activityRecord.share != nil)")
+                        print("DETALHADO: Atividade tem kidReference? \(activityRecord["kidReference"] != nil)")
+                        
+                        if let kidRef = activityRecord["kidReference"] as? CKRecord.Reference {
+                            print("DETALHADO: kidReference aponta para: \(kidRef.recordID.recordName)")
+                        }
+                    } else {
+                        print("DETALHADO: ❌ Atividade NÃO tem record associado!")
+                    }
+                    
                     // Verificar se a criança já tem compartilhamento
                     if let shareReference = kid.shareReference {
                         print("DETALHADO: Criança já tem compartilhamento (ID: \(shareReference.recordID.recordName)), atualizando...")
@@ -468,28 +582,33 @@ struct ParentSharerView: View {
                             await self.diagnosticarCompartilhamento(kidID: kid.id!)
                         }
                         
-                        // Recompartilhar para garantir que as novas atividades sejam incluídas
+                        // FORÇAR RE-COMPARTILHAMENTO
+                        print("DETALHADO: 🔄 Forçando re-compartilhamento para incluir nova atividade...")
                         Task {
                             do {
                                 try await self.cloudService.shareKid(kid) { result in
                                     switch result {
                                     case .success:
-                                        print("DETALHADO: Compartilhamento atualizado após nova atividade")
+                                        print("DETALHADO: ✅ Re-compartilhamento bem-sucedido!")
                                         
-                                        // Verificar se a atividade foi corretamente incluída no compartilhamento
-                                        Task {
-                                            await self.verificarAtividadeNoCompartilhamento(
-                                                kidID: kidIDString,
-                                                activityID: savedActivity.id?.recordName ?? ""
-                                            )
+                                        // Aguardar um pouco para o CloudKit processar
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                            print("DETALHADO: 🔍 Verificando se atividade apareceu no banco compartilhado...")
+                                            
+                                            Task {
+                                                await self.verificarAtividadeNoCompartilhamento(
+                                                    kidID: kidIDString,
+                                                    activityID: savedActivity.id?.recordName ?? ""
+                                                )
+                                            }
                                         }
                                         
                                     case .failure(let error):
-                                        print("DETALHADO: Erro no retorno do compartilhamento: \(error)")
+                                        print("DETALHADO: ❌ Erro no re-compartilhamento: \(error)")
                                     }
                                 }
                             } catch {
-                                print("DETALHADO: Erro ao atualizar compartilhamento: \(error)")
+                                print("DETALHADO: ❌ Erro ao re-compartilhar: \(error)")
                             }
                         }
                     } else {
@@ -500,16 +619,16 @@ struct ParentSharerView: View {
                                 try await self.cloudService.shareKid(kid) { result in
                                     switch result {
                                     case .success:
-                                        print("DETALHADO: Compartilhamento criado após nova atividade")
+                                        print("DETALHADO: ✅ Compartilhamento criado após nova atividade")
                                         DispatchQueue.main.async {
                                             self.refresh() // Atualizar a lista de kids para obter o shareReference atualizado
                                         }
                                     case .failure(let error):
-                                        print("DETALHADO: Erro ao criar compartilhamento: \(error)")
+                                        print("DETALHADO: ❌ Erro ao criar compartilhamento: \(error)")
                                     }
                                 }
                             } catch {
-                                print("DETALHADO: Erro ao criar compartilhamento: \(error)")
+                                print("DETALHADO: ❌ Erro ao criar compartilhamento: \(error)")
                             }
                         }
                     }
@@ -517,10 +636,42 @@ struct ParentSharerView: View {
                     self.feedbackMessage = "✅ Atividade '\(activity.name)' agendada para \(kid.name)"
                     self.showActivitySelector = false
                     
-                    // Executar diagnóstico completo
+                    // Executar diagnóstico completo após um delay
                     Task {
+                        // Aguardar 3 segundos para dar tempo do CloudKit sincronizar
+                        try? await Task.sleep(nanoseconds: 3_000_000_000)
+                        
+                        print("DETALHADO: 🔍 Executando diagnóstico completo...")
                         await self.cloudService.debugShareStatus(forKid: kid)
                         await self.cloudService.debugSharedDatabase()
+                        
+                        // Verificar especificamente se a atividade está no banco compartilhado
+                        print("DETALHADO: 🔍 Verificação final do banco compartilhado...")
+                        let container = CKContainer(identifier: CloudConfig.containerIndentifier)
+                        let sharedDB = container.sharedCloudDatabase
+                        
+                        do {
+                            let query = CKQuery(recordType: RecordType.activity.rawValue, predicate: NSPredicate(value: true))
+                            let zones = try await sharedDB.allRecordZones()
+                            
+                            for zone in zones {
+                                let (results, _) = try await sharedDB.records(matching: query, inZoneWith: zone.zoneID)
+                                print("DETALHADO: 📊 Zona \(zone.zoneID.zoneName): \(results.count) atividades encontradas")
+                                
+                                for (id, result) in results {
+                                    switch result {
+                                    case .success(let record):
+                                        print("DETALHADO: 📋 Atividade: \(id.recordName)")
+                                        print("  - kidID: \(record["kidID"] ?? "nil")")
+                                        print("  - activityID: \(record["activityID"] ?? "nil")")
+                                    case .failure(let error):
+                                        print("DETALHADO: ❌ Erro ao processar atividade: \(error)")
+                                    }
+                                }
+                            }
+                        } catch {
+                            print("DETALHADO: ❌ Erro na verificação final: \(error)")
+                        }
                     }
 
                 case .failure(let error):
@@ -529,8 +680,32 @@ struct ParentSharerView: View {
                 }
             }
         }
+        // No final do scheduleActivity(), após criar a atividade, adicione:
+        Task {
+            // Aguardar 3 segundos
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            
+            print("🔍 VERIFICAÇÃO: Atividade deveria estar no banco compartilhado agora...")
+            
+            let container = CKContainer(identifier: CloudConfig.containerIndentifier)
+            let sharedDB = container.sharedCloudDatabase
+            
+            do {
+                let query = CKQuery(recordType: RecordType.activity.rawValue, predicate: NSPredicate(value: true))
+                let zones = try await sharedDB.allRecordZones()
+                
+                for zone in zones {
+                    let (results, _) = try await sharedDB.records(matching: query, inZoneWith: zone.zoneID)
+                    print("🔍 VERIFICAÇÃO: Zona \(zone.zoneID.zoneName): \(results.count) atividades")
+                }
+            } catch {
+                print("🔍 VERIFICAÇÃO: Erro: \(error)")
+            }
+        }
+        
     }
-
+    
+    
     private func diagnosticarCompartilhamento(kidID: CKRecord.ID) async {
         print("DIAGNÓSTICO: Verificando compartilhamento para Kid ID: \(kidID.recordName)")
         

@@ -27,6 +27,16 @@ struct ChooseViewTest: View {
                 roleButton(role: .kid)
             }
             .padding(.horizontal)
+            
+            // Botão de reset
+            Button("🗑️ Reset App") {
+                resetAllData()
+            }
+            .padding()
+            .background(Color.red.opacity(0.1))
+            .cornerRadius(8)
+            .foregroundColor(.red)
+            .font(.caption)
         }
         .padding()
     }
@@ -49,6 +59,20 @@ struct ChooseViewTest: View {
             .cornerRadius(10)
         }
         .buttonStyle(.plain)
+    }
+    
+    // Função para resetar tudo
+    private func resetAllData() {
+        // Limpar TODOS os UserDefaults/AppStorage
+        if let bundleID = Bundle.main.bundleIdentifier {
+            UserDefaults.standard.removePersistentDomain(forName: bundleID)
+            UserDefaults.standard.synchronize()
+        }
+        
+        print("🗑️ App resetado completamente!")
+        
+        // Opcional: mostrar feedback visual
+        // Você pode adicionar um @State para mostrar mensagem temporária
     }
 }
 
