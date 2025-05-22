@@ -65,6 +65,7 @@ struct KidWaitingInviteView: View {
             if kidViewModel.hasAcceptedShareLink {
                 goToNextView()
             }
+            //chamar a funcao antes
         }
         .onAppear {
             kidViewModel.checkForSharedKid()

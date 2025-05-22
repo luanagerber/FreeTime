@@ -13,6 +13,13 @@ import Combine
 @MainActor
 class KidViewModel: ObservableObject {
     
+//    @EnvironmentObject var coordinator: Coordinator
+//    private var cloudService: CloudService = .shared
+//    let kidId: CKRecord.ID? = nil
+//
+//    @Published var kid: Kid = ActivitiesRegister.kidTest
+//    @Published var register: [ActivitiesRegister] = ActivitiesRegister.samples
+    
     @EnvironmentObject var coordinator: Coordinator
     
     // MARK: - Published Properties

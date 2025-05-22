@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct DetailView: View {
-    @ObservedObject var kidViewModel: ViewModelKid
+    @ObservedObject var kidViewModel: KidViewModel
     var register: ActivitiesRegister
     @State private var showPopUp = false
     @Environment(\.dismiss) private var dismiss
@@ -159,5 +159,5 @@ struct ConfirmButton: View {
 
 
 #Preview {
-    DetailView(kidViewModel: ViewModelKid(), register: ActivitiesRegister.sample1)
+    DetailView(kidViewModel: KidViewModel(), register: ActivitiesRegister.sample1)
 }

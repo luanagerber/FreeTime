@@ -11,7 +11,7 @@ import CloudKit
 struct KidHomeView: View {
     
     @State private var currentPage: Page = .kidHome
-    @StateObject private var vmKid = ViewModelKid()
+    @StateObject private var vmKid = KidViewModel()
     @State private var selectedRegister: ActivitiesRegister? = ActivitiesRegister.sample1
     @State private var showActivityModal: Bool = false
     
@@ -34,7 +34,8 @@ struct KidHomeView: View {
             .frame(height: 126)
             .overlay {
                 HStack(spacing: 20) {
-                    KidDataView(kid: vmKid.kid)
+                    //Then delete the empty child
+                    KidDataView(kid: vmKid.kid ?? Kid(name: "", coins: 0))
                     Spacer()
                     NavButton(title: "Atividades", page: .kidHome)
                     Divider().frame(width: 2, height: 70).background(Color.white)
@@ -123,7 +124,7 @@ struct ActivitySection: View {
     let emptyMessage: String
     @Binding var selectedRegister: ActivitiesRegister?
     @Binding var showActivityModal: Bool
-    var vmKid: ViewModelKid
+    var vmKid: KidViewModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
