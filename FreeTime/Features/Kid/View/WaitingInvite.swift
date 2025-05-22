@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct kidWaitingInvite: View {
+struct WaitingInvite: View {
     
     @EnvironmentObject var coordinator: Coordinator
     
