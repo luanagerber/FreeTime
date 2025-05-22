@@ -8,15 +8,11 @@
 import SwiftUI
 import CloudKit
 
-<<<<<<< HEAD:FreeTime/Features/Kid/View/kidWaitingInvite.swift
 struct kidWaitingInvite: View {
     
     @EnvironmentObject var coordinator: Coordinator
-=======
-struct WaitingShareView: View {
     
     @StateObject private var kidViewModel = KidViewModel()
->>>>>>> devRefIntegration:FreeTime/Features/Kid/View/WaitingShareView.swift
     
     var body: some View {
         VStack(spacing: 20) {
@@ -35,13 +31,10 @@ struct WaitingShareView: View {
                 .font(.system(size: 23))
             
             // Botão de refresh
-<<<<<<< HEAD:FreeTime/Features/Kid/View/kidWaitingInvite.swift
-            Button(action: nextView) {
-                Label("Próxima Tela", systemImage: "arrowshape.right.circle")
-=======
+//            Button(action: nextView) {
+//                Label("Próxima Tela", systemImage: "arrowshape.right.circle")
             Button(action: kidViewModel.refresh) {
                 Label("Atualizar dados", systemImage: "arrow.clockwise")
->>>>>>> devRefIntegration:FreeTime/Features/Kid/View/WaitingShareView.swift
                     .padding()
                     .frame(maxWidth: 200)
                     .background(Color.blue)
@@ -49,8 +42,6 @@ struct WaitingShareView: View {
                     .font(.system(size: 17, weight: .bold))
                     .cornerRadius(8)
             }
-<<<<<<< HEAD:FreeTime/Features/Kid/View/kidWaitingInvite.swift
-=======
             .disabled(kidViewModel.isLoading)
             
             Text(kidViewModel.feedbackMessage)
@@ -62,8 +53,6 @@ struct WaitingShareView: View {
                 ProgressView()
                     .padding()
             }
->>>>>>> devRefIntegration:FreeTime/Features/Kid/View/WaitingShareView.swift
-            
             
         }
         .padding(.vertical, 100)
@@ -77,14 +66,10 @@ struct WaitingShareView: View {
         
     }
     
-<<<<<<< HEAD:FreeTime/Features/Kid/View/kidWaitingInvite.swift
     private func nextView() {
         //print("sdfd")
         coordinator.push(.kidHome)
     }
-    
-=======
->>>>>>> devRefIntegration:FreeTime/Features/Kid/View/WaitingShareView.swift
 }
 
 
