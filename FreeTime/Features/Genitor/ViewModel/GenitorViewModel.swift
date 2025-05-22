@@ -14,8 +14,8 @@ class GenitorViewModel: ObservableObject {
     private var cloudService: CloudService = .shared
     
     @Published var records: [ActivitiesRegister] = ActivitiesRegister.samples
-//    @Published var recordsCloudKit: [Register] = []
-    @Published var selectedDate = Date()
+    @Published var rewards: [CollectedReward] = []
+    @Published var currentDate: Date = .init()
     
 //    func fetchRecords() -> [Register] {
 //        

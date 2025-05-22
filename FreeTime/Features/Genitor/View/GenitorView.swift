@@ -10,7 +10,6 @@ import SwiftUI
 struct GenitorView: View {
     
     /// Task Manager Properties
-    @State private var currentDate: Date = .init()
     @State private var weekSlider: [[Date.WeekDay]] = []
     @State private var currentWeekIndex: Int = 1
     @State private var createWeek: Bool = false
@@ -61,7 +60,7 @@ struct GenitorView: View {
         VStack (alignment: .leading) {
             
             // Mês
-            Text(currentDate.format("MMMM"))
+            Text(viewModel.currentDate.format("MMMM"))
                 .font(.largeTitle)
                 .fontWeight(.semibold)
             
@@ -124,11 +123,11 @@ struct GenitorView: View {
                 .onTapGesture {
                     // Updating current date
                     withAnimation(.snappy) {
-                        currentDate = day.date
+                        viewModel.currentDate = day.date
                     }
                 }
                 .background {
-                    if isSameDate(day.date, currentDate) {
+                    if isSameDate(day.date, viewModel.currentDate) {
                         Rectangle()
                             .foregroundColor(.white)
                             .frame(width: 46, height: 68)
@@ -161,12 +160,12 @@ struct GenitorView: View {
         VStack(alignment: .center, spacing: 20) {
             
             let tasksNotStarted = viewModel.records.filter { register in
-                Calendar.current.isDate(register.date, inSameDayAs: currentDate) &&
+                Calendar.current.isDate(register.date, inSameDayAs: viewModel.currentDate) &&
                 register.registerStatus == .notStarted
             }.sorted(by: { $1.date > $0.date})
             
             let tasksCompleted = viewModel.records.filter{ register in
-                Calendar.current.isDate(register.date, inSameDayAs: currentDate) &&
+                Calendar.current.isDate(register.date, inSameDayAs: viewModel.currentDate) &&
                 register.registerStatus == .completed
             }.sorted(by: { $1.date > $0.date})
             
@@ -227,8 +226,7 @@ struct GenitorView: View {
                 weekSlider.insert(firstData.createPrevisousWeek(), at: 0)
                 weekSlider.removeLast()
                 currentWeekIndex = 1
-                currentDate = Calendar.current.date(byAdding: .day, value: -7, to: currentDate) ?? currentDate
-                print(currentDate.description)
+                viewModel.currentDate = Calendar.current.date(byAdding: .day, value: -7, to: viewModel.currentDate) ?? viewModel.currentDate
             }
             
             if let lastData = weekSlider[currentWeekIndex].last?.date, currentWeekIndex == (weekSlider.count - 1) {
@@ -236,7 +234,7 @@ struct GenitorView: View {
                 weekSlider.append(lastData.createNextWeek())
                 weekSlider.removeFirst()
                 currentWeekIndex = weekSlider.count - 2
-                currentDate = Calendar.current.date(byAdding: .day, value: 7, to: currentDate) ?? currentDate
+                viewModel.currentDate = Calendar.current.date(byAdding: .day, value: 7, to: viewModel.currentDate) ?? viewModel.currentDate
             }
         }
     }
