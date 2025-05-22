@@ -43,7 +43,7 @@ class Coordinator: ObservableObject {
     func build(page: Page) -> some View {
         switch page {
             case .kidWaitingInvite:
-                WaitingInvite()
+                KidWaitingInviteView()
             case .kidHome:
                 KidHomeView()
             case .genitorHome:

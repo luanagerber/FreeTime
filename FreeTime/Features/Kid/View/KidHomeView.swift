@@ -157,5 +157,5 @@ struct ActivitySection: View {
 }
 
 #Preview {
-    CoordinatorView()
+    KidHomeView()
 }

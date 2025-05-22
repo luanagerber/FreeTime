@@ -8,7 +8,7 @@
 import SwiftUI
 import CloudKit
 
-struct WaitingInvite: View {
+struct KidWaitingInviteView: View {
     
     @EnvironmentObject var coordinator: Coordinator
     
@@ -31,8 +31,10 @@ struct WaitingInvite: View {
                 .font(.system(size: 23))
             
             // Botão de refresh
+
 //            Button(action: nextView) {
 //                Label("Próxima Tela", systemImage: "arrowshape.right.circle")
+
             Button(action: kidViewModel.refresh) {
                 Label("Atualizar dados", systemImage: "arrow.clockwise")
                     .padding()
@@ -48,31 +50,35 @@ struct WaitingInvite: View {
                 .foregroundColor(.secondary)
                 .font(.system(size: 17, weight: .bold))
             
-            
             if kidViewModel.isLoading {
                 ProgressView()
                     .padding()
             }
+
             
         }
         .padding(.vertical, 100)
         .background(Color.gray.opacity(0.1))
         .cornerRadius(12)
         .padding(.horizontal, 200)
-//        .refreshable {
-//            //refresh()
-//            print("sdfd")
-//        }
+        .refreshable {
+            if kidViewModel.hasAcceptedShareLink {
+                goToNextView()
+            }
+        }
+        .onAppear {
+            kidViewModel.checkForSharedKid()
+        }
         
     }
     
-    private func nextView() {
-        //print("sdfd")
+    private func goToNextView() {
         coordinator.push(.kidHome)
     }
+
 }
 
 
-#Preview("Com Navegação") {
+#Preview("WaitingInvite") {
     CoordinatorView()
 }

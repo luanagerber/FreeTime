@@ -13,12 +13,14 @@ import Combine
 @MainActor
 class KidViewModel: ObservableObject {
     
+    @EnvironmentObject var coordinator: Coordinator
+    
     // MARK: - Published Properties
     @Published var isLoading = false
+    @Published var hasAcceptedShareLink = false
     @Published var feedbackMessage = ""
     @Published var kid: Kid?
-    //    @Published var activities: [ActivitiesRegister] = []
-    @Published var activitiesRegister: [ActivitiesRegister] = ActivitiesRegister.samples
+    @Published var activities: [ActivitiesRegister] = []
     
     // MARK: - Private Properties
     private let cloudService = CloudService.shared
@@ -27,29 +29,46 @@ class KidViewModel: ObservableObject {
         container.sharedCloudDatabase
     }
     
+    
     // MARK: - Public LOCAL Methods
-    func registerForToday(kidID: String) -> [ActivitiesRegister] {
-        activitiesRegister
-            .filter { $0.kidID == kidID && Calendar.current.isDate($0.date, inSameDayAs: Date()) }
+    func registerForToday() -> [ActivitiesRegister] {
+        guard let kidID = kid?.id?.recordName else { return [] }
+        
+        return activities
+            .filter { activity in
+                // Check if activity belongs to this kid
+                let belongsToKid = activity.kidID == kidID ||
+                                 activity.kidReference?.recordID.recordName == kidID
+                
+                // Check if activity is for today
+                let isToday = Calendar.current.isDateInToday(activity.date)
+                
+                return belongsToKid && isToday
+            }
             .sorted { $0.date < $1.date }
     }
     
-    func notStartedRegister(kidID: String) -> [ActivitiesRegister] {
-        registerForToday(kidID: kidID)
+    func notStartedRegister() -> [ActivitiesRegister] {
+        registerForToday()
             .filter { $0.registerStatus == .notStarted }
     }
     
-    func completedRegister(kidID: String) -> [ActivitiesRegister] {
-        registerForToday(kidID: kidID)
+    func completedRegister() -> [ActivitiesRegister] {
+        registerForToday()
             .filter { $0.registerStatus == .completed }
     }
     
     func concludedActivity(register: ActivitiesRegister) {
-        if let index = self.activitiesRegister.firstIndex(where: { $0.id == register.id }) {
-            self.activitiesRegister[index].registerStatus = .completed
+        guard let activityID = register.id else { return }
+        
+        // Update locally first for immediate UI feedback
+        if let index = activities.firstIndex(where: { $0.id == activityID }) {
+            activities[index].registerStatus = .completed
         }
+        
+        // Then update in CloudKit
+        updateActivityStatus(register)
     }
-    
     
     // MARK: - Public CLOUD Methods
     func refresh() {
@@ -57,6 +76,9 @@ class KidViewModel: ObservableObject {
     }
     
     func checkForSharedKid() {
+        // Update the published property
+        hasAcceptedShareLink = cloudService.getRootRecordID() != nil
+        
         guard let rootRecordID = cloudService.getRootRecordID() else {
             feedbackMessage = "Nenhum convite aceito ainda"
             return
@@ -98,8 +120,8 @@ class KidViewModel: ObservableObject {
                 feedbackMessage = "✅ Status atualizado com sucesso"
                 
                 if let updatedActivity = ActivitiesRegister(record: updatedRecord),
-                   let index = activitiesRegister.firstIndex(where: { $0.id == activityID }) {
-                    activitiesRegister[index] = updatedActivity
+                   let index = activities.firstIndex(where: { $0.id == activityID }) {
+                    activities[index] = updatedActivity
                 }
             } catch {
                 print("❌ Erro ao atualizar status: \(error.localizedDescription)")
@@ -155,7 +177,7 @@ class KidViewModel: ObservableObject {
                     allActivities.append(contentsOf: activities)
                 }
                 
-                processLoadedActivities(allActivities)
+                processLoadedActivities(allActivities, kidID: kidID)
             } catch {
                 print("❌ Erro geral: \(error.localizedDescription)")
                 isLoading = false
@@ -165,7 +187,7 @@ class KidViewModel: ObservableObject {
     }
     
     private func fetchActivitiesInZone(_ zoneID: CKRecordZone.ID, kidID: String) async -> [ActivitiesRegister] {
-        var activities: [ActivitiesRegister] = []
+        var fetchedActivities: [ActivitiesRegister] = []
         
         do {
             let query = CKQuery(recordType: RecordType.activity.rawValue, predicate: NSPredicate(value: true))
@@ -175,7 +197,13 @@ class KidViewModel: ObservableObject {
                 switch result {
                 case .success(let record):
                     if let activity = ActivitiesRegister(record: record) {
-                        activities.append(activity)
+                        // Check if this activity belongs to this kid
+                        let belongsToKid = activity.kidID == kidID ||
+                                         activity.kidReference?.recordID.recordName == kidID
+                        
+                        if belongsToKid {
+                            fetchedActivities.append(activity)
+                        }
                     }
                 case .failure(let error):
                     print("❌ Erro ao processar registro: \(error.localizedDescription)")
@@ -185,27 +213,29 @@ class KidViewModel: ObservableObject {
             print("❌ Erro ao buscar atividades na zona \(zoneID.zoneName): \(error.localizedDescription)")
         }
         
-        return activities
+        return fetchedActivities
     }
     
-    private func processLoadedActivities(_ allActivities: [ActivitiesRegister]) {
+    private func processLoadedActivities(_ allActivities: [ActivitiesRegister], kidID: String) {
         isLoading = false
         
         if allActivities.isEmpty {
-            feedbackMessage = "❌ Nenhuma atividade no banco compartilhado"
-            activitiesRegister = []
+            feedbackMessage = "❌ Nenhuma atividade encontrada para este filho"
+            activities = []
             return
         }
         
-        // Filter activities for today
-        let calendar = Calendar.current
-        activitiesRegister = allActivities.filter { activity in
-            calendar.isDateInToday(activity.date)
-        }
+        // Store all activities (not just today's)
+        activities = allActivities.sorted { $0.date < $1.date }
         
-        feedbackMessage = activitiesRegister.isEmpty
-        ? "Nenhuma atividade para hoje"
-        : "✅ Encontradas \(activitiesRegister.count) atividades para hoje"
+        // Count today's activities for feedback
+        let todayActivities = activities.filter { Calendar.current.isDateInToday($0.date) }
+        
+        feedbackMessage = todayActivities.isEmpty
+            ? "Nenhuma atividade para hoje"
+            : "✅ Encontradas \(todayActivities.count) atividades para hoje"
+        
+        print("📊 Total de atividades carregadas: \(activities.count)")
+        print("📊 Atividades de hoje: \(todayActivities.count)")
     }
-    
 }
