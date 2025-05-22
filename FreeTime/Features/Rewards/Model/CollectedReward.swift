@@ -11,5 +11,4 @@ struct CollectedReward: Identifiable {
     let id = UUID()
     let reward: Reward
     let date: Date
-    let kid: Kid
 }

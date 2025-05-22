@@ -243,38 +243,83 @@ final class CloudService {
                         print("COMPARTILHAMENTO: Atividade \(index): ID=\(activity.activityID), Data=\(activity.date)")
                     }
                     
-                    // Adicionar as atividades ao array de registros para atualizar
-                    var recordsToSave: [CKRecord] = [share]
+                    // NOVA ABORDAGEM: Configurar hierarquia pai-filho explícita
+                    print("COMPARTILHAMENTO: Configurando hierarquia pai-filho para compartilhamento...")
                     
-                    // IMPORTANTE: Adicionar o kid record também para atualização
-                    recordsToSave.append(record)
+                    // 1. Primeiro atualizar o Kid e Share
+                    do {
+                        let (kidResults, _) = try await privateDB.modifyRecords(saving: [record, share], deleting: [])
+                        print("COMPARTILHAMENTO: ✅ Kid e Share atualizados: \(kidResults.count)")
+                    } catch {
+                        print("COMPARTILHAMENTO: ⚠️ Erro ao atualizar Kid/Share (continuando): \(error)")
+                    }
                     
-                    for activity in activities {
+                    // 2. Configurar cada atividade como FILHA do Kid
+                    var successCount = 0
+                    for (index, activity) in activities.enumerated() {
                         if let activityRecord = activity.associatedRecord {
-                            // Adicionar ou atualizar a referência ao Kid
+                            print("COMPARTILHAMENTO: Configurando atividade \(index + 1)/\(activities.count) como filha...")
+                            
+                            // CONFIGURAR HIERARQUIA PAI-FILHO EXPLÍCITA
+                            activityRecord.setParent(record)
+                            
+                            // Manter a kidReference também para busca
                             activityRecord["kidReference"] = CKRecord.Reference(recordID: record.recordID, action: .deleteSelf)
-                            recordsToSave.append(activityRecord)
+                            
+                            // Garantir que todos os campos estão corretos
+                            activityRecord["kidID"] = kidName
+                            
+                            print("COMPARTILHAMENTO: - Parent configurado: \(activityRecord.parent?.recordID.recordName ?? "nil")")
+                            print("COMPARTILHAMENTO: - kidReference: \(activityRecord["kidReference"] != nil)")
+                            print("COMPARTILHAMENTO: - kidID: \(activityRecord["kidID"] ?? "nil")")
+                            
+                            do {
+                                let savedRecord = try await privateDB.save(activityRecord)
+                                print("COMPARTILHAMENTO: ✅ Atividade \(index + 1) configurada como filha: \(savedRecord.recordID.recordName)")
+                                
+                                // Verificar se ficou com parent após salvar
+                                if let parent = savedRecord.parent {
+                                    print("COMPARTILHAMENTO: ✅ Parent confirmado após salvar: \(parent.recordID.recordName)")
+                                } else {
+                                    print("COMPARTILHAMENTO: ⚠️ Parent não está definido após salvar!")
+                                }
+                                
+                                successCount += 1
+                            } catch {
+                                let errorDescription = error.localizedDescription
+                                if errorDescription.contains("already exists") {
+                                    print("COMPARTILHAMENTO: ℹ️ Atividade \(index + 1) já existe, atualizando parent...")
+                                    
+                                    // Tentar buscar e atualizar o registro existente
+                                    do {
+                                        let existingRecord = try await privateDB.record(for: activityRecord.recordID)
+                                        existingRecord.setParent(record)
+                                        existingRecord["kidReference"] = CKRecord.Reference(recordID: record.recordID, action: .deleteSelf)
+                                        existingRecord["kidID"] = kidName
+                                        
+                                        let updatedRecord = try await privateDB.save(existingRecord)
+                                        print("COMPARTILHAMENTO: ✅ Parent atualizado para atividade existente: \(updatedRecord.recordID.recordName)")
+                                        successCount += 1
+                                    } catch {
+                                        print("COMPARTILHAMENTO: ❌ Erro ao atualizar parent da atividade existente: \(error)")
+                                    }
+                                } else {
+                                    print("COMPARTILHAMENTO: ❌ Erro ao salvar atividade \(index + 1): \(errorDescription)")
+                                }
+                            }
+                            
+                            // Pequeno delay entre salvamentos para evitar conflitos
+                            try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 segundo
                         }
                     }
                     
-                    print("COMPARTILHAMENTO: Atualizando \(recordsToSave.count) registros no total")
+                    print("COMPARTILHAMENTO: ✅ Hierarquia configurada: \(successCount)/\(activities.count) atividades como filhas")
                     
-                    // Salvar todos os registros juntos em uma operação de zona
-                    let (saveResults, _) = try await privateDB.modifyRecords(saving: recordsToSave, deleting: [])
-                    print("COMPARTILHAMENTO: Compartilhamento atualizado com sucesso, records salvos: \(saveResults.count)")
-                    
-                    // Verificar se os registros têm share após salvar
-                    for (id, result) in saveResults {
-                        switch result {
-                        case .success(let savedRecord):
-                            let hasShare = savedRecord.share != nil
-                            print("COMPARTILHAMENTO: Record \(id.recordName) (\(savedRecord.recordType)) tem share? \(hasShare)")
-                        case .failure(let error):
-                            print("COMPARTILHAMENTO: Erro ao salvar record \(id.recordName): \(error.localizedDescription)")
-                        }
-                    }
+                    // Aguardar um pouco para o CloudKit processar a hierarquia
+                    try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 segundo
                     
                     completion(.success(CloudSharingView(share: share, container: container)))
+                    
                 } else {
                     print("COMPARTILHAMENTO: Falha - compartilhamento existente não encontrado")
                     completion(.failure(.couldNotShareRecord))
@@ -306,43 +351,53 @@ final class CloudService {
             print("COMPARTILHAMENTO: Atividade \(index): ID=\(activity.activityID), Data=\(activity.date)")
         }
         
-        // Adicionar as atividades ao array de registros a serem salvos
-        var recordsToSave: [CKRecord] = [record, share]
-        
-        for activity in activities {
-            if let activityRecord = activity.associatedRecord {
-                // Certifique-se de definir o kidReference
-                activityRecord["kidReference"] = CKRecord.Reference(recordID: record.recordID, action: .deleteSelf)
-                recordsToSave.append(activityRecord)
-            }
-        }
-        
-        print("COMPARTILHAMENTO: Salvando \(recordsToSave.count) registros no total")
-        
         do {
-            // Salvar todos os registros juntos
-            let (saveResults, _) = try await privateDB.modifyRecords(saving: recordsToSave, deleting: [])
-            print("COMPARTILHAMENTO: Compartilhamento criado com sucesso, records salvos: \(saveResults.count)")
+            // NOVA ABORDAGEM: Configurar hierarquia pai-filho desde o início
+            print("COMPARTILHAMENTO: Criando novo compartilhamento com hierarquia pai-filho...")
             
-            // Verificar se os registros têm share após salvar
-            for (id, result) in saveResults {
-                switch result {
-                case .success(let savedRecord):
-                    let hasShare = savedRecord.share != nil
-                    print("COMPARTILHAMENTO: Record \(id.recordName) (\(savedRecord.recordType)) tem share? \(hasShare)")
-                case .failure(let error):
-                    print("COMPARTILHAMENTO: Erro ao salvar record \(id.recordName): \(error.localizedDescription)")
+            // 1. Primeiro configurar as atividades como filhas ANTES de criar o compartilhamento
+            var successCount = 0
+            for (index, activity) in activities.enumerated() {
+                if let activityRecord = activity.associatedRecord {
+                    print("COMPARTILHAMENTO: Pré-configurando atividade \(index + 1)/\(activities.count) como filha...")
+                    
+                    // CONFIGURAR HIERARQUIA PAI-FILHO EXPLÍCITA
+                    activityRecord.setParent(record)
+                    
+                    // Manter a kidReference também para busca
+                    activityRecord["kidReference"] = CKRecord.Reference(recordID: record.recordID, action: .deleteSelf)
+                    activityRecord["kidID"] = kidName
+                    
+                    do {
+                        let savedRecord = try await privateDB.save(activityRecord)
+                        print("COMPARTILHAMENTO: ✅ Atividade \(index + 1) pré-configurada como filha: \(savedRecord.recordID.recordName)")
+                        successCount += 1
+                    } catch {
+                        print("COMPARTILHAMENTO: ❌ Erro ao pré-configurar atividade \(index + 1): \(error.localizedDescription)")
+                    }
+                    
+                    // Pequeno delay entre salvamentos
+                    try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 segundo
                 }
             }
             
+            print("COMPARTILHAMENTO: ✅ Pré-configuradas \(successCount)/\(activities.count) atividades como filhas")
+            
+            // 2. Agora criar o compartilhamento (que deve incluir as atividades automaticamente)
+            let (initialResults, _) = try await privateDB.modifyRecords(saving: [record, share], deleting: [])
+            print("COMPARTILHAMENTO: ✅ Compartilhamento criado com hierarquia: \(initialResults.count) registros base")
+            
+            // Aguardar um pouco para o CloudKit processar
+            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 segundo
+            
             completion(.success(CloudSharingView(share: share, container: container)))
+            
         } catch {
-            print("COMPARTILHAMENTO: Erro ao criar compartilhamento: \(error.localizedDescription)")
+            print("COMPARTILHAMENTO: Erro ao criar compartilhamento com hierarquia: \(error.localizedDescription)")
             completion(.failure(.couldNotShareRecord))
         }
     }
-    
-    // Método auxiliar para buscar atividades relacionadas - adicionar ao CloudService
+    // Método auxiliar para buscar atividades relacionadas
     private func fetchRelatedActivities(kidName: String) async throws -> [ActivitiesRegister] {
         print("BUSCA-ATIVIDADES: Buscando atividades para o Kid ID: \(kidName)")
         let predicate = NSPredicate(format: "kidID == %@", kidName)
@@ -439,7 +494,7 @@ final class CloudService {
         print("DEBUG: Iniciando verificação do banco compartilhado")
         
         // Use self.getRootRecordID() para acessar o método da extensão
-        guard let rootRecordID = self.getRootRecordID() else {
+        guard self.getRootRecordID() != nil else {
             print("DEBUG: Nenhum rootRecordID encontrado")
             return
         }

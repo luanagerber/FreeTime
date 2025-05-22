@@ -22,7 +22,7 @@ class RewardsStore: ObservableObject {
     
     func collectReward(reward: Reward) throws {
         // add to the collected rewards
-        let collectedReward = CollectedReward(reward: reward, date: Date(), kid: kid)
+        let collectedReward = CollectedReward(reward: reward, date: Date())
         kid.collectedRewards.append(collectedReward)
         
         // remove the kid's coins
@@ -34,7 +34,7 @@ class RewardsStore: ObservableObject {
     }
     
     static func getRewards() -> [Reward] {
-        return Reward.samples
+        return Reward.catalog
     }
 }
 

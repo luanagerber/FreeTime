@@ -56,6 +56,14 @@ extension Kid: RecordProtocol {
         newRecord["kidName"] = name
         newRecord["coins"] = coins
         
+        // Convert CollectedRewards to array of strings (storing only reward ID and date)
+        let rewardStrings = collectedRewards.map { collectedReward in
+            let dateString = ISO8601DateFormatter().string(from: collectedReward.date)
+            // Store just the catalog ID and date
+            return "\(collectedReward.reward.id)|\(dateString)"
+        }
+        newRecord["collectedRewards"] = rewardStrings as CKRecordValue
+        
         return newRecord
     }
     
@@ -70,5 +78,43 @@ extension Kid: RecordProtocol {
         self.coins = coins
         self.shareReference = record.share
         self.associatedRecord = record
+        
+        // Parse collected rewards from strings
+        if let rewardStrings = record["collectedRewards"] as? [String] {
+            let dateFormatter = ISO8601DateFormatter()
+            
+            self.collectedRewards = rewardStrings.compactMap { rewardString in
+                let components = rewardString.split(separator: "|").map(String.init)
+                guard components.count == 2,
+                      let rewardID = Int(components[0]),
+                      let date = dateFormatter.date(from: components[1]),
+                      let reward = Reward.find(by: rewardID) else {
+                    return nil
+                }
+                
+                return CollectedReward(
+                    reward: reward,
+                    date: date
+                )
+            }
+        } else {
+            self.collectedRewards = []
+        }
+    }
+}
+
+// MARK: - Update Method for Existing Records
+extension Kid {
+    // Method to update an existing record with current data
+    func updateRecord(_ record: CKRecord) {
+        record["kidName"] = name
+        record["coins"] = coins
+        
+        // Convert CollectedRewards to array of strings
+        let rewardStrings = collectedRewards.map { collectedReward in
+            let dateString = ISO8601DateFormatter().string(from: collectedReward.date)
+            return "\(collectedReward.reward.id)|\(dateString)"
+        }
+        record["collectedRewards"] = rewardStrings as CKRecordValue
     }
 }

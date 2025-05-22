@@ -41,7 +41,7 @@ struct ActivitiesRegister: Identifiable {
         
         if let kidRecordID = kid.id {
             self.kidReference = CKRecord.Reference(recordID: kidRecordID, action: .deleteSelf)
-        } //Qualquer coisa, o erro pode estar aqui kk
+        }
     }
     
     // Computed property to fetch the activity from the catalog
@@ -71,24 +71,32 @@ extension ActivitiesRegister: RecordProtocol {
     }
     
     var associatedRecord: CKRecord? {
-           guard let recordID = id else { return nil }
-           
-           let record = CKRecord(recordType: RecordType.activity.rawValue, recordID: recordID)
-           record["kidID"] = kidID
-           record["activityID"] = activityID.uuidString
-           record["date"] = date
-           record["duration"] = duration
-           record["status"] = registerStatus.rawValue
-           
-           // Adicionar referência ao Kid se disponível
-           if let kidRef = kidReference {
-               record["kidReference"] = kidRef
-           }
-           
-           return record
-       }
+        guard let recordID = id else { return nil }
+        
+        let record = CKRecord(recordType: RecordType.activity.rawValue, recordID: recordID)
+        record["kidID"] = kidID
+        record["activityID"] = activityID.uuidString
+        record["date"] = date
+        record["duration"] = duration
+        record["status"] = registerStatus.rawValue
+        
+        // Adicionar referência ao Kid se disponível
+        if let kidRef = kidReference {
+            record["kidReference"] = kidRef
+        }
+        
+        return record
+    }
     
     init?(record: CKRecord) {
+        // LOGS DE DEBUG ADICIONADOS
+        print("🔧 INIT: Tentando criar ActivitiesRegister do record: \(record.recordID.recordName)")
+        print("🔧 INIT: Campos disponíveis: \(record.allKeys())")
+        print("🔧 INIT: Valores dos campos:")
+        for key in record.allKeys() {
+            print("  - \(key): \(record[key] ?? "nil") (tipo: \(type(of: record[key])))")
+        }
+        
         guard
             let kidID = record["kidID"] as? String,
             let activityIDString = record["activityID"] as? String,
@@ -97,8 +105,32 @@ extension ActivitiesRegister: RecordProtocol {
             let duration = record["duration"] as? TimeInterval,
             let statusRawValue = record["status"] as? Int,
             let status = RegisterStatus(rawValue: statusRawValue) else {
+                
+                // LOGS DE ERRO DETALHADOS
+                print("🔧 INIT: ❌ Falha na conversão dos campos:")
+                print("  - kidID: \(record["kidID"] ?? "nil") -> String? \(record["kidID"] as? String != nil ? "✅" : "❌")")
+                print("  - activityID: \(record["activityID"] ?? "nil") -> String? \(record["activityID"] as? String != nil ? "✅" : "❌")")
+                if let activityIDString = record["activityID"] as? String {
+                    print("    - UUID válido? \(UUID(uuidString: activityIDString) != nil ? "✅" : "❌")")
+                }
+                print("  - date: \(record["date"] ?? "nil") -> Date? \(record["date"] as? Date != nil ? "✅" : "❌")")
+                print("  - duration: \(record["duration"] ?? "nil") -> TimeInterval? \(record["duration"] as? TimeInterval != nil ? "✅" : "❌")")
+                print("  - status: \(record["status"] ?? "nil") -> Int? \(record["status"] as? Int != nil ? "✅" : "❌")")
+                if let statusRaw = record["status"] as? Int {
+                    print("    - RegisterStatus válido? \(RegisterStatus(rawValue: statusRaw) != nil ? "✅" : "❌")")
+                }
+                
                 return nil
         }
+        
+        // LOG DE SUCESSO
+        print("🔧 INIT: ✅ Conversão bem-sucedida!")
+        print("🔧 INIT: Dados convertidos:")
+        print("  - kidID: \(kidID)")
+        print("  - activityID: \(activityID)")
+        print("  - date: \(date)")
+        print("  - duration: \(duration)")
+        print("  - status: \(status)")
         
         self.id = record.recordID
         self.kidID = kidID
@@ -108,9 +140,10 @@ extension ActivitiesRegister: RecordProtocol {
         self.registerStatus = status
         self.shareReference = record.share
         self.kidReference = record["kidReference"] as? CKRecord.Reference
+        
+        print("🔧 INIT: ✅ ActivitiesRegister criado com sucesso!")
     }
 }
-
 
 // Equatable and Hashable extensions
 extension ActivitiesRegister: Equatable, Hashable {

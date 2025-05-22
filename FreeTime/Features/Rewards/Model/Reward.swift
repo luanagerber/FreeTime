@@ -9,10 +9,9 @@ import Foundation
 
 struct Reward: Identifiable {
     
-    // definition
-    let id = UUID()
+    let id: Int  // Changed to Int for stable catalog reference
     let name: String
     var cost: Int
     let image: String
-
+    
 }

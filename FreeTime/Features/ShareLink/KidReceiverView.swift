@@ -258,103 +258,122 @@ struct KidReceiverView: View {
             return
         }
         
+        print("🔍 FILHO: Iniciando busca de atividades")
+        print("🔍 FILHO: kidID procurado: \(kidID)")
+        print("🔍 FILHO: zoneID: \(zoneID)")
+        
         isLoading = true
         feedbackMessage = "Carregando atividades..."
-        print("FILHO: Buscando atividades para kidID: \(kidID) na zona: \(zoneID.zoneName)")
-        
-        // IMPORTANTE: Verificar se temos o rootRecordID
-        if let rootRecordID = cloudService.getRootRecordID() {
-            print("FILHO: Root Record ID: \(rootRecordID.recordName)")
-            print("FILHO: Root Zone: \(rootRecordID.zoneID.zoneName)")
-        } else {
-            print("FILHO: Root Record ID não encontrado!")
-        }
         
         // Obter o container e o banco compartilhado diretamente
         let container = CKContainer(identifier: CloudConfig.containerIndentifier)
         let sharedDB = container.sharedCloudDatabase
         
-        // IMPORTANTE: Buscar atividades em todas as zonas disponíveis
         Task {
             do {
                 let zones = try await sharedDB.allRecordZones()
                 print("FILHO: Zonas disponíveis no banco compartilhado: \(zones.map { $0.zoneID.zoneName })")
                 
-                // Agora vamos tentar buscar atividades em todas as zonas
-                print("FILHO: Iniciando busca abrangente de atividades em todas as zonas")
-                
                 var allActivities: [ActivitiesRegister] = []
-
+                
+                // BUSCA DETALHADA: Vamos testar TODAS as abordagens possíveis
                 for zone in zones {
-                    print("FILHO: Buscando na zona: \(zone.zoneID.zoneName)")
+                    print("\n🔍 FILHO: === TESTANDO ZONA: \(zone.zoneID.zoneName) ===")
                     
-                    // Buscar usando todos os critérios possíveis
-                    let predicate = NSPredicate(value: true)  // Busca todos os registros
-                    let query = CKQuery(recordType: RecordType.activity.rawValue, predicate: predicate)
-                    
+                    // TESTE 1: Busca geral por ScheduledActivity
+                    print("🔍 FILHO: Teste 1 - Busca geral por ScheduledActivity")
                     do {
-                        let (results, _) = try await sharedDB.records(matching: query, inZoneWith: zone.zoneID)
+                        let generalQuery = CKQuery(recordType: RecordType.activity.rawValue, predicate: NSPredicate(value: true))
+                        let (generalResults, _) = try await sharedDB.records(matching: generalQuery, inZoneWith: zone.zoneID)
+                        print("FILHO: Teste 1 - Encontrados \(generalResults.count) registros ScheduledActivity")
                         
-                        print("FILHO: Encontrados \(results.count) registros na zona \(zone.zoneID.zoneName)")
-                        
-                        for result in results {
-                            switch result.1 {
+                        for (id, result) in generalResults {
+                            switch result {
                             case .success(let record):
-                                print("FILHO: Registro encontrado, ID: \(record.recordID.recordName)")
-                                print("FILHO: Campos: \(record.allKeys().map { "\($0): \(String(describing: record[$0]))" }.joined(separator: ", "))")
+                                print("FILHO: 📋 Record: \(id.recordName)")
+                                print("  - Tipo: \(record.recordType)")
+                                print("  - Campos: \(record.allKeys())")
                                 
-                                // Verificar se o registro tem kidID ou kidReference que corresponda
                                 let recordKidID = record["kidID"] as? String
                                 let recordKidRef = record["kidReference"] as? CKRecord.Reference
                                 
-                                if recordKidID == kidID || recordKidRef?.recordID.recordName == kidID {
-                                    print("FILHO: Registro corresponde ao kidID!")
-                                    if let activity = ActivitiesRegister(record: record) {
-                                        allActivities.append(activity)
-                                    }
+                                print("  - kidID: \(recordKidID ?? "nil")")
+                                print("  - kidReference: \(recordKidRef?.recordID.recordName ?? "nil")")
+                                print("  - Match kidID? \(recordKidID == kidID)")
+                                print("  - Match kidRef? \(recordKidRef?.recordID.recordName == kidID)")
+                                
+                                // Tentar converter para ActivitiesRegister
+                                if let activity = ActivitiesRegister(record: record) {
+                                    print("  - ✅ Conversão bem-sucedida!")
+                                    allActivities.append(activity)
+                                } else {
+                                    print("  - ❌ Falha na conversão!")
                                 }
+                                
                             case .failure(let error):
-                                print("FILHO: Erro ao processar registro: \(error.localizedDescription)")
+                                print("FILHO: ❌ Erro ao processar registro: \(error.localizedDescription)")
                             }
                         }
                     } catch {
-                        print("FILHO: Erro ao buscar na zona \(zone.zoneID.zoneName): \(error.localizedDescription)")
+                        print("FILHO: ❌ Erro no Teste 1: \(error.localizedDescription)")
+                    }
+                    
+                    // TESTE 2: Verificar TODOS os tipos de registro existentes
+                    print("\n🔍 FILHO: Teste 2 - Verificar todos os tipos de registro")
+                    for recordType in ["Kid", "ScheduledActivity", "Activity"] {
+                        do {
+                            let typeQuery = CKQuery(recordType: recordType, predicate: NSPredicate(value: true))
+                            let (typeResults, _) = try await sharedDB.records(matching: typeQuery, inZoneWith: zone.zoneID)
+                            print("FILHO: Tipo '\(recordType)': \(typeResults.count) registros")
+                            
+                            if recordType == "ScheduledActivity" || recordType == "Activity" {
+                                for (id, result) in typeResults {
+                                    switch result {
+                                    case .success(let record):
+                                        print("FILHO: 📋 \(recordType): \(id.recordName)")
+                                        print("  - kidID: \(record["kidID"] ?? "nil")")
+                                        print("  - activityID: \(record["activityID"] ?? "nil")")
+                                    case .failure(let error):
+                                        print("FILHO: ❌ Erro: \(error.localizedDescription)")
+                                    }
+                                }
+                            }
+                        } catch {
+                            print("FILHO: ❌ Erro ao buscar '\(recordType)': \(error.localizedDescription)")
+                        }
                     }
                 }
                 
-                // Após varrer todas as zonas, vamos inspecionar completamente o banco compartilhado
-                print("FILHO: Solicitando inspeção completa do banco compartilhado")
-                await cloudService.inspectSharedDatabase()
+                print("\n🔍 FILHO: === CONCLUSÃO ===")
+                if allActivities.isEmpty {
+                    print("FILHO: ❌ PROBLEMA CONFIRMADO: Nenhuma atividade existe no banco compartilhado!")
+                    print("FILHO: ❌ As atividades não estão sendo compartilhadas pelo pai!")
+                } else {
+                    print("FILHO: ✅ Encontradas \(allActivities.count) atividades")
+                }
                 
-                // Processar todas as atividades encontradas
+                // Processar resultado
                 DispatchQueue.main.async {
                     self.isLoading = false
                     
                     if allActivities.isEmpty {
-                        self.feedbackMessage = "Nenhuma atividade encontrada"
+                        self.feedbackMessage = "❌ Nenhuma atividade no banco compartilhado"
                         self.activities = []
-                        print("FILHO: Nenhuma atividade encontrada em nenhuma zona")
                         return
                     }
-                    
-                    print("FILHO: Encontradas \(allActivities.count) atividades no total")
                     
                     // Filtra atividades para hoje
                     let calendar = Calendar.current
                     self.activities = allActivities.filter { activity in
-                        let isToday = calendar.isDateInToday(activity.date)
-                        print("FILHO: Atividade \(activity.activityID) é hoje? \(isToday)")
-                        return isToday
+                        calendar.isDateInToday(activity.date)
                     }
-                    
-                    print("FILHO: Após filtrar por hoje, restaram \(self.activities.count) atividades")
                     
                     self.feedbackMessage = self.activities.isEmpty
                         ? "Nenhuma atividade para hoje"
                         : "✅ Encontradas \(self.activities.count) atividades para hoje"
                 }
             } catch {
-                print("FILHO: Erro ao listar zonas: \(error.localizedDescription)")
+                print("FILHO: ❌ Erro geral: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     self.isLoading = false
                     self.feedbackMessage = "❌ Erro ao carregar atividades: \(error.localizedDescription)"
@@ -362,7 +381,7 @@ struct KidReceiverView: View {
             }
         }
     }
-    
+
     private func updateActivityStatus(_ activity: ActivitiesRegister) {
         guard let activityID = activity.id else {
             feedbackMessage = "ID da atividade não encontrado"
