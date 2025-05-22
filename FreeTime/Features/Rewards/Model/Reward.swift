@@ -7,12 +7,16 @@
 
 import Foundation
 
-struct Reward: Identifiable {
+struct Reward: Identifiable, Equatable {
     
     // definition
     let id = UUID()
     let name: String
     var cost: Int
     let image: String
-
+    
+    
+    static func == (lhs: Reward, rhs: Reward) -> Bool {
+        lhs.id == rhs.id
+    }
 }
