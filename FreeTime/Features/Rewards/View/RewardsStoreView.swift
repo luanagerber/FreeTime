@@ -13,39 +13,56 @@ struct RewardsStoreView: View {
     @EnvironmentObject var coordinator: Coordinator
     
     // grid with 4 columns
-    let columns = Array(repeating: GridItem(.flexible()), count: 4)
+    let rows = Array(repeating: GridItem(.flexible(), spacing: 64), count: 2)
     
     var body: some View {
-        ZStack {
+        ZStack{
             Constants.UI.Colors.defaultBackground
                 .ignoresSafeArea(.all)
-            ScrollView(.vertical){
-                VStack(alignment: .leading){
-                    titleText
-                    
-                    subtitleText
-                    
-                    kidStatus
-                    
-                    LazyVGrid(columns: columns, spacing: 16) {
+            
+            VStack {
+                
+                upBar
+                
+                ScrollView(.vertical){
+                    VStack(alignment: .leading){
                         
-                        ForEach(store.rewards) { reward in
-                            rewardView(reward)
-                                .padding()
-                        }
+                        titleText
+                            .padding(.top, 32)
                         
-                        ForEach(store.kid.collectedRewards) { collectedReward in
-                            rewardView(collectedReward.reward, isCollected: true)
-                                .padding()
+                        subtitleText
+                            .padding(.top,1)
+                        
+                        ScrollView(.horizontal){
+                            LazyHGrid(rows: rows, spacing: 32) {
+                                
+                                ForEach(store.rewards) { reward in
+                                    rewardView(reward)
+                                }
+                                ForEach(store.kid.collectedRewards) { collectedReward in
+                                    rewardView(collectedReward.reward, isCollected: true)
+                                }
+                            }
                         }
+                        .padding(.top, 46)
+                        
                     }
-                }
-                .padding(64)
-                HStack {
-                    addCoinsButtonTest
+                    .padding(.leading, 132)
+                  
+                    
+                    //addCoinsButtonTest
                 }
             }
         }
+    }
+    
+    private var upBar: some View {
+        Rectangle()
+            .clipShape(CustomCornerShape(radius: 20, corners: [.bottomLeft, .bottomRight]))
+            .frame(height: 145)
+            .ignoresSafeArea(.all)
+            .foregroundStyle(.secondary)
+            
     }
     
     private var kidStatus: some View {
@@ -57,15 +74,13 @@ struct RewardsStoreView: View {
     }
     
     private var titleText: some View {
-        Text("Loja de recompensas")
-            .font(.title)
-            .bold()
-            .foregroundStyle(Constants.UI.Colors.titleText)
+        Text("Lojinha de Recompensas")
+            .font(Font.system(size: 34, weight: .semibold))
     }
     
     private var subtitleText: some View {
-        Text("Clique na recompensa que deseja adquirir")
-            .font(.title2)
+        Text("Clique nas recompensas que deseja adquirir")
+            .font(Font.custom("SF Pro", size: 22))
             .foregroundColor(Constants.UI.Colors.subtitleText)
     }
     

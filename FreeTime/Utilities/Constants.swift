@@ -15,11 +15,18 @@ struct Constants {
         struct Colors{
             // colors
             static let textCard: Color = .white.opacity(0.7)
-            static let titleText: Color = .white
-            static let subtitleText: Color = .white
+            static let titleText: Color = .black
+            static let subtitleText: Color = .black
             static let cardBackground: Color = .white.opacity(0.1)
             
-            static let defaultBackground: Color = .black
+            static let defaultBackground: Color = .white
+            static let lightGray: Color = .gray.mix(with: .white, by: 0.6)
+        }
+        
+        struct Sizes {
+            static let rewardCardHeight: CGFloat = 200.0
+            static let rewardCardWidth: CGFloat = 360.0
+            static let cardCornerRadius: CGFloat = 20.0
         }
     }
 }

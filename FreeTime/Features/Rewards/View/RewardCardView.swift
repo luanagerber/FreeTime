@@ -24,60 +24,81 @@ struct RewardCardView: View {
     }
     
     var body: some View {
-        VStack(spacing: 8) {
-            Text(reward.image)
-                .font(.system(size: 64))
-                .scaledToFill()
-            
-            HStack {
-                Text(reward.name)
-                    .font(.headline)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(Constants.UI.Colors.textCard)
-                CoinsView(amount: reward.cost, opacity: 0.4)
-                
-            }
-            .frame(maxWidth: 250)
-            
-            if let index = collectedRewardIndex {
-                Text("Índice do reward coletado: \(index)")
-            } else {
-                //Text("nao coletado")
-            }
-            
-        }
-        .padding()
-        .background(Constants.UI.Colors.cardBackground)
-        .cornerRadius(12)
-        .shadow(radius: 2)
-        .overlay {
-            
-            if (isCollected) {
-                ZStack {
-                    Color.black.opacity(0.5)
-                    sucessCheckmarkView
-                        .opacity(0.4)
-                }
-            }
+        ZStack(alignment: .bottom){
+            baseRectangle
+            overlayBar
         }
     }
     
-    private var sucessCheckmarkView: some View {
-        ZStack {
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [Color.green.opacity(0.9), Color.green.opacity(0.6)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .shadow(color: .green.opacity(0.4), radius: 10, x: 0, y: 5)
-            
-            Image(systemName: "checkmark")
-                .font(.system(size: 80, weight: .bold))
-                .foregroundColor(.white)
-                
+    private var rewardCostCapsule: some View {
+        ZStack{
+            HStack {
+                Circle()
+                    .foregroundStyle(.gray.opacity(0.3))
+                    .frame(width: 24)
+                Text("\(reward.cost)")
+                    .foregroundStyle(.black)
+                    
+            }
+            .padding()
+            .background {
+                Capsule()
+                    .padding(.vertical, 10)
+                    .foregroundStyle(.white)
+            }
+           
+        }
+    }
+    
+    private var baseRectangle: some View {
+        Rectangle()
+            .foregroundStyle(.gray.mix(with: .white, by: 0.6))
+            .frame(width: Constants.UI.Sizes.rewardCardWidth, height: Constants.UI.Sizes.rewardCardHeight)
+            .clipShape(RoundedRectangle(cornerRadius: Constants.UI.cardCornerRadius))
+    }
+    
+    private var overlayBar: some View {
+        Rectangle()
+            .frame(width: Constants.UI.Sizes.rewardCardWidth, height: Constants.UI.Sizes.rewardCardHeight/3)
+            .clipShape(CustomCornerShape(radius: 20, corners: [.bottomLeft, .bottomRight]))
+            .foregroundStyle(.gray)
+            .overlay {
+                HStack {
+                    Text(reward.name)
+                        .bold()
+                        .foregroundStyle(.white)
+                    
+                    Spacer()
+                    
+                    rewardCostCapsule
+                }
+                .padding(.horizontal)
+            }
+    }
+}
+
+struct CustomCornerShape: Shape {
+    var radius: CGFloat // O raio do arredondamento
+    var corners: UIRectCorner // Os cantos a serem arredondados
+
+    // Esta função define o caminho da forma dentro de um retângulo específico.
+    func path(in rect: CGRect) -> Path {
+        let path = UIBezierPath(
+            roundedRect: rect,
+            byRoundingCorners: corners,
+            cornerRadii: CGSize(width: radius, height: radius)
+        )
+        return Path(path.cgPath)
+    }
+}
+
+#Preview ("Card não coletado") {
+    ZStack {
+        Constants.UI.Colors.defaultBackground
+            .ignoresSafeArea(.all)
+        HStack {
+            RewardCardView(reward: Reward.sample)
+            RewardCardView(reward: Reward.sample)
         }
     }
 }

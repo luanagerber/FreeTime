@@ -8,30 +8,76 @@
 import SwiftUI
 
 struct BuyRewardConfirmationView: View {
+    
+    typealias Colors = Constants.UI.Colors
     let reward: Reward
     @EnvironmentObject var coordinator: Coordinator
-    
-    
     @State var showInsufficientCoinsAlert: Bool = false
     @State var showSucessAlert: Bool = false
     
-    var body: some View {
-        VStack(spacing: 8) {
-            Text(reward.image)
-                .font(.system(size: 128))
-                .scaledToFill()
+    private var baseRectangle: some View {
+        Rectangle()
+            .foregroundStyle(.white)
+            .frame(width: 540, height: 620)
+            .clipShape(RoundedRectangle(cornerRadius: Constants.UI.cardCornerRadius))
+    }
+    
+    private var rewardImage: some View {
+        VStack {
+            Rectangle()
+                .frame(width: 540)
+                .frame(maxHeight: 405)
             
-            HStack {
-                Text(reward.name)
-                    .font(.headline)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(Constants.UI.Colors.textCard)
-                CoinsView(amount: reward.cost, opacity: 0.4)
-                
-            }
-            buyButton
+                .clipShape(CustomCornerShape(radius: 20, corners: [.allCorners]))
+                .foregroundStyle(Colors.lightGray)
+             
         }
-        
+    }
+    
+    private var rewardCostCapsule: some View {
+        ZStack{
+            HStack {
+                Circle()
+                    .foregroundStyle(.gray)
+                    .frame(width: 35)
+                Text("\(reward.cost)")
+                    .foregroundStyle(.black)
+                    .font(.title)
+                    
+            }
+            .padding()
+            .background {
+                Capsule()
+                    .padding(.vertical, 10)
+                    .foregroundStyle(.gray.mix(with: .white, by: 0.8))
+            }
+           
+        }
+    }
+    
+    var body: some View {
+        baseRectangle
+            .overlay(alignment: .top) {
+                VStack {
+                    rewardImage
+                    
+                    HStack {
+                        Text(reward.name)
+                            .fontWeight(.semibold)
+                            .font(.title)
+                            .foregroundStyle(.black)
+                        Spacer()
+                        rewardCostCapsule
+                    }
+                    .padding([.top, .horizontal], 42)
+                    .background()
+                    
+                    buyButton
+                        .padding(.top,30)
+                        .padding(.bottom, 30)
+                        
+                }
+            }
     }
     
     private var buyButton: some View {
@@ -45,12 +91,13 @@ struct BuyRewardConfirmationView: View {
                 
             }
         } label: {
-            Text("Comprar")
-                .foregroundStyle(Constants.UI.Colors.textCard)
-                .bold()
-                .padding()
+            Text("Comprar recompensa")
+                .foregroundStyle(.black)
+                .font(.title3)
+                .fontWeight(.medium)
+                .padding(14)
             
-                .background(Color.yellow)
+                .background(Colors.lightGray)
                 .clipShape(.capsule)
         }
         .alert("Sucesso na compra", isPresented: $showSucessAlert) {
@@ -75,7 +122,7 @@ struct BuyRewardConfirmationView: View {
 #Preview {
     let coordinator = Coordinator()
     ZStack {
-        Constants.UI.Colors.defaultBackground
+        Color.blue.opacity(0.2)
             .ignoresSafeArea(.all)
         coordinator.build(sheet: .buyRewardConfirmation(Reward.sample))
             .environmentObject(coordinator)
