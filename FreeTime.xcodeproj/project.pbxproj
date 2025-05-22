@@ -99,10 +99,10 @@
 				};
 			};
 			buildConfigurationList = 4F7AA31F2DC9321100C91898 /* Build configuration list for PBXProject "FreeTime" */;
-			developmentRegion = en;
+			developmentRegion = "pt-BR";
 			hasScannedForEncodings = 0;
 			knownRegions = (
-				en,
+				"pt-BR",
 				Base,
 			);
 			mainGroup = 4F7AA31B2DC9321100C91898;

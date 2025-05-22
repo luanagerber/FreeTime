@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct TaskRowView: View {
+struct GenitorTaskRowView: View {
     let record: ActivitiesRegister
     
     var body: some View {
@@ -34,5 +34,5 @@ struct TaskRowView: View {
 }
 
 #Preview {
-    TaskRowView(record: ActivitiesRegister.sample1)
+    GenitorTaskRowView(record: ActivitiesRegister.sample1)
 }
