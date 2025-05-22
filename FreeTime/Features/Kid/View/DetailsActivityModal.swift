@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct DetailsActivityModal: View {
-    @ObservedObject var kidViewModel: KidViewModel
+    @ObservedObject var kidViewModel: ViewModelKid
     @Environment(\.dismiss) var dismiss
     @Binding var register: ActivitiesRegister
     

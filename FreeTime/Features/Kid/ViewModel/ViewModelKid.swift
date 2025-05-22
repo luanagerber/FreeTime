@@ -9,12 +9,15 @@ import Foundation
 import SwiftUI
 import CloudKit
 
-class viewModelKid: ObservableObject {
+class ViewModelKid: ObservableObject {
     
+    @EnvironmentObject var coordinator: Coordinator
     private var cloudService: CloudService = .shared
-    @Published var kid: Kid = ActivitiesRegister.kidTest
+    let kidId: CKRecord.ID? = nil
 
+    @Published var kid: Kid = ActivitiesRegister.kidTest
     @Published var register: [ActivitiesRegister] = ActivitiesRegister.samples
+    
     
 //    func registerForToday(kidID: String) -> [ActivitiesRegister] {
 //        register
