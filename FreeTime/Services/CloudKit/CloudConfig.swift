@@ -8,7 +8,7 @@
 import CloudKit
 
 enum CloudConfig {
-    static let containerIndentifier = "iCloud.TesteFreeTime"
+    static let containerIndentifier = "iCloud.challenge12.FreeTime"
     static let recordZone: CKRecordZone = CKRecordZone(zoneName: "Kids")
     
     case privateDB
