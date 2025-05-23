@@ -34,13 +34,13 @@ struct KidManagementView: View {
                     goToNextView()
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(viewModel.isLoading)
+                .disabled(viewModel.shouldNavigateToNextView)
                 .padding(.bottom)
                 
                 // Feedback message at the bottom
-                if !viewModel.feedbackMessage.isEmpty {
-                    feedbackMessageView
-                }
+//                if !viewModel.feedbackMessage.isEmpty {
+//                    feedbackMessageView
+//                }
                 
                 if viewModel.isLoading {
                     ProgressView()
