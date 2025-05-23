@@ -19,14 +19,14 @@ final class CloudService {
     static let shared = CloudService()
     
     private var container: CKContainer {
-        return CKContainer(identifier: CloudConfig.containerIndentifier)
+        return CKContainer(identifier: CloudConfig.containerIdentifier)
     }
     
     
     // MARK: - CloudKit Configuration & Status
     
     private func checkCloudStatus() {
-        CKContainer(identifier: CloudConfig.containerIndentifier).accountStatus { (status, error) in
+        CKContainer(identifier: CloudConfig.containerIdentifier).accountStatus { (status, error) in
             if let error = error {
                 print("❌ Erro ao verificar status do CloudKit: \(error.localizedDescription)")
             } else {
@@ -52,7 +52,7 @@ final class CloudService {
         print("📁 Tentando verificar a zona Kids")
         
         // Primeiro, vamos verificar se a zona já existe
-        let container = CKContainer(identifier: CloudConfig.containerIndentifier)
+        let container = CKContainer(identifier: CloudConfig.containerIdentifier)
         
         do {
             // Tentar listar todas as zonas existentes
@@ -90,7 +90,7 @@ final class CloudService {
     }
     
     func checkSharingStatus(completion: @escaping (Bool) -> Void) {
-        CKContainer(identifier: CloudConfig.containerIndentifier).accountStatus { status, error in
+        CKContainer(identifier: CloudConfig.containerIdentifier).accountStatus { status, error in
             if let error = error {
                 print("Error checking iCloud status: \(error.localizedDescription)")
                 completion(false)
@@ -197,7 +197,7 @@ final class CloudService {
         }
         
         // Acessar o container diretamente
-        let container = CKContainer(identifier: CloudConfig.containerIndentifier)
+        let container = CKContainer(identifier: CloudConfig.containerIdentifier)
         let privateDB = container.privateCloudDatabase
         
         // Verificar se já existe um compartilhamento
@@ -511,7 +511,7 @@ final class CloudService {
             return
         }
         
-        let container = CKContainer(identifier: CloudConfig.containerIndentifier)
+        let container = CKContainer(identifier: CloudConfig.containerIdentifier)
         let sharedDB = container.sharedCloudDatabase
         
         do {
@@ -556,7 +556,7 @@ final class CloudService {
             return
         }
         
-        let container = CKContainer(identifier: CloudConfig.containerIndentifier)
+        let container = CKContainer(identifier: CloudConfig.containerIdentifier)
         let privateDB = container.privateCloudDatabase
         
         do {
@@ -608,7 +608,7 @@ final class CloudService {
     func inspectSharedDatabase() async {
         print("INSPEÇÃO: Examinando conteúdo completo do banco compartilhado")
         
-        let container = CKContainer(identifier: CloudConfig.containerIndentifier)
+        let container = CKContainer(identifier: CloudConfig.containerIdentifier)
         let sharedDB = container.sharedCloudDatabase
         
         do {

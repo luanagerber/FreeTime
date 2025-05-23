@@ -32,7 +32,7 @@ class KidViewModel: ObservableObject {
     
     // MARK: - Private Properties
     private let cloudService = CloudService.shared
-    private let container = CKContainer(identifier: CloudConfig.containerIndentifier)
+    private let container = CKContainer(identifier: CloudConfig.containerIdentifier)
     private var sharedDB: CKDatabase {
         container.sharedCloudDatabase
     }

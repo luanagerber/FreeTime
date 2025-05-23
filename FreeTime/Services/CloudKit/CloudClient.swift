@@ -10,7 +10,7 @@ import SwiftUI
 
 final class CloudClient: CKClient {
     
-    private var container: CKContainer = CKContainer(identifier: CloudConfig.containerIndentifier)
+    private var container: CKContainer = CKContainer(identifier: CloudConfig.containerIdentifier)
     
     func fetch<T: RecordProtocol>(recordType: String, dbType: CloudConfig = CloudConfig.privateDB, inZone: CKRecordZone.ID, predicate: NSPredicate?, completion: @escaping (Result<[T], CloudError>) -> Void) {
         var recordsResult: [T] = []
