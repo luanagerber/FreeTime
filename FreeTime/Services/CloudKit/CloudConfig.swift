@@ -33,4 +33,5 @@ enum CloudError: Error {
     case activityNotCreated
     case couldNotDelete(Error)
     case notEnoughCoins
+    case couldNotSaveRecord
 }

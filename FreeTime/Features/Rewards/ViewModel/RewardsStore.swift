@@ -102,18 +102,40 @@ extension RewardsStore {
                     kid.removeCoins(currentKidCoins - targetCoins)
                 }
                 
-                CloudService.shared.saveKid(kid) { saveResult in
+                // IMPORTANT: Preserve the associatedRecord for proper CloudKit updates
+                guard let recordToSave = kid.record else {
                     DispatchQueue.main.async {
-                        switch saveResult {
-                        case .success(let updatedKid):
-                            // Update local data with saved values
-                            self.coins = updatedKid.coins
-                            completion(.success(()))
-                        case .failure(let error):
-                            completion(.failure(error))
+                        completion(.failure(.recordNotFound))
+                    }
+                    return
+                }
+                
+                // Use CloudKit directly to ensure the update happens
+                let container = CKContainer(identifier: CloudConfig.containerIdentifier)
+                let privateDB = container.privateCloudDatabase
+                
+                Task {
+                    do {
+                        let savedRecord = try await privateDB.save(recordToSave)
+                        
+                        // Create updated kid from saved record
+                        if let updatedKid = Kid(record: savedRecord) {
+                            DispatchQueue.main.async {
+                                self.coins = updatedKid.coins
+                                completion(.success(()))
+                            }
+                        } else {
+                            DispatchQueue.main.async {
+                                completion(.failure(.recordNotFound))
+                            }
+                        }
+                    } catch {
+                        DispatchQueue.main.async {
+                            completion(.failure(.couldNotSaveRecord))
                         }
                     }
                 }
+                
             case .failure(let error):
                 DispatchQueue.main.async {
                     completion(.failure(error))
@@ -134,20 +156,43 @@ extension RewardsStore {
             
             switch result {
             case .success(var kid):
-                kid.collectedRewards = self.collectedRewards // Update with local value
+                // Update collected rewards (this can be assigned directly)
+                kid.collectedRewards = self.collectedRewards
                 
-                CloudService.shared.saveKid(kid) { saveResult in
+                // IMPORTANT: Preserve the associatedRecord for proper CloudKit updates
+                guard let recordToSave = kid.record else {
                     DispatchQueue.main.async {
-                        switch saveResult {
-                        case .success(let updatedKid):
-                            // Update local data with saved values
-                            self.collectedRewards = updatedKid.collectedRewards
-                            completion(.success(()))
-                        case .failure(let error):
-                            completion(.failure(error))
+                        completion(.failure(.recordNotFound))
+                    }
+                    return
+                }
+                
+                // Use CloudKit directly to ensure the update happens
+                let container = CKContainer(identifier: CloudConfig.containerIdentifier)
+                let privateDB = container.privateCloudDatabase
+                
+                Task {
+                    do {
+                        let savedRecord = try await privateDB.save(recordToSave)
+                        
+                        // Create updated kid from saved record
+                        if let updatedKid = Kid(record: savedRecord) {
+                            DispatchQueue.main.async {
+                                self.collectedRewards = updatedKid.collectedRewards
+                                completion(.success(()))
+                            }
+                        } else {
+                            DispatchQueue.main.async {
+                                completion(.failure(.recordNotFound))
+                            }
+                        }
+                    } catch {
+                        DispatchQueue.main.async {
+                            completion(.failure(.couldNotSaveRecord))
                         }
                     }
                 }
+                
             case .failure(let error):
                 DispatchQueue.main.async {
                     completion(.failure(error))
@@ -181,19 +226,41 @@ extension RewardsStore {
                 // Update collected rewards (this can be assigned directly)
                 kid.collectedRewards = self.collectedRewards
                 
-                CloudService.shared.saveKid(kid) { saveResult in
+                // IMPORTANT: Preserve the associatedRecord for proper CloudKit updates
+                guard let recordToSave = kid.record else {
                     DispatchQueue.main.async {
-                        switch saveResult {
-                        case .success(let updatedKid):
-                            // Update local data with saved values
-                            self.coins = updatedKid.coins
-                            self.collectedRewards = updatedKid.collectedRewards
-                            completion(.success(()))
-                        case .failure(let error):
-                            completion(.failure(error))
+                        completion(.failure(.recordNotFound))
+                    }
+                    return
+                }
+                
+                // Use CloudKit directly to ensure the update happens
+                let container = CKContainer(identifier: CloudConfig.containerIdentifier)
+                let privateDB = container.privateCloudDatabase
+                
+                Task {
+                    do {
+                        let savedRecord = try await privateDB.save(recordToSave)
+                        
+                        // Create updated kid from saved record
+                        if let updatedKid = Kid(record: savedRecord) {
+                            DispatchQueue.main.async {
+                                self.coins = updatedKid.coins
+                                self.collectedRewards = updatedKid.collectedRewards
+                                completion(.success(()))
+                            }
+                        } else {
+                            DispatchQueue.main.async {
+                                completion(.failure(.recordNotFound))
+                            }
+                        }
+                    } catch {
+                        DispatchQueue.main.async {
+                            completion(.failure(.couldNotSaveRecord))
                         }
                     }
                 }
+                
             case .failure(let error):
                 DispatchQueue.main.async {
                     completion(.failure(error))

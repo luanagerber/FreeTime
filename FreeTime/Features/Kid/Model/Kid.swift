@@ -46,15 +46,22 @@ extension Kid: Hashable, Equatable {
 extension Kid: RecordProtocol {
     
     var record: CKRecord? {
-        // Only create a new record if we don't have an existing ID
-        guard id == nil else {
-            return nil
+        let recordToUpdate: CKRecord
+        
+        // Use existing record if available, otherwise create new one
+        if let existingRecord = associatedRecord {
+            recordToUpdate = existingRecord
+        } else if let id = id {
+            // Create record with existing ID (for updates)
+            recordToUpdate = CKRecord(recordType: RecordType.kid.rawValue, recordID: id)
+        } else {
+            // Create completely new record
+            recordToUpdate = CKRecord(recordType: RecordType.kid.rawValue, zoneID: CloudConfig.recordZone.zoneID)
         }
         
-        // Create a record in the correct zone
-        let newRecord = CKRecord(recordType: RecordType.kid.rawValue, zoneID: CloudConfig.recordZone.zoneID)
-        newRecord["kidName"] = name
-        newRecord["coins"] = coins
+        // Update all fields
+        recordToUpdate["kidName"] = name
+        recordToUpdate["coins"] = coins
         
         // Convert CollectedRewards to array of strings (storing only reward ID and date)
         let rewardStrings = collectedRewards.map { collectedReward in
@@ -63,9 +70,9 @@ extension Kid: RecordProtocol {
         }
         
         // Set as nil if empty array, otherwise set the string array
-        newRecord["collectedRewards"] = rewardStrings.isEmpty ? nil : rewardStrings as CKRecordValue
+        recordToUpdate["collectedRewards"] = rewardStrings.isEmpty ? nil : rewardStrings as CKRecordValue
         
-        return newRecord
+        return recordToUpdate
     }
     
     init?(record: CKRecord) {
