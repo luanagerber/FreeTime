@@ -298,9 +298,6 @@ final class CloudService {
                     
                     completion(.success(CloudSharingView(share: share, container: container)))
                     
-                    // Marcar como enviado após criar o compartilhamento, necessário para a navegação
-                    InvitationStatusManager.setStatus(.sent)
-                    
                 } else {
                     print("COMPARTILHAMENTO: Falha - compartilhamento existente não encontrado")
                     completion(.failure(.couldNotShareRecord))
@@ -372,9 +369,6 @@ final class CloudService {
             try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 segundo
             
             completion(.success(CloudSharingView(share: share, container: container)))
-            
-            // Marcar como enviado após criar o compartilhamento, necessário para a navegação
-            InvitationStatusManager.setStatus(.sent)
             
         } catch {
             print("COMPARTILHAMENTO: Erro ao criar compartilhamento com hierarquia: \(error.localizedDescription)")

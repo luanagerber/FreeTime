@@ -9,53 +9,55 @@ import SwiftUI
 import CloudKit
 
 struct KidManagementView: View {
-
+    
+    @EnvironmentObject var coordinator: Coordinator
+    
     @StateObject private var viewModel = GenitorViewModel.shared
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    debugButtons
-                    
-                    Text("Gerenciar Crianças")
-                        .font(.title)
-                        .padding()
-                    
-                    refreshButton
-                    
+            VStack(spacing: 20) {
+                Text("Adicionar Criança")
+                    .font(.system(size: 34, weight: .semibold))
+                    .padding()
+                
+                // Show add child section if no kids, otherwise show share section
+                if viewModel.kids.isEmpty {
                     addChildSection
-                    
-                    if !viewModel.kids.isEmpty {
-                        kidsListSection
-                    } else if !viewModel.isLoading && viewModel.zoneReady {
-                        emptyStateView
-                    }
-                    
-                    if viewModel.isLoading {
-                        ProgressView()
-                            .padding()
-                    }
-                    
-                    if !viewModel.feedbackMessage.isEmpty {
-                        feedbackMessageView
-                    }
-                                        
-                    Spacer()
+                } else {
+                    shareSection
                 }
-                .padding()
-                .onAppear {
-                    viewModel.setupCloudKit()
+                
+                Spacer()
+                
+                Button("Próxima View"){
+                    goToNextView()
                 }
-                .sheet(isPresented: $viewModel.sharingSheet) {
-                    if let shareView = viewModel.shareView {
-                        shareView
-                    } else {
-                        Text("Preparando compartilhamento...")
-                    }
+                .buttonStyle(.borderedProminent)
+                .disabled(viewModel.isLoading)
+                .padding(.bottom)
+                
+                // Feedback message at the bottom
+                if !viewModel.feedbackMessage.isEmpty {
+                    feedbackMessageView
+                }
+                
+                if viewModel.isLoading {
+                    ProgressView()
+                        .padding()
                 }
             }
-            .navigationTitle("Gerenciar Crianças")
+            .padding()
+            .onAppear {
+                viewModel.setupCloudKit()
+            }
+            .sheet(isPresented: $viewModel.sharingSheet) {
+                if let shareView = viewModel.shareView {
+                    shareView
+                } else {
+                    Text("Preparando compartilhamento...")
+                }
+            }
             .refreshable {
                 viewModel.refresh()
             }
@@ -64,92 +66,52 @@ struct KidManagementView: View {
     
     // MARK: - View Components
     
-    private var debugButtons: some View {
-        VStack(spacing: 10) {
-            Button("🗑️ RESETAR APP") {
-                viewModel.resetAllData()
-            }
-            .padding()
-            .background(Color.red.opacity(0.2))
-            .cornerRadius(8)
-            .foregroundColor(.red)
-            
-            Button("🔍 Debug Banco Compartilhado") {
-                viewModel.debugSharedDatabase()
-            }
-            .padding()
-            .background(Color.blue.opacity(0.1))
-            .cornerRadius(8)
-        }
-    }
-    
-    private var refreshButton: some View {
-        Button(action: viewModel.refresh) {
-            Label("Atualizar dados", systemImage: "arrow.clockwise")
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(Color.blue.opacity(0.1))
-                .foregroundColor(.blue)
-                .cornerRadius(8)
-        }
-        .disabled(viewModel.isLoading)
-    }
-    
     private var addChildSection: some View {
-        VStack(alignment: .leading) {
-            Text("Adicionar nova criança")
-                .font(.headline)
-            
+        VStack(alignment: .center, spacing: 16) {
             TextField("Nome da criança", text: $viewModel.childName)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding(.bottom, 8)
             
             Button("Adicionar Criança") {
                 viewModel.addChild()
             }
             .disabled(viewModel.childName.isEmpty || viewModel.isLoading || !viewModel.zoneReady)
+            .buttonStyle(.borderedProminent)
         }
         .padding()
         .background(Color.gray.opacity(0.1))
-        .cornerRadius(8)
+        .cornerRadius(12)
     }
     
-    private var kidsListSection: some View {
-        VStack(alignment: .leading) {
-            Text("Suas Crianças")
-                .font(.headline)
-            
-            List(viewModel.kids, id: \.id) { kid in
-                HStack {
-                    Text(kid.name)
-                    Spacer()
-                    
-                    Button("Compartilhar") {
-                        viewModel.selectedKid = kid
-                        viewModel.shareKid(kid)
-                    }
-                    .buttonStyle(.bordered)
+    private var shareSection: some View {
+        VStack(alignment: .center, spacing: 16) {
+            if let firstKid = viewModel.kids.first {
+                Text("Criança: \(firstKid.name)")
+                    .font(.headline)
+                
+                Button("Compartilhar Link") {
+                    viewModel.selectedKid = firstKid
+                    viewModel.shareKid(firstKid)
                 }
+                .buttonStyle(.borderedProminent)
+                .disabled(viewModel.isLoading)
+                
             }
-            .frame(height: 200)
         }
         .padding()
-        .background(Color.gray.opacity(0.1))
-        .cornerRadius(8)
-    }
-    
-    private var emptyStateView: some View {
-        Text("Nenhuma criança cadastrada. Adicione uma criança usando o formulário acima.")
-            .foregroundColor(.secondary)
-            .padding()
-            .multilineTextAlignment(.center)
+        .background(Color.blue.opacity(0.1))
+        .cornerRadius(12)
     }
     
     private var feedbackMessageView: some View {
         Text(viewModel.feedbackMessage)
             .padding()
-            .background(Color.blue.opacity(0.1))
+            .background(Color.orange.opacity(0.1))
             .cornerRadius(8)
+            .multilineTextAlignment(.center)
+    }
+    
+    func goToNextView() {
+        coordinator.push(.genitorHome)
     }
 }
 

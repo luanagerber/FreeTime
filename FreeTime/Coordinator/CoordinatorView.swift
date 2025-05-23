@@ -36,9 +36,9 @@ struct CoordinatorView: View {
     
     private var phoneInitialPage: Page {
         switch invitationManager.currentStatus {
-        case .accepted:
+        case .accepted, .sent:
             return .genitorHome
-        case .pending, .sent:
+        case .pending:
             return .kidManagement
         }
     }

@@ -22,6 +22,7 @@ class GenitorViewModel: ObservableObject {
     
     // MARK: - Published Properties
     @Published var childName = ""
+    @Published var shouldNavigateToNextView = false
     @Published var kids: [Kid] = []
     @Published var selectedKid: Kid?
     @Published var isLoading = false
@@ -180,6 +181,11 @@ class GenitorViewModel: ObservableObject {
                         self.shareView = AnyView(view)
                         self.feedbackMessage = "✅ Compartilhamento preparado para \(kid.name)"
                         self.sharingSheet = true
+
+                        
+                        InvitationStatusManager.shared.updateStatus(to: .sent)
+                        prepareForNextView()
+                    
                     case .failure(let error):
                         self.feedbackMessage = "❌ Erro ao compartilhar criança: \(error)"
                     }
@@ -188,6 +194,13 @@ class GenitorViewModel: ObservableObject {
                 isLoading = false
                 feedbackMessage = "❌ Erro: \(error.localizedDescription)"
             }
+        }
+    }
+    
+    func prepareForNextView() {
+        // Trigger navigation after successful sharing
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.shouldNavigateToNextView = true
         }
     }
     

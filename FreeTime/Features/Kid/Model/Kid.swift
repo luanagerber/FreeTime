@@ -59,10 +59,11 @@ extension Kid: RecordProtocol {
         // Convert CollectedRewards to array of strings (storing only reward ID and date)
         let rewardStrings = collectedRewards.map { collectedReward in
             let dateString = ISO8601DateFormatter().string(from: collectedReward.date)
-            // Store just the catalog ID and date
             return "\(collectedReward.reward.id)|\(dateString)"
         }
-        newRecord["collectedRewards"] = rewardStrings as CKRecordValue
+        
+        // Set as nil if empty array, otherwise set the string array
+        newRecord["collectedRewards"] = rewardStrings.isEmpty ? nil : rewardStrings as CKRecordValue
         
         return newRecord
     }
@@ -79,7 +80,7 @@ extension Kid: RecordProtocol {
         self.shareReference = record.share
         self.associatedRecord = record
         
-        // Parse collected rewards from strings
+        // Parse collected rewards from strings - handle nil case
         if let rewardStrings = record["collectedRewards"] as? [String] {
             let dateFormatter = ISO8601DateFormatter()
             
@@ -98,6 +99,7 @@ extension Kid: RecordProtocol {
                 )
             }
         } else {
+            // Field doesn't exist or is nil - initialize with empty array
             self.collectedRewards = []
         }
     }

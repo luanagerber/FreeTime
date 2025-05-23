@@ -49,11 +49,11 @@ class Coordinator: ObservableObject {
         case .kidWaitingInvite:
             KidWaitingInviteView()
         case .activityManagement:
-            ActivityManagementView()
+            ActivityManagementDebugView()
         case .kidHome:
             KidHomeView()
         case .genitorHome:
-            GenitorView()
+            GenitorHomeView()
         case .rewardsStore:
             RewardsStoreView(store: self.rewardsStore)
         case .collectedRewards:

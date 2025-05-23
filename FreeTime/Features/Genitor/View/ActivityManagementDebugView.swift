@@ -8,7 +8,8 @@
 import SwiftUI
 import CloudKit
 
-struct ActivityManagementView: View {
+struct ActivityManagementDebugView: View {
+    @EnvironmentObject var coordinator: Coordinator
 
     @StateObject private var viewModel = GenitorViewModel.shared
     
@@ -216,6 +217,6 @@ struct ActivityManagementView: View {
 }
 
 #Preview {
-    ActivityManagementView()
+    ActivityManagementDebugView()
 }
 

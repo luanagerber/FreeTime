@@ -7,8 +7,9 @@
 
 import SwiftUI
 
-struct GenitorView: View {
-    
+struct GenitorHomeView: View {
+    @EnvironmentObject var coordinator: Coordinator
+
     /// Task Manager Properties
     @State private var weekSlider: [[Date.WeekDay]] = []
     @State private var currentWeekIndex: Int = 1
@@ -241,5 +242,5 @@ struct GenitorView: View {
 }
 
 #Preview {
-    GenitorView()
+    GenitorHomeView()
 }
