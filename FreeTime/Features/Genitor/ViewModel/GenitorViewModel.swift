@@ -14,6 +14,9 @@ import Combine
 class GenitorViewModel: ObservableObject {
     
     static let shared = GenitorViewModel()
+
+    @StateObject private var invitationManager = InvitationStatusManager.shared
+
     
     // MARK: - ViewModel Thales
     @Published var records: [ActivitiesRegister] = ActivitiesRegister.samples
@@ -48,7 +51,8 @@ class GenitorViewModel: ObservableObject {
         container.sharedCloudDatabase
     }
     
-    // MARK: - Initialization
+    // MARK: - CloudKit Setup & Initialization
+    
     func setupCloudKit() {
         feedbackMessage = "Configurando CloudKit..."
         isLoading = true
@@ -67,7 +71,85 @@ class GenitorViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Public Methods
+    private func handleZoneCreationError(_ error: Error) async {
+        if let ckError = error as? CKError, ckError.code == .zoneNotFound {
+            print("📋 Tentando criar zona novamente em 2 segundos...")
+            
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            
+            do {
+                try await cloudService.createZoneIfNeeded()
+                zoneReady = true
+                feedbackMessage = "✅ CloudKit configurado com sucesso (segunda tentativa)"
+                loadKids()
+            } catch {
+                isLoading = false
+                feedbackMessage = "❌ Erro crítico ao configurar CloudKit. Por favor, reinicie o aplicativo."
+            }
+        } else {
+            isLoading = false
+            feedbackMessage = "❌ Erro: \(error.localizedDescription)"
+        }
+    }
+    
+    // MARK: - Kid Management Operations
+    
+    func addChild() {
+        guard !childName.isEmpty else { return }
+        
+        isLoading = true
+        feedbackMessage = "Adicionando criança ao CloudKit..."
+        
+        let kid = Kid(name: childName)
+        
+        guard kid.record != nil else {
+            isLoading = false
+            feedbackMessage = "❌ Erro: Falha ao criar registro da criança"
+            return
+        }
+        
+        cloudService.saveKid(kid) { [weak self] result in
+            guard let self = self else { return }
+            
+            self.isLoading = false
+            
+            switch result {
+            case .success(let newKid):
+                self.feedbackMessage = "✅ Adicionado com sucesso \(newKid.name) ao CloudKit"
+                self.childName = ""
+                self.loadKids()
+            case .failure(let error):
+                self.feedbackMessage = "❌ Erro ao adicionar criança: \(error)"
+            }
+        }
+    }
+    
+    private func loadKids() {
+        isLoading = true
+        feedbackMessage = "Carregando suas crianças do CloudKit..."
+        
+        Task {
+            // Wait for 1 second before checking CloudKit
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            
+            cloudService.fetchAllKids { [weak self] result in
+                guard let self = self else { return }
+                
+                self.isLoading = false
+                
+                switch result {
+                case .success(let fetchedKids):
+                    self.kids = fetchedKids
+                    self.feedbackMessage = fetchedKids.isEmpty
+                    ? "Nenhuma criança encontrada no CloudKit"
+                    : "✅ Carregadas \(fetchedKids.count) crianças"
+                case .failure(let error):
+                    self.feedbackMessage = "❌ Erro ao carregar crianças: \(error)"
+                }
+            }
+        }
+    }
+    
     func refresh() {
         isLoading = true
         feedbackMessage = "Atualizando dados..."
@@ -102,35 +184,72 @@ class GenitorViewModel: ObservableObject {
         }
     }
     
-    func addChild() {
-        guard !childName.isEmpty else { return }
-        
+    // MARK: - Sharing Operations
+    
+    func shareKid(_ kid: Kid) {
         isLoading = true
-        feedbackMessage = "Adicionando criança ao CloudKit..."
+        feedbackMessage = "Gerando link de compartilhamento para \(kid.name)..."
         
-        let kid = Kid(name: childName)
-        
-        guard kid.record != nil else {
-            isLoading = false
-            feedbackMessage = "❌ Erro: Falha ao criar registro da criança"
-            return
-        }
-        
-        cloudService.saveKid(kid) { [weak self] result in
-            guard let self = self else { return }
-            
-            self.isLoading = false
-            
-            switch result {
-            case .success(let newKid):
-                self.feedbackMessage = "✅ Adicionado com sucesso \(newKid.name) ao CloudKit"
-                self.childName = ""
-                self.loadKids()
-            case .failure(let error):
-                self.feedbackMessage = "❌ Erro ao adicionar criança: \(error)"
+        Task {
+            do {
+                try await cloudService.shareKid(kid) { [weak self] result in
+                    guard let self = self else { return }
+                    
+                    self.isLoading = false
+                    
+                    switch result {
+                    case .success(let view):
+                        self.shareView = AnyView(view)
+                        self.feedbackMessage = "✅ Compartilhamento preparado para \(kid.name)"
+                        self.sharingSheet = true
+
+                        
+                        InvitationStatusManager.shared.updateStatus(to: .sent)
+                        prepareForNextView()
+                    
+                    case .failure(let error):
+                        self.feedbackMessage = "❌ Erro ao compartilhar criança: \(error)"
+                    }
+                }
+            } catch {
+                isLoading = false
+                feedbackMessage = "❌ Erro: \(error.localizedDescription)"
             }
         }
     }
+    
+    private func updateSharing(for kid: Kid) async {
+        do {
+            try await cloudService.shareKid(kid) { result in
+                switch result {
+                case .success:
+                    print("✅ Re-compartilhamento bem-sucedido!")
+                case .failure(let error):
+                    print("❌ Erro no re-compartilhamento: \(error)")
+                }
+            }
+        } catch {
+            print("❌ Erro ao re-compartilhar: \(error)")
+        }
+    }
+    
+    private func createNewSharing(for kid: Kid) async {
+        do {
+            try await cloudService.shareKid(kid) { [weak self] result in
+                switch result {
+                case .success:
+                    print("✅ Compartilhamento criado após nova atividade")
+                    self?.refresh()
+                case .failure(let error):
+                    print("❌ Erro ao criar compartilhamento: \(error)")
+                }
+            }
+        } catch {
+            print("❌ Erro ao criar compartilhamento: \(error)")
+        }
+    }
+    
+    // MARK: - Activity Management Operations
     
     func scheduleActivity() {
         guard let kid = selectedKid,
@@ -165,110 +284,6 @@ class GenitorViewModel: ObservableObject {
         }
     }
     
-    func shareKid(_ kid: Kid) {
-        isLoading = true
-        feedbackMessage = "Gerando link de compartilhamento para \(kid.name)..."
-        
-        Task {
-            do {
-                try await cloudService.shareKid(kid) { [weak self] result in
-                    guard let self = self else { return }
-                    
-                    self.isLoading = false
-                    
-                    switch result {
-                    case .success(let view):
-                        self.shareView = AnyView(view)
-                        self.feedbackMessage = "✅ Compartilhamento preparado para \(kid.name)"
-                        self.sharingSheet = true
-
-                        
-                        InvitationStatusManager.shared.updateStatus(to: .sent)
-                        prepareForNextView()
-                    
-                    case .failure(let error):
-                        self.feedbackMessage = "❌ Erro ao compartilhar criança: \(error)"
-                    }
-                }
-            } catch {
-                isLoading = false
-                feedbackMessage = "❌ Erro: \(error.localizedDescription)"
-            }
-        }
-    }
-    
-    func prepareForNextView() {
-        // Trigger navigation after successful sharing
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            self.shouldNavigateToNextView = true
-        }
-    }
-    
-    func resetAllData() {
-        // Clear UserDefaults
-        UserDefaults.standard.removeObject(forKey: "userRole")
-        UserDefaults.standard.removeObject(forKey: "rootRecordID")
-        UserDefaults.standard.removeObject(forKey: "isZoneCreated")
-        UserDefaults.standard.synchronize()
-        
-        // Clear local data
-        kids.removeAll()
-        selectedKid = nil
-        childName = ""
-        feedbackMessage = "✅ App resetado completamente!"
-    }
-    
-    // MARK: - Debug Methods
-    func debugSharedDatabase() {
-        Task {
-            await performDebugSharedDatabase()
-            await performDebugSharedFromParent()
-        }
-    }
-    
-    // MARK: - Private Methods
-    private func loadKids() {
-        isLoading = true
-        feedbackMessage = "Carregando suas crianças do CloudKit..."
-        
-        cloudService.fetchAllKids { [weak self] result in
-            guard let self = self else { return }
-            
-            self.isLoading = false
-            
-            switch result {
-            case .success(let fetchedKids):
-                self.kids = fetchedKids
-                self.feedbackMessage = fetchedKids.isEmpty
-                ? "Nenhuma criança encontrada no CloudKit"
-                : "✅ Carregadas \(fetchedKids.count) crianças"
-            case .failure(let error):
-                self.feedbackMessage = "❌ Erro ao carregar crianças: \(error)"
-            }
-        }
-    }
-    
-    private func handleZoneCreationError(_ error: Error) async {
-        if let ckError = error as? CKError, ckError.code == .zoneNotFound {
-            print("📋 Tentando criar zona novamente em 2 segundos...")
-            
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            
-            do {
-                try await cloudService.createZoneIfNeeded()
-                zoneReady = true
-                feedbackMessage = "✅ CloudKit configurado com sucesso (segunda tentativa)"
-                loadKids()
-            } catch {
-                isLoading = false
-                feedbackMessage = "❌ Erro crítico ao configurar CloudKit. Por favor, reinicie o aplicativo."
-            }
-        } else {
-            isLoading = false
-            feedbackMessage = "❌ Erro: \(error.localizedDescription)"
-        }
-    }
-    
     private func handleActivitySaveSuccess(_ savedActivity: ActivitiesRegister, for kid: Kid, activity: Activity) {
         feedbackMessage = "✅ Atividade '\(activity.name)' agendada para \(kid.name)"
         showActivitySelector = false
@@ -285,37 +300,6 @@ class GenitorViewModel: ObservableObject {
             // Debug verification after delay
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await verifyActivityInSharedDatabase(savedActivity, kid: kid)
-        }
-    }
-    
-    private func updateSharing(for kid: Kid) async {
-        do {
-            try await cloudService.shareKid(kid) { result in
-                switch result {
-                case .success:
-                    print("✅ Re-compartilhamento bem-sucedido!")
-                case .failure(let error):
-                    print("❌ Erro no re-compartilhamento: \(error)")
-                }
-            }
-        } catch {
-            print("❌ Erro ao re-compartilhar: \(error)")
-        }
-    }
-    
-    private func createNewSharing(for kid: Kid) async {
-        do {
-            try await cloudService.shareKid(kid) { [weak self] result in
-                switch result {
-                case .success:
-                    print("✅ Compartilhamento criado após nova atividade")
-                    self?.refresh()
-                case .failure(let error):
-                    print("❌ Erro ao criar compartilhamento: \(error)")
-                }
-            }
-        } catch {
-            print("❌ Erro ao criar compartilhamento: \(error)")
         }
     }
     
@@ -387,7 +371,41 @@ class GenitorViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Debug Helper Methods
+    // MARK: - Navigation & UI Control
+    
+    func prepareForNextView() {
+        // Trigger navigation after successful sharing
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.shouldNavigateToNextView = true
+        }
+    }
+    
+    // MARK: - Utility & Reset Operations
+    
+    func resetAllData() {
+        // Clear UserDefaults
+        UserDefaults.standard.removeObject(forKey: "userRole")
+        UserDefaults.standard.removeObject(forKey: "rootRecordID")
+        UserDefaults.standard.removeObject(forKey: "isZoneCreated")
+        UserDefaults.standard.synchronize()
+        
+        // Clear local data
+        kids.removeAll()
+        selectedKid = nil
+        childName = ""
+        invitationManager.updateStatus(to: .pending)
+        feedbackMessage = "✅ App resetado completamente!"
+    }
+    
+    // MARK: - Debug Operations
+    
+    func debugSharedDatabase() {
+        Task {
+            await performDebugSharedDatabase()
+            await performDebugSharedFromParent()
+        }
+    }
+    
     private func performDebugSharedDatabase() async {
         print("🔍 PAI: Verificando banco compartilhado...")
         
