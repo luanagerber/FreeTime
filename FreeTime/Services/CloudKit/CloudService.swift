@@ -114,6 +114,7 @@ final class CloudService {
         }
     }
     
+    //TODO: Provavelmente deletar depois
     func fetchAllKids(completion: @escaping (Result<[Kid], CloudError>) -> Void) {
         client.fetch(
             recordType: RecordType.kid.rawValue,
@@ -168,6 +169,7 @@ final class CloudService {
             }
         }
     }
+    
     
     // MARK: - Activity Operations
     
@@ -320,6 +322,9 @@ final class CloudService {
                     
                     completion(.success(CloudSharingView(share: share, container: container)))
                     
+                    // Marcar como enviado após criar o compartilhamento, necessário para a navegação
+                    InvitationStatusManager.setStatus(.sent)
+                    
                 } else {
                     print("COMPARTILHAMENTO: Falha - compartilhamento existente não encontrado")
                     completion(.failure(.couldNotShareRecord))
@@ -392,6 +397,9 @@ final class CloudService {
             
             completion(.success(CloudSharingView(share: share, container: container)))
             
+            // Marcar como enviado após criar o compartilhamento, necessário para a navegação
+            InvitationStatusManager.setStatus(.sent)
+            
         } catch {
             print("COMPARTILHAMENTO: Erro ao criar compartilhamento com hierarquia: \(error.localizedDescription)")
             completion(.failure(.couldNotShareRecord))
@@ -420,6 +428,7 @@ final class CloudService {
             }
         }
     }
+    
     func fetchSharedActivities(forKid kidID: String, completion: @escaping (Result<[ActivitiesRegister], CloudError>) -> Void) {
         guard let rootRecordID = getRootRecordID() else {
             print("SHARED: Nenhum rootRecordID encontrado no UserDefaults")
@@ -489,7 +498,6 @@ final class CloudService {
         }
     }
     
-    // Adicione este método diretamente na classe CloudService (não na extensão)
     func debugSharedDatabase() async {
         print("DEBUG: Iniciando verificação do banco compartilhado")
         
