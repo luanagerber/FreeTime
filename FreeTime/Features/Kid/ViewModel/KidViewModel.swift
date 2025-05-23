@@ -13,14 +13,15 @@ import Combine
 @MainActor
 class KidViewModel: ObservableObject {
     
-//    @EnvironmentObject var coordinator: Coordinator
-//    private var cloudService: CloudService = .shared
-//    let kidId: CKRecord.ID? = nil
-//
-//    @Published var kid: Kid = Kid.sample
-//    @Published var register: [ActivitiesRegister] = ActivitiesRegister.samples
+    //    @EnvironmentObject var coordinator: Coordinator
+    //    private var cloudService: CloudService = .shared
+    //    let kidId: CKRecord.ID? = nil
+    //
+    //    @Published var kid: Kid = Kid.sample
+    //    @Published var register: [ActivitiesRegister] = ActivitiesRegister.samples
     
     @EnvironmentObject var coordinator: Coordinator
+    @StateObject private var invitationManager = InvitationStatusManager.shared
     
     // MARK: - Published Properties
     @Published var isLoading = false
@@ -44,7 +45,7 @@ class KidViewModel: ObservableObject {
             .filter { activity in
                 // Check if activity belongs to this kid
                 let belongsToKid = activity.kidID == kidID ||
-                                 activity.kidReference?.recordID.recordName == kidID
+                activity.kidReference?.recordID.recordName == kidID
                 
                 // Check if activity is for today
                 let isToday = Calendar.current.isDateInToday(activity.date)
@@ -82,11 +83,17 @@ class KidViewModel: ObservableObject {
     }
     
     func checkForSharedKid() {
-        // Update the published property
-        hasAcceptedShareLink = cloudService.getRootRecordID() != nil
+        // Check if we have a root record ID (invitation accepted)
+        let hasRootRecord = cloudService.getRootRecordID() != nil
+        
+        if hasRootRecord {
+            // Update invitation status to accepted
+            invitationManager.updateStatus(to: .accepted)
+        }
         
         guard let rootRecordID = cloudService.getRootRecordID() else {
             feedbackMessage = "Nenhum convite aceito ainda"
+            // Keep current status if no root record (could be pending or sent)
             return
         }
         
@@ -94,6 +101,11 @@ class KidViewModel: ObservableObject {
         feedbackMessage = "Verificando convite aceito..."
         
         fetchKidInfo(rootRecordID: rootRecordID)
+    }
+    
+    func markInvitationAsAccepted() {
+        invitationManager.updateStatus(to: .accepted)
+        hasAcceptedShareLink = true
     }
     
     func updateActivityStatus(_ activity: ActivitiesRegister) {
@@ -205,7 +217,7 @@ class KidViewModel: ObservableObject {
                     if let activity = ActivitiesRegister(record: record) {
                         // Check if this activity belongs to this kid
                         let belongsToKid = activity.kidID == kidID ||
-                                         activity.kidReference?.recordID.recordName == kidID
+                        activity.kidReference?.recordID.recordName == kidID
                         
                         if belongsToKid {
                             fetchedActivities.append(activity)
@@ -238,8 +250,8 @@ class KidViewModel: ObservableObject {
         let todayActivities = activities.filter { Calendar.current.isDateInToday($0.date) }
         
         feedbackMessage = todayActivities.isEmpty
-            ? "Nenhuma atividade para hoje"
-            : "✅ Encontradas \(todayActivities.count) atividades para hoje"
+        ? "Nenhuma atividade para hoje"
+        : "✅ Encontradas \(todayActivities.count) atividades para hoje"
         
         print("📊 Total de atividades carregadas: \(activities.count)")
         print("📊 Atividades de hoje: \(todayActivities.count)")

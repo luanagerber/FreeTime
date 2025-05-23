@@ -40,9 +40,7 @@ struct KidManagementView: View {
                     if !viewModel.feedbackMessage.isEmpty {
                         feedbackMessageView
                     }
-                    
-                    changeRoleButton
-                    
+                                        
                     Spacer()
                 }
                 .padding()
@@ -152,14 +150,6 @@ struct KidManagementView: View {
             .padding()
             .background(Color.blue.opacity(0.1))
             .cornerRadius(8)
-    }
-    
-    private var changeRoleButton: some View {
-        Button("Trocar papel") {
-        }
-        .padding()
-        .background(Color.red.opacity(0.1))
-        .cornerRadius(8)
     }
 }
 

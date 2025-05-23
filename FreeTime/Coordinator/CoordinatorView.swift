@@ -10,6 +10,7 @@ import SwiftUI
 struct CoordinatorView: View {
     
     @StateObject var coordinator = Coordinator()
+    @StateObject private var invitationManager = InvitationStatusManager.shared
     
     var body: some View {
         NavigationStack(path: $coordinator.path) {
@@ -19,15 +20,34 @@ struct CoordinatorView: View {
                 }
         }
         .environmentObject(coordinator)
+        .environmentObject(invitationManager)
     }
     
     private var initialPage: Page {
         switch UIDevice.current.userInterfaceIdiom {
         case .pad:
-            return .kidWaitingInvite
+            return padInitialPage
         case .phone:
-            return .kidManagement
+            return phoneInitialPage
         default:
+            return .kidWaitingInvite
+        }
+    }
+    
+    private var phoneInitialPage: Page {
+        switch invitationManager.currentStatus {
+        case .accepted:
+            return .genitorHome
+        case .pending, .sent:
+            return .kidManagement
+        }
+    }
+    
+    private var padInitialPage: Page {
+        switch invitationManager.currentStatus {
+        case .accepted:
+            return .kidHome
+        case .pending, .sent:
             return .kidWaitingInvite
         }
     }

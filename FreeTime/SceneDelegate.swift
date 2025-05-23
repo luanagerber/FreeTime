@@ -35,12 +35,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                     NotificationCenter.default.post(name: .didAcceptCloudKitShare, object: nil)
                     debugPrint("Accepted share with root record ID: \(rootRecordID)")
                     
-                    // Ao aceitar o compartilhamento, definimos o papel do usuário como kid
-                    UserDefaults.standard.setValue(UserRole.kid.rawValue, forKey: "userRole")
+                    // Ao aceitar o compartilhamento, definimos o InvitationStatus como accepted
+                    InvitationStatusManager.setStatus(.accepted)
                 } else {
                     debugPrint("Accepted share with no root record ID")
                 }
             case .failure(let error):
+                InvitationStatusManager.setStatus(.pending)
                 debugPrint("Error accepting share with root record ID: \(metadata.hierarchicalRootRecordID.debugDescription), \(error)")
             }
         }
