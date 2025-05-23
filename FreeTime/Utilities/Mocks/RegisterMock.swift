@@ -8,57 +8,28 @@
 import Foundation
 
 extension ActivitiesRegister {
-    static let kidTest = Kid.sample
     
     static let samples: [ActivitiesRegister] = [
         ActivitiesRegister(
-            kid: kidTest,
+            kid: Kid.sample,
             activityID: Activity.catalog[0].id,
             date: Date(), // agora
             duration: 3600, // 1 hora
             registerStatus: .notStarted
         ),
         ActivitiesRegister(
-            kid: kidTest,
+            kid: Kid.sample,
             activityID: Activity.catalog[1].id,
             date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(), //ontem
             duration: 5400, // 1h30min
             registerStatus: .notStarted
         ),
         ActivitiesRegister(
-            kid: kidTest,
+            kid: Kid.sample,
             activityID: Activity.catalog[1].id,
             date: Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date(), //amanhã
             duration: 5400, // 1h30min
             registerStatus: .completed
-        ),
-        ActivitiesRegister(
-            kid: kidTest,
-            activityID: Activity.catalog[1].id,
-            date: Calendar.current.date(byAdding: .day, value: 2, to: Date()) ?? Date(), // depois de amanhã
-            duration: 5400, // 1h30min
-            registerStatus: .completed
-        ),
-        ActivitiesRegister(
-            kid: kidTest,
-            activityID: Activity.catalog[1].id,
-            date: Calendar.current.date(byAdding: DateComponents(day: 2, hour: 3), to: Date()) ?? Date(), // depois de amanhã
-            duration: 5400, // 1h30min
-            registerStatus: .notStarted
-        ),
-        ActivitiesRegister(
-            kid: kidTest,
-            activityID: Activity.catalog[1].id,
-            date: Calendar.current.date(byAdding: DateComponents(day: 2, hour: 2), to: Date()) ?? Date(), // depois de amanhã
-            duration: 5400, // 1h30min
-            registerStatus: .notStarted
-        ),
-        ActivitiesRegister(
-            kid: kidTest,
-            activityID: Activity.catalog[1].id,
-            date: Calendar.current.date(byAdding: DateComponents(day: 2, hour: 4), to: Date()) ?? Date(), // depois de amanhã
-            duration: 5400, // 1h30min
-            registerStatus: .notStarted
         )
     ]
     

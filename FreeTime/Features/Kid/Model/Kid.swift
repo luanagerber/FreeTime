@@ -102,19 +102,3 @@ extension Kid: RecordProtocol {
         }
     }
 }
-
-// MARK: - Update Method for Existing Records
-extension Kid {
-    // Method to update an existing record with current data
-    func updateRecord(_ record: CKRecord) {
-        record["kidName"] = name
-        record["coins"] = coins
-        
-        // Convert CollectedRewards to array of strings
-        let rewardStrings = collectedRewards.map { collectedReward in
-            let dateString = ISO8601DateFormatter().string(from: collectedReward.date)
-            return "\(collectedReward.reward.id)|\(dateString)"
-        }
-        record["collectedRewards"] = rewardStrings as CKRecordValue
-    }
-}

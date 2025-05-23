@@ -9,15 +9,15 @@ import SwiftUI
 
 class ActivitiesRegisterViewModel: ObservableObject {
     
+    @EnvironmentObject var coordinator: Coordinator
+
     @Published var records: [ActivitiesRegister] {
         didSet {
             // Se a variável records mudar, a função checa se deve recompensar
             rewardKid()
         }
     }
-    
-    @EnvironmentObject var coordinator: Coordinator
-    
+        
     init() {
         self.records = [.sample1, .sample2, .sample1, .sample2]
     }

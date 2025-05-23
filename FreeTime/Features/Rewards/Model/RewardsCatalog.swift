@@ -24,4 +24,5 @@ extension Reward {
     static func find(by id: Int) -> Reward? {
         catalog.first { $0.id == id }
     }
+    
 }

@@ -17,7 +17,7 @@ class KidViewModel: ObservableObject {
 //    private var cloudService: CloudService = .shared
 //    let kidId: CKRecord.ID? = nil
 //
-//    @Published var kid: Kid = ActivitiesRegister.kidTest
+//    @Published var kid: Kid = Kid.sample
 //    @Published var register: [ActivitiesRegister] = ActivitiesRegister.samples
     
     @EnvironmentObject var coordinator: Coordinator
@@ -35,7 +35,6 @@ class KidViewModel: ObservableObject {
     private var sharedDB: CKDatabase {
         container.sharedCloudDatabase
     }
-    
     
     // MARK: - Public LOCAL Methods
     func registerForToday() -> [ActivitiesRegister] {

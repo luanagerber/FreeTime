@@ -11,20 +11,10 @@ import SwiftUI
 struct FreeTimeApp: App {
     
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-
+    
     var body: some Scene {
         WindowGroup {
-            switch UIDevice.current.userInterfaceIdiom {
-            case .pad:
-                    CoordinatorView()
-            case .phone:
-//                    GenitorView()
-             //   SendingShare2()
-//                SharerTestView()
-                    RoleBasedView()
-            default:
-                EmptyView()
-            }
+            CoordinatorView()
         }
     }
 }
