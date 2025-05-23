@@ -14,9 +14,10 @@ struct FreeTimeApp: App {
     
     var body: some Scene {
         WindowGroup {
-            CoordinatorView()
+//            CoordinatorView()
 //            KidManagementDebugView()
 //            ActivityManagementDebugView()
+            RewardsTestDebugView()
         }
     }
 }
