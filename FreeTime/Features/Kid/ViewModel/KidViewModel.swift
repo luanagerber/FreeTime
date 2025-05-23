@@ -88,7 +88,7 @@ class KidViewModel: ObservableObject {
         
         if hasRootRecord {
             // Update invitation status to accepted
-            invitationManager.updateStatus(to: .accepted)
+            markInvitationAsAccepted()
         }
         
         guard let rootRecordID = cloudService.getRootRecordID() else {
