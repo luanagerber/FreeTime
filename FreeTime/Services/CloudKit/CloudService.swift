@@ -18,7 +18,12 @@ final class CloudService {
     
     static let shared = CloudService()
     
-    // MARK: - Cloud Status
+    private var container: CKContainer {
+        return CKContainer(identifier: CloudConfig.containerIndentifier)
+    }
+    
+    
+    // MARK: - CloudKit Configuration & Status
     
     private func checkCloudStatus() {
         CKContainer(identifier: CloudConfig.containerIndentifier).accountStatus { (status, error) in
@@ -26,25 +31,22 @@ final class CloudService {
                 print("❌ Erro ao verificar status do CloudKit: \(error.localizedDescription)")
             } else {
                 switch status {
-                    case .available:
-                        print("✅ CloudKit disponível - status: \(status)")
-                    case .noAccount:
-                        print("❌ Sem conta iCloud - status: \(status)")
-                    case .restricted:
-                        print("⚠️ Acesso ao CloudKit restrito - status: \(status)")
-                    case .couldNotDetermine:
-                        print("❓ Não foi possível determinar o status do CloudKit - status: \(status)")
-                    case .temporarilyUnavailable:
-                        print("temporarily Unavailable")
-                    @unknown default:
-                        print("❓ Status do CloudKit desconhecido: \(status)")
+                case .available:
+                    print("✅ CloudKit disponível - status: \(status)")
+                case .noAccount:
+                    print("❌ Sem conta iCloud - status: \(status)")
+                case .restricted:
+                    print("⚠️ Acesso ao CloudKit restrito - status: \(status)")
+                case .couldNotDetermine:
+                    print("❓ Não foi possível determinar o status do CloudKit - status: \(status)")
+                case .temporarilyUnavailable:
+                    print("temporarily Unavailable")
+                @unknown default:
+                    print("❓ Status do CloudKit desconhecido: \(status)")
                 }
             }
         }
     }
-    
-    
-    // MARK: - Zone Management
     
     func createZoneIfNeeded() async throws {
         print("📁 Tentando verificar a zona Kids")
@@ -86,7 +88,21 @@ final class CloudService {
             throw error
         }
     }
-    // MARK: - Kid Operations
+    
+    func checkSharingStatus(completion: @escaping (Bool) -> Void) {
+        CKContainer(identifier: CloudConfig.containerIndentifier).accountStatus { status, error in
+            if let error = error {
+                print("Error checking iCloud status: \(error.localizedDescription)")
+                completion(false)
+                return
+            }
+            
+            completion(status == .available)
+        }
+    }
+    
+    
+    // MARK: - Kid Operations (Create/Read/Delete)
     
     func saveKid(_ kid: Kid, completion: @escaping (Result<Kid, CloudError>) -> Void) {
         client.save(kid, dbType: .privateDB, completion: completion)
@@ -102,14 +118,14 @@ final class CloudService {
             predicate: predicate
         ) { (result: Result<[Kid], CloudError>) in
             switch result {
-                case .success(let kids):
-                    if let kid = kids.first {
-                        completion(.success(kid))
-                    } else {
-                        completion(.failure(.recordNotFound))
-                    }
-                case .failure(let error):
-                    completion(.failure(error))
+            case .success(let kids):
+                if let kid = kids.first {
+                    completion(.success(kid))
+                } else {
+                    completion(.failure(.recordNotFound))
+                }
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -123,13 +139,13 @@ final class CloudService {
             predicate: nil
         ) { (result: Result<[Kid], CloudError>) in
             switch result {
-                case .success(let kids):
-                    let sortedKids = kids.sorted {
-                        ($0.associatedRecord?.creationDate ?? Date()) < ($1.associatedRecord?.creationDate ?? Date())
-                    }
-                    completion(.success(sortedKids))
-                case .failure(let error):
-                    completion(.failure(error))
+            case .success(let kids):
+                let sortedKids = kids.sorted {
+                    ($0.associatedRecord?.creationDate ?? Date()) < ($1.associatedRecord?.creationDate ?? Date())
+                }
+                completion(.success(sortedKids))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -146,12 +162,12 @@ final class CloudService {
                 print("Kid does have a share, removing it...")
                 await client.deleteShare(kid) { shareResult in
                     switch shareResult {
-                        case .success:
-                            print("CKShare removed with success")
-                        case .failure(let error):
-                            print("Failed removing CKShare:", error)
-                            completion(.failure(error))
-                            return
+                    case .success:
+                        print("CKShare removed with success")
+                    case .failure(let error):
+                        print("Failed removing CKShare:", error)
+                        completion(.failure(error))
+                        return
                     }
                 }
             }
@@ -159,59 +175,19 @@ final class CloudService {
             // Deletes the record
             client.delete(kid, dbType: .privateDB) { result in
                 switch result {
-                    case .success:
-                        print("Kid deleted")
-                        completion(.success(()))
-                    case .failure(let error):
-                        print("Kid deletion failed:", error)
-                        completion(.failure(error))
+                case .success:
+                    print("Kid deleted")
+                    completion(.success(()))
+                case .failure(let error):
+                    print("Kid deletion failed:", error)
+                    completion(.failure(error))
                 }
             }
         }
     }
     
     
-    // MARK: - Activity Operations
-    
-    func saveActivity(_ activity: ActivitiesRegister, completion: @escaping (Result<ActivitiesRegister, CloudError>) -> Void) {
-        client.save(activity, dbType: .privateDB, completion: completion)
-    }
-    
-    func fetchAllActivities(forKid kidID: String, completion: @escaping (Result<[ActivitiesRegister], CloudError>) -> Void) {
-        let predicate = NSPredicate(format: "kidID == %@", kidID)
-        
-        client.fetch(
-            recordType: RecordType.activity.rawValue,
-            dbType: .privateDB,
-            inZone: CloudConfig.recordZone.zoneID,
-            predicate: predicate
-        ) { (result: Result<[ActivitiesRegister], CloudError>) in
-            switch result {
-                case .success(let activities):
-                    let sortedActivities = activities.sorted {
-                        $0.date < $1.date
-                    }
-                    completion(.success(sortedActivities))
-                case .failure(let error):
-                    completion(.failure(error))
-            }
-        }
-    }
-    
-    func updateActivity(_ activity: ActivitiesRegister, isShared: Bool, completion: @escaping (Result<ActivitiesRegister, CloudError>) -> Void) {
-        let dbType: CloudConfig = isShared ? .sharedDB : .privateDB
-        client.modify(activity, dbType: dbType, completion: completion)
-    }
-    
-    func deleteActivity(_ activity: ActivitiesRegister, isShared: Bool, completion: @escaping (Result<Bool, CloudError>) -> Void) {
-        let dbType: CloudConfig = isShared ? .sharedDB : .privateDB
-        client.delete(activity, dbType: dbType, completion: completion)
-    }
-    
-    
-    private var container: CKContainer {
-        return CKContainer(identifier: CloudConfig.containerIndentifier)
-    }
+    // MARK: - Kid Sharing Operations
     
     func shareKid(_ kid: Kid, completion: @escaping (Result<any View, CloudError>) -> Void) async throws {
         guard let record = kid.associatedRecord else {
@@ -405,6 +381,45 @@ final class CloudService {
             completion(.failure(.couldNotShareRecord))
         }
     }
+    
+    
+    // MARK: - Activity Operations
+    
+    func saveActivity(_ activity: ActivitiesRegister, completion: @escaping (Result<ActivitiesRegister, CloudError>) -> Void) {
+        client.save(activity, dbType: .privateDB, completion: completion)
+    }
+    
+    func fetchAllActivities(forKid kidID: String, completion: @escaping (Result<[ActivitiesRegister], CloudError>) -> Void) {
+        let predicate = NSPredicate(format: "kidID == %@", kidID)
+        
+        client.fetch(
+            recordType: RecordType.activity.rawValue,
+            dbType: .privateDB,
+            inZone: CloudConfig.recordZone.zoneID,
+            predicate: predicate
+        ) { (result: Result<[ActivitiesRegister], CloudError>) in
+            switch result {
+            case .success(let activities):
+                let sortedActivities = activities.sorted {
+                    $0.date < $1.date
+                }
+                completion(.success(sortedActivities))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+    
+    func updateActivity(_ activity: ActivitiesRegister, isShared: Bool, completion: @escaping (Result<ActivitiesRegister, CloudError>) -> Void) {
+        let dbType: CloudConfig = isShared ? .sharedDB : .privateDB
+        client.modify(activity, dbType: dbType, completion: completion)
+    }
+    
+    func deleteActivity(_ activity: ActivitiesRegister, isShared: Bool, completion: @escaping (Result<Bool, CloudError>) -> Void) {
+        let dbType: CloudConfig = isShared ? .sharedDB : .privateDB
+        client.delete(activity, dbType: dbType, completion: completion)
+    }
+    
     // Método auxiliar para buscar atividades relacionadas
     private func fetchRelatedActivities(kidName: String) async throws -> [ActivitiesRegister] {
         print("BUSCA-ATIVIDADES: Buscando atividades para o Kid ID: \(kidName)")
@@ -449,54 +464,43 @@ final class CloudService {
             predicate: predicate
         ) { (result: Result<[ActivitiesRegister], CloudError>) in
             switch result {
-                case .success(let activities):
-                    print("SHARED: Sucesso! Encontradas \(activities.count) atividades com predicate kidID")
-                    let sortedActivities = activities.sorted {
-                        $0.date < $1.date
-                    }
-                    completion(.success(sortedActivities))
-                case .failure(let error):
-                    print("SHARED: Falha ao buscar por kidID: \(error)")
-                    
-                    // Se falhar com a busca por kidID, tentar buscar pela referência ao Kid
-                    print("SHARED: Tentando buscar por referência ao Kid")
-                    let parentPredicate = NSPredicate(format: "kidReference == %@", CKRecord.Reference(recordID: rootRecordID, action: .none))
-                    
-                    self.client.fetch(
-                        recordType: RecordType.activity.rawValue,
-                        dbType: .sharedDB,
-                        inZone: rootRecordID.zoneID,
-                        predicate: parentPredicate
-                    ) { (parentResult: Result<[ActivitiesRegister], CloudError>) in
-                        switch parentResult {
-                            case .success(let parentActivities):
-                                print("SHARED: Sucesso! Encontradas \(parentActivities.count) atividades com predicate parentReference")
-                                let sortedActivities = parentActivities.sorted {
-                                    $0.date < $1.date
-                                }
-                                completion(.success(sortedActivities))
-                            case .failure(let parentError):
-                                print("SHARED: Falha também ao buscar por referência: \(parentError)")
-                                completion(.failure(parentError))
+            case .success(let activities):
+                print("SHARED: Sucesso! Encontradas \(activities.count) atividades com predicate kidID")
+                let sortedActivities = activities.sorted {
+                    $0.date < $1.date
+                }
+                completion(.success(sortedActivities))
+            case .failure(let error):
+                print("SHARED: Falha ao buscar por kidID: \(error)")
+                
+                // Se falhar com a busca por kidID, tentar buscar pela referência ao Kid
+                print("SHARED: Tentando buscar por referência ao Kid")
+                let parentPredicate = NSPredicate(format: "kidReference == %@", CKRecord.Reference(recordID: rootRecordID, action: .none))
+                
+                self.client.fetch(
+                    recordType: RecordType.activity.rawValue,
+                    dbType: .sharedDB,
+                    inZone: rootRecordID.zoneID,
+                    predicate: parentPredicate
+                ) { (parentResult: Result<[ActivitiesRegister], CloudError>) in
+                    switch parentResult {
+                    case .success(let parentActivities):
+                        print("SHARED: Sucesso! Encontradas \(parentActivities.count) atividades com predicate parentReference")
+                        let sortedActivities = parentActivities.sorted {
+                            $0.date < $1.date
                         }
+                        completion(.success(sortedActivities))
+                    case .failure(let parentError):
+                        print("SHARED: Falha também ao buscar por referência: \(parentError)")
+                        completion(.failure(parentError))
                     }
+                }
             }
         }
     }
-
-    // MARK: - Utility Methods
     
-    func checkSharingStatus(completion: @escaping (Bool) -> Void) {
-        CKContainer(identifier: CloudConfig.containerIndentifier).accountStatus { status, error in
-            if let error = error {
-                print("Error checking iCloud status: \(error.localizedDescription)")
-                completion(false)
-                return
-            }
-            
-            completion(status == .available)
-        }
-    }
+    
+    // MARK: - Debug Operations
     
     func debugSharedDatabase() async {
         print("DEBUG: Iniciando verificação do banco compartilhado")
@@ -529,11 +533,11 @@ final class CloudService {
                         
                         for result in results {
                             switch result.1 {
-                                case .success(let record):
-                                    print("DEBUG:   - ID: \(record.recordID.recordName)")
-                                    print("DEBUG:     Campos: \(record.allKeys().map { "\($0): \(String(describing: record[$0]))" }.joined(separator: ", "))")
-                                case .failure(let error):
-                                    print("DEBUG:   - Erro: \(error.localizedDescription)")
+                            case .success(let record):
+                                print("DEBUG:   - ID: \(record.recordID.recordName)")
+                                print("DEBUG:     Campos: \(record.allKeys().map { "\($0): \(String(describing: record[$0]))" }.joined(separator: ", "))")
+                            case .failure(let error):
+                                print("DEBUG:   - Erro: \(error.localizedDescription)")
                             }
                         }
                     } catch {
@@ -575,10 +579,10 @@ final class CloudService {
                     predicate: predicate
                 ) { (result: Result<[ActivitiesRegister], CloudError>) in
                     switch result {
-                        case .success(let activities):
-                            continuation.resume(returning: activities)
-                        case .failure:
-                            continuation.resume(returning: [])
+                    case .success(let activities):
+                        continuation.resume(returning: activities)
+                    case .failure:
+                        continuation.resume(returning: [])
                     }
                 }
             }
@@ -600,7 +604,7 @@ final class CloudService {
             print("DEBUG: Erro ao verificar status do compartilhamento: \(error)")
         }
     }
-
+    
     func inspectSharedDatabase() async {
         print("INSPEÇÃO: Examinando conteúdo completo do banco compartilhado")
         
@@ -702,10 +706,9 @@ final class CloudService {
             print("INSPEÇÃO: Erro ao listar zonas: \(error.localizedDescription)")
         }
     }
-    
 }
 
-
+// MARK: - Utility Extensions
 
 extension CloudService {
     func saveRootRecordID(_ recordID: CKRecord.ID) {
