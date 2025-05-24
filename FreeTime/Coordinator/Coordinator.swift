@@ -20,6 +20,7 @@ enum Page: Hashable {
     // store
     case rewardsStore
     case collectedRewards
+    case rewardsStoreDebug /*View de Teste*/
 }
 
 class Coordinator: ObservableObject {
@@ -58,6 +59,8 @@ class Coordinator: ObservableObject {
             RewardsStoreView(store: self.rewardsStore)
         case .collectedRewards:
             CollectedRewardsView(store: self.rewardsStore)
+        case .rewardsStoreDebug:
+            RewardsTestDebugView()
         }
     }
 }

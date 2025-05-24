@@ -130,6 +130,28 @@ final class CloudService {
         }
     }
     
+    func fetchPrivateKid(withRecordID recordID: CKRecord.ID, completion: @escaping (Result<Kid, CloudError>) -> Void) {
+        let predicate = NSPredicate(format: "recordID == %@", recordID)
+        
+        client.fetch(
+            recordType: RecordType.kid.rawValue,
+            dbType: .privateDB,
+            inZone: CloudConfig.recordZone.zoneID,
+            predicate: predicate
+        ) { (result: Result<[Kid], CloudError>) in
+            switch result {
+            case .success(let kids):
+                if let kid = kids.first {
+                    completion(.success(kid))
+                } else {
+                    completion(.failure(.recordNotFound))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+    
     //TODO: Provavelmente deletar depois
     func fetchAllKids(completion: @escaping (Result<[Kid], CloudError>) -> Void) {
         client.fetch(

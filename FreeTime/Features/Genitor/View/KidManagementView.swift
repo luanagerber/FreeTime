@@ -111,7 +111,9 @@ struct KidManagementView: View {
     }
     
     func goToNextView() {
-        coordinator.push(.genitorHome)
+//        coordinator.push(.genitorHome)
+        coordinator.push(.rewardsStoreDebug)
+
     }
 }
 

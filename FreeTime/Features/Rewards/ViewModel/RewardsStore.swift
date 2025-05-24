@@ -20,8 +20,13 @@ class RewardsStore: ObservableObject {
     private var currentKidID: CKRecord.ID?
     
     init() {
-        // Store is initiated with rewards from catalog
         self.rewards = Reward.catalog
+        
+        // Carrega automaticamente o kid compartilhado se existir
+        if let rootRecordID = CloudService.shared.getRootRecordID() {
+            self.currentKidID = rootRecordID
+            loadSharedKidData()
+        }
     }
 }
 
@@ -38,18 +43,79 @@ extension RewardsStore {
         
         isLoading = true
         
-        // Load kid's coins
+        // Tenta primeiro no banco privado (para kids próprios)
+        CloudService.shared.fetchPrivateKid(withRecordID: kidID) { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let kid):
+                    self?.coins = kid.coins
+                    self?.loadCollectedRewards()
+                case .failure:
+                    // Se falhar no privado, tenta no compartilhado
+                    CloudService.shared.fetchKid(withRecordID: kidID) { result in
+                        DispatchQueue.main.async {
+                            switch result {
+                            case .success(let kid):
+                                self?.coins = kid.coins
+                            case .failure(let error):
+                                self?.handleError("Failed to load kid data: \(error.localizedDescription)")
+                            }
+                            self?.loadCollectedRewards()
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    ////??? Luana
+    func loadFromRootRecord() {
+        guard let rootRecordID = CloudService.shared.getRootRecordID() else {
+            handleError("No shared kid found")
+            return
+        }
+        
+        self.currentKidID = rootRecordID
+        loadSharedKidData()
+    }
+    
+    private func loadSharedCollectedRewards() {
+        guard let kidID = currentKidID else {
+            isLoading = false
+            return
+        }
+        
+        CloudService.shared.fetchSharedCollectedRewards(forKid: kidID.recordName) { [weak self] result in
+            DispatchQueue.main.async {
+                self?.isLoading = false
+                
+                switch result {
+                case .success(let rewards):
+                    self?.collectedRewards = rewards
+                case .failure(let error):
+                    self?.handleError("Failed to load shared rewards: \(error.localizedDescription)")
+                    self?.collectedRewards = []
+                }
+            }
+        }
+    }
+    
+    private func loadSharedKidData() {
+        guard let kidID = currentKidID else { return }
+        
+        isLoading = true
+        
+        // Busca kid compartilhado
         CloudService.shared.fetchKid(withRecordID: kidID) { [weak self] result in
             DispatchQueue.main.async {
                 switch result {
                 case .success(let kid):
                     self?.coins = kid.coins
+                    self?.loadSharedCollectedRewards()
                 case .failure(let error):
-                    self?.handleError("Failed to load kid data: \(error.localizedDescription)")
+                    self?.handleError("Failed to load shared kid: \(error.localizedDescription)")
+                    self?.isLoading = false
                 }
-                
-                // Load collected rewards regardless of kid fetch result
-                self?.loadCollectedRewards()
             }
         }
     }
