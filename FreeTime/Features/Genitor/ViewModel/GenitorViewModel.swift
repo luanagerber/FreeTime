@@ -14,9 +14,9 @@ import Combine
 class GenitorViewModel: ObservableObject {
     
     static let shared = GenitorViewModel()
-
+    
     @StateObject private var invitationManager = InvitationStatusManager.shared
-
+    
     
     // MARK: - ViewModel Thales
     @Published var records: [ActivitiesRegister] = ActivitiesRegister.samples
@@ -108,21 +108,23 @@ class GenitorViewModel: ObservableObject {
             return
         }
         
-        cloudService.saveKid(kid) { [weak self] result in
-            guard let self = self else { return }
-            
-            self.isLoading = false
-            
-            switch result {
-            case .success(let newKid):
-                self.feedbackMessage = "✅ Adicionado com sucesso \(newKid.name) ao CloudKit"
-                self.childName = ""
-                self.loadKids()
-            case .failure(let error):
-                self.feedbackMessage = "❌ Erro ao adicionar criança: \(error)"
+        CloudService.shared.saveKid(kid) { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let savedKid):
+                    self?.kids.append(savedKid)
+                    self?.childName = ""
+                    self?.feedbackMessage = "✅ \(savedKid.name) foi adicionado com sucesso!"
+                    
+                    // Define o usuário como pai e salva o Kid completo
+                    UserManager.shared.setAsParent(withKid: savedKid)
+                    
+                case .failure(let error):
+                    self?.feedbackMessage = "❌ Erro ao adicionar criança: \(error.localizedDescription)"
+                }
+                self?.isLoading = false
             }
-        }
-    }
+        }    }
     
     private func loadKids() {
         isLoading = true
@@ -202,11 +204,11 @@ class GenitorViewModel: ObservableObject {
                         self.shareView = AnyView(view)
                         self.feedbackMessage = "✅ Compartilhamento preparado para \(kid.name)"
                         self.sharingSheet = true
-
+                        
                         
                         InvitationStatusManager.shared.updateStatus(to: .sent)
                         prepareForNextView()
-                    
+                        
                     case .failure(let error):
                         self.feedbackMessage = "❌ Erro ao compartilhar criança: \(error)"
                     }

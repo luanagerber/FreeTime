@@ -32,17 +32,36 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             case .success:
                 if let rootRecordID = metadata.hierarchicalRootRecordID {
                     CloudService.shared.saveRootRecordID(rootRecordID)
-                    NotificationCenter.default.post(name: .didAcceptCloudKitShare, object: nil)
-                    debugPrint("Accepted share with root record ID: \(rootRecordID)")
                     
-                    // Ao aceitar o compartilhamento, definimos o InvitationStatus como accepted
-                    InvitationStatusManager.setStatus(.accepted)
+                    // Busca o Kid para obter o nome
+                    CloudService.shared.fetchKid(withRecordID: rootRecordID) { kidResult in
+                        DispatchQueue.main.async {
+                            switch kidResult {
+                            case .success(let kid):
+                                // Define o usuário como criança com todas as informações
+                                UserManager.shared.setAsChild(withKid: kid)
+                                
+                            case .failure(let error):
+                                print("Erro ao buscar informações da criança: \(error)")
+                                // Define apenas com o ID se não conseguir buscar o nome
+                                UserManager.shared.setAsChild(
+                                    withKidID: rootRecordID,
+                                    name: "Criança"
+                                )
+                            }
+                            
+                            NotificationCenter.default.post(name: .didAcceptCloudKitShare, object: nil)
+                            InvitationStatusManager.setStatus(.accepted)
+                        }
+                    }
+                    
+                    debugPrint("Accepted share with root record ID: \(rootRecordID)")
                 } else {
                     debugPrint("Accepted share with no root record ID")
                 }
             case .failure(let error):
                 InvitationStatusManager.setStatus(.pending)
-                debugPrint("Error accepting share with root record ID: \(metadata.hierarchicalRootRecordID.debugDescription), \(error)")
+                debugPrint("Error accepting share: \(error)")
             }
         }
         

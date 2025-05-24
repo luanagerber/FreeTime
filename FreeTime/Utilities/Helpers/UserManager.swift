@@ -1,10 +1,4 @@
-//
-//  UserManager.swift
-//  FreeTime
-//
-//  Created by Luana Gerber on 24/05/25.
-//
-
+// UserManager.swift
 import SwiftUI
 import CloudKit
 
@@ -44,14 +38,24 @@ class UserManager: ObservableObject {
     }
     
     private init() {
-        // Inicializa com valores salvos
-        self.userRole = UserRole(rawValue: storedRole) ?? .undefined
-        self.currentKidName = storedKidName
+        // Primeiro inicializa as propriedades @Published com valores temporários
+        self.userRole = .undefined
+        self.currentKidID = nil
+        self.currentKidName = ""
+        
+        // Depois atualiza com os valores salvos
+        // Usa uma closure para acessar self de forma segura
+        let savedRole = UserDefaults.standard.string(forKey: "userRole") ?? UserRole.undefined.rawValue
+        let savedKidName = UserDefaults.standard.string(forKey: "currentKidName") ?? ""
+        let savedKidRecordName = UserDefaults.standard.string(forKey: "currentKidRecordName") ?? ""
+        
+        self.userRole = UserRole(rawValue: savedRole) ?? .undefined
+        self.currentKidName = savedKidName
         
         // Reconstrói o CKRecord.ID se existir
-        if !storedKidRecordName.isEmpty {
+        if !savedKidRecordName.isEmpty {
             self.currentKidID = CKRecord.ID(
-                recordName: storedKidRecordName,
+                recordName: savedKidRecordName,
                 zoneID: CloudConfig.recordZone.zoneID
             )
         }
@@ -60,8 +64,13 @@ class UserManager: ObservableObject {
     // MARK: - Parent Methods
     
     func setAsParent(withKid kid: Kid) {
+        guard let kidID = kid.id else {
+            print("UserManager Error: Kid doesn't have a valid ID")
+            return
+        }
+        
         self.userRole = .parent
-        self.currentKidID = kid.id
+        self.currentKidID = kidID
         self.currentKidName = kid.name
     }
     
@@ -83,11 +92,16 @@ class UserManager: ObservableObject {
     }
     
     func setAsChild(withKid kid: Kid) {
+        guard let kidID = kid.id else {
+            print("UserManager Error: Kid doesn't have a valid ID")
+            return
+        }
+        
         self.userRole = .child
-        self.currentKidID = kid.id
+        self.currentKidID = kidID
         self.currentKidName = kid.name
         
-        CloudService.shared.saveRootRecordID(kid.id)
+        CloudService.shared.saveRootRecordID(kidID)
     }
     
     // MARK: - Helper Methods
