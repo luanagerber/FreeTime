@@ -10,314 +10,366 @@ import Foundation
 import CloudKit
 
 class RewardsStore: ObservableObject {
-    @Published var rewards: [Reward]
+    @Published var rewards: [Reward] = Reward.catalog
     @Published var coins: Int = 0
-    @Published var cloudCollectedRewards: [CollectedReward] = [] // CloudKit records
+    @Published var collectedRewards: [CollectedReward] = [] // CloudKit CollectedReward records
     @Published var isLoading = false
+    @Published var errorMessage: String = ""
+    @Published var showError: Bool = false
+    
     private var currentKidID: CKRecord.ID?
     
     init() {
-        self.rewards = RewardsStore.getRewards()
-    }
-    
-    static func getRewards() -> [Reward] {
-        return Reward.catalog
+        // Store is initiated with rewards from catalog
+        self.rewards = Reward.catalog
     }
 }
 
-// MARK: - Hybrid CloudKit Operations (Local + Cloud Sync)
+// MARK: - Kid Management
 extension RewardsStore {
     
-    func loadDataForKid(_ kidID: CKRecord.ID, completion: @escaping (Result<Void, CloudError>) -> Void) {
+    func setCurrentKid(_ kidID: CKRecord.ID) {
         self.currentKidID = kidID
+        loadKidData()
+    }
+    
+    private func loadKidData() {
+        guard let kidID = currentKidID else { return }
+        
         isLoading = true
         
-        // Load Kid data (coins + legacy collectedRewards)
+        // Load kid's coins
         CloudService.shared.fetchKid(withRecordID: kidID) { [weak self] result in
-            switch result {
-            case .success(let kid):
-                // Load cloud-based CollectedRewards separately
-                self?.loadCloudCollectedRewards(kidID) { cloudResult in
-                    DispatchQueue.main.async {
-                        self?.isLoading = false
-                        
-                        // Update local state with Kid data
-                        self?.coins = kid.coins
-                        self?.collectedRewards = kid.collectedRewards
-                        
-                        completion(.success(()))
-                    }
-                }
-            case .failure(let error):
-                DispatchQueue.main.async {
-                    self?.isLoading = false
-                    completion(.failure(error))
-                }
-            }
-        }
-    }
-    
-    private func loadCloudCollectedRewards(_ kidID: CKRecord.ID, completion: @escaping (Result<Void, CloudError>) -> Void) {
-        guard let kidName = kidID.recordName as String? else {
-            completion(.failure(.recordNotFound))
-            return
-        }
-        
-        CloudService.shared.fetchAllCollectedRewards(forKid: kidName) { [weak self] result in
             DispatchQueue.main.async {
                 switch result {
-                case .success(let cloudRewards):
-                    self?.cloudCollectedRewards = cloudRewards
-                    completion(.success(()))
+                case .success(let kid):
+                    self?.coins = kid.coins
                 case .failure(let error):
-                    print("Warning: Could not load cloud collected rewards: \(error)")
-                    completion(.success(())) // Continue without cloud rewards
+                    self?.handleError("Failed to load kid data: \(error.localizedDescription)")
                 }
+                
+                // Load collected rewards regardless of kid fetch result
+                self?.loadCollectedRewards()
             }
         }
     }
     
-    // MARK: - Hybrid Coin Operations (Local update + Cloud sync)
-    
-    /// Add coins locally and sync to CloudKit
-    func addCoins(_ amount: Int, completion: @escaping (Result<Void, CloudError>) -> Void) {
-        // 1. Update locally immediately
-        coins += amount
-        
-        // 2. Sync to CloudKit
-        syncCoinsToCloudKit(completion: completion)
-    }
-    
-    /// Remove coins locally and sync to CloudKit
-    func removeCoins(_ amount: Int, completion: @escaping (Result<Void, CloudError>) -> Void) {
-        // 1. Update locally immediately
-        coins = max(0, coins - amount)
-        
-        // 2. Sync to CloudKit
-        syncCoinsToCloudKit(completion: completion)
-    }
-    
-    // MARK: - Hybrid Reward Operations
-    
-    /// Collect reward with immediate local update + cloud persistence
-    func collectReward(reward: Reward, completion: @escaping (Result<Void, CloudError>) -> Void) {
+    private func loadCollectedRewards() {
         guard let kidID = currentKidID else {
-            completion(.failure(.recordNotFound))
+            isLoading = false
             return
         }
         
-        // Check if we have enough coins
-        guard coins >= reward.cost else {
-            completion(.failure(.notEnoughCoins))
-            return
-        }
-        
-        // 1. Update local coins immediately
-        coins -= reward.cost
-        
-        // 2. Create and save CloudKit CollectedReward
-        var cloudReward = CollectedReward(kidID: kidID.recordName, rewardID: reward.id, dateCollected: Date(), isDelivered: false)
-        cloudReward.kidReference = CKRecord.Reference(recordID: kidID, action: .deleteSelf)
-        
-        CloudService.shared.saveCollectedReward(cloudReward) { [weak self] cloudResult in
+        CloudService.shared.fetchAllCollectedRewards(forKid: kidID.recordName) { [weak self] result in
             DispatchQueue.main.async {
-                switch cloudResult {
-                case .success(let savedCloudReward):
-                    // Add to cloud rewards list
-                    self?.cloudCollectedRewards.append(savedCloudReward)
-                    
-                    // Also add to legacy format for backward compatibility
-                    if let reward = savedCloudReward.reward {
-                        let legacyReward = CollectedReward(reward: reward, date: savedCloudReward.dateCollected)
-                        self?.collectedRewards.append(legacyReward)
-                    }
-                    
-                    // 3. Sync coins to CloudKit
-                    self?.syncCoinsToCloudKit { syncResult in
-                        DispatchQueue.main.async {
-                            switch syncResult {
-                            case .success:
-                                print("✅ Reward collected and synced successfully")
-                                completion(.success(()))
-                            case .failure(let error):
-                                print("⚠️ Reward saved but coin sync failed: \(error)")
-                                completion(.success(())) // Don't revert, just notify
-                            }
-                        }
-                    }
-                case .failure(let error):
-                    // Revert local coin change if cloud save failed
-                    self?.coins += reward.cost
-                    completion(.failure(error))
-                }
-            }
-        }
-    }
-    
-    /// Remove collected reward locally and sync to CloudKit
-    func removeCollectedReward(by id: UUID, completion: @escaping (Result<Void, CloudError>) -> Void) {
-        // 1. Update locally immediately
-        collectedRewards.removeAll { $0.id == id }
-        
-        // 2. Sync to CloudKit
-        syncCollectedRewardsToCloudKit(completion: completion)
-    }
-    
-    func removeCollectedReward(by rewardID: Int, completion: @escaping (Result<Void, CloudError>) -> Void) {
-        // 1. Update locally immediately
-        collectedRewards.removeAll { $0.reward.id == rewardID }
-        
-        // 2. Sync to CloudKit
-        syncCollectedRewardsToCloudKit(completion: completion)
-    }
-    
-    // MARK: - Father Operations (Cloud Rewards Management)
-    
-    /// Mark cloud reward as delivered (for fathers)
-    func markRewardAsDelivered(_ cloudReward: CollectedReward, completion: @escaping (Result<Void, CloudError>) -> Void) {
-        var updatedReward = cloudReward
-        updatedReward.isDelivered = true
-        
-        CloudService.shared.updateCollectedReward(updatedReward, isShared: false) { [weak self] result in
-            DispatchQueue.main.async {
+                self?.isLoading = false
+                
                 switch result {
-                case .success(let savedReward):
-                    // Update local cloud rewards list
-                    if let index = self?.cloudCollectedRewards.firstIndex(where: { $0.id == cloudReward.id }) {
-                        self?.cloudCollectedRewards[index] = savedReward
-                    }
-                    completion(.success(()))
+                case .success(let rewards):
+                    self?.collectedRewards = rewards
                 case .failure(let error):
-                    completion(.failure(error))
-                }
-            }
-        }
-    }
-    
-    /// Get pending (undelivered) rewards for father's view
-    func getPendingRewards() -> [CollectedReward] {
-        return cloudCollectedRewards.filter { !$0.isDelivered }
-    }
-    
-    /// Get delivered rewards
-    func getDeliveredRewards() -> [CollectedReward] {
-        return cloudCollectedRewards.filter { $0.isDelivered }
-    }
-    
-    // MARK: - CloudKit Sync Methods (Internal)
-    
-    private func syncCoinsToCloudKit(completion: @escaping (Result<Void, CloudError>) -> Void) {
-        guard let kidID = currentKidID else {
-            completion(.failure(.recordNotFound))
-            return
-        }
-        
-        CloudService.shared.fetchKid(withRecordID: kidID) { [weak self] result in
-            guard let self = self else { return }
-            
-            switch result {
-            case .success(var kid):
-                let currentKidCoins = kid.coins
-                let targetCoins = self.coins
-                
-                if targetCoins > currentKidCoins {
-                    kid.addCoins(targetCoins - currentKidCoins)
-                } else if targetCoins < currentKidCoins {
-                    kid.removeCoins(currentKidCoins - targetCoins)
-                }
-                
-                guard let recordToSave = kid.record else {
-                    DispatchQueue.main.async {
-                        completion(.failure(.recordNotFound))
-                    }
-                    return
-                }
-                
-                let container = CKContainer(identifier: CloudConfig.containerIdentifier)
-                let privateDB = container.privateCloudDatabase
-                
-                Task {
-                    do {
-                        let savedRecord = try await privateDB.save(recordToSave)
-                        
-                        if let updatedKid = Kid(record: savedRecord) {
-                            DispatchQueue.main.async {
-                                self.coins = updatedKid.coins
-                                completion(.success(()))
-                            }
-                        } else {
-                            DispatchQueue.main.async {
-                                completion(.failure(.recordNotFound))
-                            }
-                        }
-                    } catch {
-                        DispatchQueue.main.async {
-                            completion(.failure(.couldNotSaveRecord))
-                        }
-                    }
-                }
-                
-            case .failure(let error):
-                DispatchQueue.main.async {
-                    completion(.failure(error))
-                }
-            }
-        }
-    }
-    
-    private func syncCollectedRewardsToCloudKit(completion: @escaping (Result<Void, CloudError>) -> Void) {
-        guard let kidID = currentKidID else {
-            completion(.failure(.recordNotFound))
-            return
-        }
-        
-        CloudService.shared.fetchKid(withRecordID: kidID) { [weak self] result in
-            guard let self = self else { return }
-            
-            switch result {
-            case .success(var kid):
-                kid.collectedRewards = self.collectedRewards
-                
-                guard let recordToSave = kid.record else {
-                    DispatchQueue.main.async {
-                        completion(.failure(.recordNotFound))
-                    }
-                    return
-                }
-                
-                let container = CKContainer(identifier: CloudConfig.containerIdentifier)
-                let privateDB = container.privateCloudDatabase
-                
-                Task {
-                    do {
-                        let savedRecord = try await privateDB.save(recordToSave)
-                        
-                        if let updatedKid = Kid(record: savedRecord) {
-                            DispatchQueue.main.async {
-                                self.collectedRewards = updatedKid.collectedRewards
-                                completion(.success(()))
-                            }
-                        } else {
-                            DispatchQueue.main.async {
-                                completion(.failure(.recordNotFound))
-                            }
-                        }
-                    } catch {
-                        DispatchQueue.main.async {
-                            completion(.failure(.couldNotSaveRecord))
-                        }
-                    }
-                }
-                
-            case .failure(let error):
-                DispatchQueue.main.async {
-                    completion(.failure(error))
+                    self?.handleError("Failed to load collected rewards: \(error.localizedDescription)")
+                    self?.collectedRewards = []
                 }
             }
         }
     }
 }
 
-enum RewardsStoreError: Error {
-    case notEnoughCoins
+// MARK: - Coin Operations
+extension RewardsStore {
+    
+    func addCoins(_ amount: Int) {
+        guard currentKidID != nil else {
+            handleError("No kid selected")
+            return
+        }
+        
+        // Update locally immediately
+        coins += amount
+        
+        // Sync to CloudKit
+        syncCoinsToCloudKit { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success:
+                    break // Success
+                case .failure(let error):
+                    self?.handleError("Failed to sync coins: \(error.localizedDescription)")
+                    // Revert local change
+                    self?.coins -= amount
+                }
+            }
+        }
+    }
+    
+    func removeCoins(_ amount: Int) {
+        guard currentKidID != nil else {
+            handleError("No kid selected")
+            return
+        }
+        
+        let oldCoins = coins
+        // Update locally immediately
+        coins = max(0, coins - amount)
+        
+        // Sync to CloudKit
+        syncCoinsToCloudKit { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success:
+                    break // Success
+                case .failure(let error):
+                    self?.handleError("Failed to sync coins: \(error.localizedDescription)")
+                    // Revert local change
+                    self?.coins = oldCoins
+                }
+            }
+        }
+        
+        // MARK: - Private CloudKit Helper
+        func syncCoinsToCloudKit(completion: @escaping (Result<Void, CloudError>) -> Void) {
+            guard let kidID = currentKidID else {
+                completion(.failure(.recordNotFound))
+                return
+            }
+            
+            CloudService.shared.fetchKid(withRecordID: kidID) { [weak self] result in
+                switch result {
+                case .success(var kid):
+                    let currentKidCoins = kid.coins
+                    let targetCoins = self?.coins ?? 0
+                    
+                    if targetCoins > currentKidCoins {
+                        kid.addCoins(targetCoins - currentKidCoins)
+                    } else if targetCoins < currentKidCoins {
+                        kid.removeCoins(currentKidCoins - targetCoins)
+                    }
+                    
+                    guard let recordToSave = kid.record else {
+                        DispatchQueue.main.async {
+                            completion(.failure(.recordNotFound))
+                        }
+                        return
+                    }
+                    
+                    let container = CKContainer(identifier: CloudConfig.containerIdentifier)
+                    let privateDB = container.privateCloudDatabase
+                    
+                    Task {
+                        do {
+                            let savedRecord = try await privateDB.save(recordToSave)
+                            
+                            if let updatedKid = Kid(record: savedRecord) {
+                                DispatchQueue.main.async {
+                                    self?.coins = updatedKid.coins
+                                    completion(.success(()))
+                                }
+                            } else {
+                                DispatchQueue.main.async {
+                                    completion(.failure(.recordNotFound))
+                                }
+                            }
+                        } catch {
+                            DispatchQueue.main.async {
+                                completion(.failure(.couldNotSaveRecord))
+                            }
+                        }
+                    }
+                    
+                case .failure(let error):
+                    DispatchQueue.main.async {
+                        completion(.failure(error))
+                    }
+                }
+            }
+        }
+    }
 }
+    
+    // MARK: - Reward Purchase (Kid Operations)
+    extension RewardsStore {
+        
+        func buyReward(_ reward: Reward) {
+            guard let kidID = currentKidID else {
+                handleError("No kid selected")
+                return
+            }
+            
+            // Check if kid has enough coins
+            guard coins >= reward.cost else {
+                handleError("Insufficient coins to buy \(reward.name)")
+                return
+            }
+            
+            isLoading = true
+            
+            // Decrease coins locally immediately
+            let oldCoins = coins
+            coins -= reward.cost
+            
+            // Create CollectedReward record
+            var collectedReward = CollectedReward(
+                kidID: kidID.recordName,
+                rewardID: reward.id,
+                dateCollected: Date(),
+                isDelivered: false
+            )
+            collectedReward.kidReference = CKRecord.Reference(recordID: kidID, action: .deleteSelf)
+            
+            // Save to CloudKit
+            CloudService.shared.saveCollectedReward(collectedReward) { [weak self] rewardResult in
+                DispatchQueue.main.async {
+                    switch rewardResult {
+                    case .success(let savedReward):
+                        // Add to local list
+                        self?.collectedRewards.append(savedReward)
+                        
+                        // Update coins in CloudKit
+                        self?.syncCoinsToCloudKit { coinResult in
+                            DispatchQueue.main.async {
+                                self?.isLoading = false
+                                switch coinResult {
+                                case .success:
+                                    break // Success
+                                case .failure(let error):
+                                    // Revert local changes if coin sync failed
+                                    self?.coins = oldCoins
+                                    self?.collectedRewards.removeAll { $0.id == savedReward.id }
+                                    self?.handleError("Failed to sync purchase: \(error.localizedDescription)")
+                                }
+                            }
+                        }
+                        
+                    case .failure(let error):
+                        self?.isLoading = false
+                        // Revert coin change if reward save failed
+                        self?.coins = oldCoins
+                        self?.handleError("Failed to purchase reward: \(error.localizedDescription)")
+                    }
+                }
+            }
+        }
+        
+        func canAfford(_ reward: Reward) -> Bool {
+            return coins >= reward.cost
+        }
+    }
+    
+    // MARK: - CollectedReward Management
+    extension RewardsStore {
+        
+        func deleteCollectedReward(_ collectedReward: CollectedReward) {
+            isLoading = true
+            
+            CloudService.shared.deleteCollectedReward(collectedReward, isShared: false) { [weak self] result in
+                DispatchQueue.main.async {
+                    self?.isLoading = false
+                    switch result {
+                    case .success:
+                        // Remove from local list
+                        self?.collectedRewards.removeAll { $0.id == collectedReward.id }
+                    case .failure(let error):
+                        self?.handleError("Failed to delete reward: \(error.localizedDescription)")
+                    }
+                }
+            }
+        }
+        
+        func refreshCollectedRewards() {
+            guard let kidID = currentKidID else {
+                handleError("No kid selected")
+                return
+            }
+            
+            isLoading = true
+            
+            CloudService.shared.fetchAllCollectedRewards(forKid: kidID.recordName) { [weak self] result in
+                DispatchQueue.main.async {
+                    self?.isLoading = false
+                    switch result {
+                    case .success(let rewards):
+                        self?.collectedRewards = rewards
+                    case .failure(let error):
+                        self?.handleError("Failed to refresh rewards: \(error.localizedDescription)")
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Father Operations
+    extension RewardsStore {
+        
+        func markRewardAsDelivered(_ collectedReward: CollectedReward) {
+            isLoading = true
+            
+            var updatedReward = collectedReward
+            updatedReward.isDelivered = true
+            
+            CloudService.shared.updateCollectedReward(updatedReward, isShared: false) { [weak self] result in
+                DispatchQueue.main.async {
+                    self?.isLoading = false
+                    switch result {
+                    case .success(let savedReward):
+                        // Update local list
+                        if let index = self?.collectedRewards.firstIndex(where: { $0.id == collectedReward.id }) {
+                            self?.collectedRewards[index] = savedReward
+                        }
+                    case .failure(let error):
+                        self?.handleError("Failed to mark as delivered: \(error.localizedDescription)")
+                    }
+                }
+            }
+        }
+        
+        func getPendingRewards() -> [CollectedReward] {
+            return collectedRewards.filter { !$0.isDelivered }
+        }
+        
+        func getDeliveredRewards() -> [CollectedReward] {
+            return collectedRewards.filter { $0.isDelivered }
+        }
+    }
+    
+    // MARK: - Test/Debug Operations
+    extension RewardsStore {
+        
+        func createTestKid(name: String = "Test Kid") {
+            isLoading = true
+            
+            let kid = Kid(name: name, coins: 100) // Start with 100 coins for testing
+            
+            CloudService.shared.saveKid(kid) { [weak self] result in
+                DispatchQueue.main.async {
+                    self?.isLoading = false
+                    switch result {
+                    case .success(let savedKid):
+                        self?.currentKidID = savedKid.id
+                        self?.loadKidData()
+                    case .failure(let error):
+                        self?.handleError("Failed to create test kid: \(error.localizedDescription)")
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Error Handling
+    extension RewardsStore {
+        
+        private func handleError(_ message: String) {
+            errorMessage = message
+            showError = true
+            print("RewardsStore Error: \(message)")
+        }
+        
+        func clearError() {
+            showError = false
+            errorMessage = ""
+        }
+    }
+    
+    enum RewardsStoreError: Error {
+        case notEnoughCoins
+    }

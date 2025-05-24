@@ -11,7 +11,6 @@ import CloudKit
 struct Kid {
     var id: CKRecord.ID?
     let name: String
-    var collectedRewards = [CollectedReward]()
     var shareReference: CKRecord.Reference?
     var associatedRecord: CKRecord?
     
@@ -27,11 +26,11 @@ struct Kid {
     }
     
     mutating func removeCoins(_ amount: Int) {
-        coins -= amount
+        coins = max(0, coins - amount) // Ensure coins never go negative
     }
 }
 
-// Extensão para tornar KidRecord Hashable e Equatable
+// Extension to make Kid Hashable and Equatable
 extension Kid: Hashable, Equatable {
     static func == (lhs: Kid, rhs: Kid) -> Bool {
         return lhs.id?.recordName == rhs.id?.recordName && lhs.name == rhs.name
@@ -59,18 +58,9 @@ extension Kid: RecordProtocol {
             recordToUpdate = CKRecord(recordType: RecordType.kid.rawValue, zoneID: CloudConfig.recordZone.zoneID)
         }
         
-        // Update all fields
+        // Update fields
         recordToUpdate["kidName"] = name
         recordToUpdate["coins"] = coins
-        
-        // Convert CollectedRewards to array of strings (storing only reward ID and date)
-        let rewardStrings = collectedRewards.map { collectedReward in
-            let dateString = ISO8601DateFormatter().string(from: collectedReward.date)
-            return "\(collectedReward.reward.id)|\(dateString)"
-        }
-        
-        // Set as nil if empty array, otherwise set the string array
-        recordToUpdate["collectedRewards"] = rewardStrings.isEmpty ? nil : rewardStrings as CKRecordValue
         
         return recordToUpdate
     }
@@ -86,28 +76,5 @@ extension Kid: RecordProtocol {
         self.coins = coins
         self.shareReference = record.share
         self.associatedRecord = record
-        
-        // Parse collected rewards from strings - handle nil case
-        if let rewardStrings = record["collectedRewards"] as? [String] {
-            let dateFormatter = ISO8601DateFormatter()
-            
-            self.collectedRewards = rewardStrings.compactMap { rewardString in
-                let components = rewardString.split(separator: "|").map(String.init)
-                guard components.count == 2,
-                      let rewardID = Int(components[0]),
-                      let date = dateFormatter.date(from: components[1]),
-                      let reward = Reward.find(by: rewardID) else {
-                    return nil
-                }
-                
-                return CollectedReward(
-                    reward: reward,
-                    date: date
-                )
-            }
-        } else {
-            // Field doesn't exist or is nil - initialize with empty array
-            self.collectedRewards = []
-        }
     }
 }

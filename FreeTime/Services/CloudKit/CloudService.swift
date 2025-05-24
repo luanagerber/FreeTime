@@ -189,6 +189,194 @@ final class CloudService {
     
     // MARK: - Kid Sharing Operations
     
+//    func shareKid(_ kid: Kid, completion: @escaping (Result<any View, CloudError>) -> Void) async throws {
+//        guard let record = kid.associatedRecord else {
+//            print("COMPARTILHAMENTO: Falha - registro associado da criança é nulo")
+//            completion(.failure(.recordNotFound))
+//            return
+//        }
+//        
+//        // Acessar o container diretamente
+//        let container = CKContainer(identifier: CloudConfig.containerIdentifier)
+//        let privateDB = container.privateCloudDatabase
+//        
+//        // Verificar se já existe um compartilhamento
+//        if let existingShare = record.share {
+//            print("COMPARTILHAMENTO: Usando compartilhamento existente para \(record["kidName"] ?? "Unknown")")
+//            
+//            do {
+//                let share = try await privateDB.record(for: existingShare.recordID) as? CKShare
+//                if let share = share {
+//                    // Atualizar permissões
+//                    share.publicPermission = CKShare.ParticipantPermission.readWrite
+//                    
+//                    // Buscar atividades relacionadas para recompartilhar
+//                    let kidName = record.recordID.recordName
+//                    print("COMPARTILHAMENTO: Buscando atividades para recompartilhar com Kid ID: \(kidName)")
+//                    
+//                    let activities = try await fetchRelatedActivities(kidName: kidName)
+//                    print("COMPARTILHAMENTO: Encontradas \(activities.count) atividades para compartilhar")
+//                    
+//                    for (index, activity) in activities.enumerated() {
+//                        print("COMPARTILHAMENTO: Atividade \(index): ID=\(activity.activityID), Data=\(activity.date)")
+//                    }
+//                    
+//                    // NOVA ABORDAGEM: Configurar hierarquia pai-filho explícita
+//                    print("COMPARTILHAMENTO: Configurando hierarquia pai-filho para compartilhamento...")
+//                    
+//                    // 1. Primeiro atualizar o Kid e Share
+//                    do {
+//                        let (kidResults, _) = try await privateDB.modifyRecords(saving: [record, share], deleting: [])
+//                        print("COMPARTILHAMENTO: ✅ Kid e Share atualizados: \(kidResults.count)")
+//                    } catch {
+//                        print("COMPARTILHAMENTO: ⚠️ Erro ao atualizar Kid/Share (continuando): \(error)")
+//                    }
+//                    
+//                    // 2. Configurar cada atividade como FILHA do Kid
+//                    var successCount = 0
+//                    for (index, activity) in activities.enumerated() {
+//                        if let activityRecord = activity.associatedRecord {
+//                            print("COMPARTILHAMENTO: Configurando atividade \(index + 1)/\(activities.count) como filha...")
+//                            
+//                            // CONFIGURAR HIERARQUIA PAI-FILHO EXPLÍCITA
+//                            activityRecord.setParent(record)
+//                            
+//                            // Manter a kidReference também para busca
+//                            activityRecord["kidReference"] = CKRecord.Reference(recordID: record.recordID, action: .deleteSelf)
+//                            
+//                            // Garantir que todos os campos estão corretos
+//                            activityRecord["kidID"] = kidName
+//                            
+//                            print("COMPARTILHAMENTO: - Parent configurado: \(activityRecord.parent?.recordID.recordName ?? "nil")")
+//                            print("COMPARTILHAMENTO: - kidReference: \(activityRecord["kidReference"] != nil)")
+//                            print("COMPARTILHAMENTO: - kidID: \(activityRecord["kidID"] ?? "nil")")
+//                            
+//                            do {
+//                                let savedRecord = try await privateDB.save(activityRecord)
+//                                print("COMPARTILHAMENTO: ✅ Atividade \(index + 1) configurada como filha: \(savedRecord.recordID.recordName)")
+//                                
+//                                // Verificar se ficou com parent após salvar
+//                                if let parent = savedRecord.parent {
+//                                    print("COMPARTILHAMENTO: ✅ Parent confirmado após salvar: \(parent.recordID.recordName)")
+//                                } else {
+//                                    print("COMPARTILHAMENTO: ⚠️ Parent não está definido após salvar!")
+//                                }
+//                                
+//                                successCount += 1
+//                            } catch {
+//                                let errorDescription = error.localizedDescription
+//                                if errorDescription.contains("already exists") {
+//                                    print("COMPARTILHAMENTO: ℹ️ Atividade \(index + 1) já existe, atualizando parent...")
+//                                    
+//                                    // Tentar buscar e atualizar o registro existente
+//                                    do {
+//                                        let existingRecord = try await privateDB.record(for: activityRecord.recordID)
+//                                        existingRecord.setParent(record)
+//                                        existingRecord["kidReference"] = CKRecord.Reference(recordID: record.recordID, action: .deleteSelf)
+//                                        existingRecord["kidID"] = kidName
+//                                        
+//                                        let updatedRecord = try await privateDB.save(existingRecord)
+//                                        print("COMPARTILHAMENTO: ✅ Parent atualizado para atividade existente: \(updatedRecord.recordID.recordName)")
+//                                        successCount += 1
+//                                    } catch {
+//                                        print("COMPARTILHAMENTO: ❌ Erro ao atualizar parent da atividade existente: \(error)")
+//                                    }
+//                                } else {
+//                                    print("COMPARTILHAMENTO: ❌ Erro ao salvar atividade \(index + 1): \(errorDescription)")
+//                                }
+//                            }
+//                            
+//                            // Pequeno delay entre salvamentos para evitar conflitos
+//                            try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 segundo
+//                        }
+//                    }
+//                    
+//                    print("COMPARTILHAMENTO: ✅ Hierarquia configurada: \(successCount)/\(activities.count) atividades como filhas")
+//                    
+//                    // Aguardar um pouco para o CloudKit processar a hierarquia
+//                    try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 segundo
+//                    
+//                    completion(.success(CloudSharingView(share: share, container: container)))
+//                    
+//                } else {
+//                    print("COMPARTILHAMENTO: Falha - compartilhamento existente não encontrado")
+//                    completion(.failure(.couldNotShareRecord))
+//                }
+//            } catch {
+//                print("COMPARTILHAMENTO: Erro ao usar compartilhamento existente: \(error.localizedDescription)")
+//                completion(.failure(.couldNotShareRecord))
+//            }
+//            
+//            return
+//        }
+//        
+//        // Criar novo compartilhamento
+//        print("COMPARTILHAMENTO: Criando novo compartilhamento para \(record["kidName"] ?? "Unknown")")
+//        
+//        // IMPORTANTE: Usar o construtor que recebe o rootRecord
+//        let share = CKShare(rootRecord: record)
+//        share[CKShare.SystemFieldKey.title] = "Compartilhando filho: \(record["kidName"] ?? "Unknown")"
+//        share.publicPermission = CKShare.ParticipantPermission.readWrite
+//        
+//        // Buscar todas as atividades relacionadas a este Kid
+//        let kidName = record.recordID.recordName
+//        print("COMPARTILHAMENTO: Compartilhando Kid com ID: \(kidName)")
+//        
+//        let activities = try await fetchRelatedActivities(kidName: kidName)
+//        print("COMPARTILHAMENTO: Encontradas \(activities.count) atividades para compartilhar")
+//        
+//        for (index, activity) in activities.enumerated() {
+//            print("COMPARTILHAMENTO: Atividade \(index): ID=\(activity.activityID), Data=\(activity.date)")
+//        }
+//        
+//        do {
+//            // NOVA ABORDAGEM: Configurar hierarquia pai-filho desde o início
+//            print("COMPARTILHAMENTO: Criando novo compartilhamento com hierarquia pai-filho...")
+//            
+//            // 1. Primeiro configurar as atividades como filhas ANTES de criar o compartilhamento
+//            var successCount = 0
+//            for (index, activity) in activities.enumerated() {
+//                if let activityRecord = activity.associatedRecord {
+//                    print("COMPARTILHAMENTO: Pré-configurando atividade \(index + 1)/\(activities.count) como filha...")
+//                    
+//                    // CONFIGURAR HIERARQUIA PAI-FILHO EXPLÍCITA
+//                    activityRecord.setParent(record)
+//                    
+//                    // Manter a kidReference também para busca
+//                    activityRecord["kidReference"] = CKRecord.Reference(recordID: record.recordID, action: .deleteSelf)
+//                    activityRecord["kidID"] = kidName
+//                    
+//                    do {
+//                        let savedRecord = try await privateDB.save(activityRecord)
+//                        print("COMPARTILHAMENTO: ✅ Atividade \(index + 1) pré-configurada como filha: \(savedRecord.recordID.recordName)")
+//                        successCount += 1
+//                    } catch {
+//                        print("COMPARTILHAMENTO: ❌ Erro ao pré-configurar atividade \(index + 1): \(error.localizedDescription)")
+//                    }
+//                    
+//                    // Pequeno delay entre salvamentos
+//                    try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 segundo
+//                }
+//            }
+//            
+//            print("COMPARTILHAMENTO: ✅ Pré-configuradas \(successCount)/\(activities.count) atividades como filhas")
+//            
+//            // 2. Agora criar o compartilhamento (que deve incluir as atividades automaticamente)
+//            let (initialResults, _) = try await privateDB.modifyRecords(saving: [record, share], deleting: [])
+//            print("COMPARTILHAMENTO: ✅ Compartilhamento criado com hierarquia: \(initialResults.count) registros base")
+//            
+//            // Aguardar um pouco para o CloudKit processar
+//            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 segundo
+//            
+//            completion(.success(CloudSharingView(share: share, container: container)))
+//            
+//        } catch {
+//            print("COMPARTILHAMENTO: Erro ao criar compartilhamento com hierarquia: \(error.localizedDescription)")
+//            completion(.failure(.couldNotShareRecord))
+//        }
+//    }
+  
+    // Função com o collected rewards incluso
     func shareKid(_ kid: Kid, completion: @escaping (Result<any View, CloudError>) -> Void) async throws {
         guard let record = kid.associatedRecord else {
             print("COMPARTILHAMENTO: Falha - registro associado da criança é nulo")
@@ -210,15 +398,22 @@ final class CloudService {
                     // Atualizar permissões
                     share.publicPermission = CKShare.ParticipantPermission.readWrite
                     
-                    // Buscar atividades relacionadas para recompartilhar
+                    // Buscar atividades e recompensas relacionadas para recompartilhar
                     let kidName = record.recordID.recordName
-                    print("COMPARTILHAMENTO: Buscando atividades para recompartilhar com Kid ID: \(kidName)")
+                    print("COMPARTILHAMENTO: Buscando atividades e recompensas para recompartilhar com Kid ID: \(kidName)")
                     
                     let activities = try await fetchRelatedActivities(kidName: kidName)
                     print("COMPARTILHAMENTO: Encontradas \(activities.count) atividades para compartilhar")
                     
+                    let collectedRewards = try await fetchRelatedCollectedRewards(kidName: kidName)
+                    print("COMPARTILHAMENTO: Encontradas \(collectedRewards.count) recompensas para compartilhar")
+                    
                     for (index, activity) in activities.enumerated() {
                         print("COMPARTILHAMENTO: Atividade \(index): ID=\(activity.activityID), Data=\(activity.date)")
+                    }
+                    
+                    for (index, collectedReward) in collectedRewards.enumerated() {
+                        print("COMPARTILHAMENTO: Recompensa \(index): RewardID=\(collectedReward.rewardID), Data=\(collectedReward.dateCollected)")
                     }
                     
                     // NOVA ABORDAGEM: Configurar hierarquia pai-filho explícita
@@ -233,7 +428,7 @@ final class CloudService {
                     }
                     
                     // 2. Configurar cada atividade como FILHA do Kid
-                    var successCount = 0
+                    var activitySuccessCount = 0
                     for (index, activity) in activities.enumerated() {
                         if let activityRecord = activity.associatedRecord {
                             print("COMPARTILHAMENTO: Configurando atividade \(index + 1)/\(activities.count) como filha...")
@@ -262,7 +457,7 @@ final class CloudService {
                                     print("COMPARTILHAMENTO: ⚠️ Parent não está definido após salvar!")
                                 }
                                 
-                                successCount += 1
+                                activitySuccessCount += 1
                             } catch {
                                 let errorDescription = error.localizedDescription
                                 if errorDescription.contains("already exists") {
@@ -277,7 +472,7 @@ final class CloudService {
                                         
                                         let updatedRecord = try await privateDB.save(existingRecord)
                                         print("COMPARTILHAMENTO: ✅ Parent atualizado para atividade existente: \(updatedRecord.recordID.recordName)")
-                                        successCount += 1
+                                        activitySuccessCount += 1
                                     } catch {
                                         print("COMPARTILHAMENTO: ❌ Erro ao atualizar parent da atividade existente: \(error)")
                                     }
@@ -291,7 +486,68 @@ final class CloudService {
                         }
                     }
                     
-                    print("COMPARTILHAMENTO: ✅ Hierarquia configurada: \(successCount)/\(activities.count) atividades como filhas")
+                    print("COMPARTILHAMENTO: ✅ Hierarquia configurada para atividades: \(activitySuccessCount)/\(activities.count) atividades como filhas")
+                    
+                    // 3. Configurar cada recompensa coletada como FILHA do Kid
+                    var rewardSuccessCount = 0
+                    for (index, collectedReward) in collectedRewards.enumerated() {
+                        if let rewardRecord = collectedReward.associatedRecord {
+                            print("COMPARTILHAMENTO: Configurando recompensa \(index + 1)/\(collectedRewards.count) como filha...")
+                            
+                            // CONFIGURAR HIERARQUIA PAI-FILHO EXPLÍCITA
+                            rewardRecord.setParent(record)
+                            
+                            // Manter a kidReference também para busca
+                            rewardRecord["kidReference"] = CKRecord.Reference(recordID: record.recordID, action: .deleteSelf)
+                            
+                            // Garantir que todos os campos estão corretos
+                            rewardRecord["kidID"] = kidName
+                            
+                            print("COMPARTILHAMENTO: - Parent configurado: \(rewardRecord.parent?.recordID.recordName ?? "nil")")
+                            print("COMPARTILHAMENTO: - kidReference: \(rewardRecord["kidReference"] != nil)")
+                            print("COMPARTILHAMENTO: - kidID: \(rewardRecord["kidID"] ?? "nil")")
+                            
+                            do {
+                                let savedRecord = try await privateDB.save(rewardRecord)
+                                print("COMPARTILHAMENTO: ✅ Recompensa \(index + 1) configurada como filha: \(savedRecord.recordID.recordName)")
+                                
+                                // Verificar se ficou com parent após salvar
+                                if let parent = savedRecord.parent {
+                                    print("COMPARTILHAMENTO: ✅ Parent confirmado após salvar: \(parent.recordID.recordName)")
+                                } else {
+                                    print("COMPARTILHAMENTO: ⚠️ Parent não está definido após salvar!")
+                                }
+                                
+                                rewardSuccessCount += 1
+                            } catch {
+                                let errorDescription = error.localizedDescription
+                                if errorDescription.contains("already exists") {
+                                    print("COMPARTILHAMENTO: ℹ️ Recompensa \(index + 1) já existe, atualizando parent...")
+                                    
+                                    // Tentar buscar e atualizar o registro existente
+                                    do {
+                                        let existingRecord = try await privateDB.record(for: rewardRecord.recordID)
+                                        existingRecord.setParent(record)
+                                        existingRecord["kidReference"] = CKRecord.Reference(recordID: record.recordID, action: .deleteSelf)
+                                        existingRecord["kidID"] = kidName
+                                        
+                                        let updatedRecord = try await privateDB.save(existingRecord)
+                                        print("COMPARTILHAMENTO: ✅ Parent atualizado para recompensa existente: \(updatedRecord.recordID.recordName)")
+                                        rewardSuccessCount += 1
+                                    } catch {
+                                        print("COMPARTILHAMENTO: ❌ Erro ao atualizar parent da recompensa existente: \(error)")
+                                    }
+                                } else {
+                                    print("COMPARTILHAMENTO: ❌ Erro ao salvar recompensa \(index + 1): \(errorDescription)")
+                                }
+                            }
+                            
+                            // Pequeno delay entre salvamentos para evitar conflitos
+                            try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 segundo
+                        }
+                    }
+                    
+                    print("COMPARTILHAMENTO: ✅ Hierarquia configurada para recompensas: \(rewardSuccessCount)/\(collectedRewards.count) recompensas como filhas")
                     
                     // Aguardar um pouco para o CloudKit processar a hierarquia
                     try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 segundo
@@ -318,15 +574,22 @@ final class CloudService {
         share[CKShare.SystemFieldKey.title] = "Compartilhando filho: \(record["kidName"] ?? "Unknown")"
         share.publicPermission = CKShare.ParticipantPermission.readWrite
         
-        // Buscar todas as atividades relacionadas a este Kid
+        // Buscar todas as atividades e recompensas relacionadas a este Kid
         let kidName = record.recordID.recordName
         print("COMPARTILHAMENTO: Compartilhando Kid com ID: \(kidName)")
         
         let activities = try await fetchRelatedActivities(kidName: kidName)
         print("COMPARTILHAMENTO: Encontradas \(activities.count) atividades para compartilhar")
         
+        let collectedRewards = try await fetchRelatedCollectedRewards(kidName: kidName)
+        print("COMPARTILHAMENTO: Encontradas \(collectedRewards.count) recompensas para compartilhar")
+        
         for (index, activity) in activities.enumerated() {
             print("COMPARTILHAMENTO: Atividade \(index): ID=\(activity.activityID), Data=\(activity.date)")
+        }
+        
+        for (index, collectedReward) in collectedRewards.enumerated() {
+            print("COMPARTILHAMENTO: Recompensa \(index): RewardID=\(collectedReward.rewardID), Data=\(collectedReward.dateCollected)")
         }
         
         do {
@@ -334,7 +597,7 @@ final class CloudService {
             print("COMPARTILHAMENTO: Criando novo compartilhamento com hierarquia pai-filho...")
             
             // 1. Primeiro configurar as atividades como filhas ANTES de criar o compartilhamento
-            var successCount = 0
+            var activitySuccessCount = 0
             for (index, activity) in activities.enumerated() {
                 if let activityRecord = activity.associatedRecord {
                     print("COMPARTILHAMENTO: Pré-configurando atividade \(index + 1)/\(activities.count) como filha...")
@@ -349,7 +612,7 @@ final class CloudService {
                     do {
                         let savedRecord = try await privateDB.save(activityRecord)
                         print("COMPARTILHAMENTO: ✅ Atividade \(index + 1) pré-configurada como filha: \(savedRecord.recordID.recordName)")
-                        successCount += 1
+                        activitySuccessCount += 1
                     } catch {
                         print("COMPARTILHAMENTO: ❌ Erro ao pré-configurar atividade \(index + 1): \(error.localizedDescription)")
                     }
@@ -359,9 +622,37 @@ final class CloudService {
                 }
             }
             
-            print("COMPARTILHAMENTO: ✅ Pré-configuradas \(successCount)/\(activities.count) atividades como filhas")
+            print("COMPARTILHAMENTO: ✅ Pré-configuradas \(activitySuccessCount)/\(activities.count) atividades como filhas")
             
-            // 2. Agora criar o compartilhamento (que deve incluir as atividades automaticamente)
+            // 2. Configurar as recompensas como filhas ANTES de criar o compartilhamento
+            var rewardSuccessCount = 0
+            for (index, collectedReward) in collectedRewards.enumerated() {
+                if let rewardRecord = collectedReward.associatedRecord {
+                    print("COMPARTILHAMENTO: Pré-configurando recompensa \(index + 1)/\(collectedRewards.count) como filha...")
+                    
+                    // CONFIGURAR HIERARQUIA PAI-FILHO EXPLÍCITA
+                    rewardRecord.setParent(record)
+                    
+                    // Manter a kidReference também para busca
+                    rewardRecord["kidReference"] = CKRecord.Reference(recordID: record.recordID, action: .deleteSelf)
+                    rewardRecord["kidID"] = kidName
+                    
+                    do {
+                        let savedRecord = try await privateDB.save(rewardRecord)
+                        print("COMPARTILHAMENTO: ✅ Recompensa \(index + 1) pré-configurada como filha: \(savedRecord.recordID.recordName)")
+                        rewardSuccessCount += 1
+                    } catch {
+                        print("COMPARTILHAMENTO: ❌ Erro ao pré-configurar recompensa \(index + 1): \(error.localizedDescription)")
+                    }
+                    
+                    // Pequeno delay entre salvamentos
+                    try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 segundo
+                }
+            }
+            
+            print("COMPARTILHAMENTO: ✅ Pré-configuradas \(rewardSuccessCount)/\(collectedRewards.count) recompensas como filhas")
+            
+            // 3. Agora criar o compartilhamento (que deve incluir as atividades e recompensas automaticamente)
             let (initialResults, _) = try await privateDB.modifyRecords(saving: [record, share], deleting: [])
             print("COMPARTILHAMENTO: ✅ Compartilhamento criado com hierarquia: \(initialResults.count) registros base")
             
@@ -375,7 +666,6 @@ final class CloudService {
             completion(.failure(.couldNotShareRecord))
         }
     }
-    
     
     // MARK: - Activity Operations
     
@@ -806,6 +1096,29 @@ extension CloudService {
                         print("SHARED: Falha também ao buscar por referência: \(parentError)")
                         completion(.failure(parentError))
                     }
+                }
+            }
+        }
+    }
+    
+    private func fetchRelatedCollectedRewards(kidName: String) async throws -> [CollectedReward] {
+        print("BUSCA-RECOMPENSAS: Buscando recompensas para o Kid ID: \(kidName)")
+        let predicate = NSPredicate(format: "kidID == %@", kidName)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            client.fetch(
+                recordType: RecordType.collectedReward.rawValue,
+                dbType: .privateDB,
+                inZone: CloudConfig.recordZone.zoneID,
+                predicate: predicate
+            ) { (result: Result<[CollectedReward], CloudError>) in
+                do {
+                    let rewards = try result.get()
+                    print("BUSCA-RECOMPENSAS: Encontradas \(rewards.count) recompensas")
+                    continuation.resume(returning: rewards)
+                } catch {
+                    print("BUSCA-RECOMPENSAS: Erro ao buscar recompensas: \(error)")
+                    continuation.resume(throwing: error)
                 }
             }
         }

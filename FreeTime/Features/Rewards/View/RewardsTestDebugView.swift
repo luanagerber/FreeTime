@@ -9,13 +9,7 @@ import CloudKit
 
 struct RewardsTestDebugView: View {
     @StateObject private var store = RewardsStore()
-    @State private var statusMessage = "Ready to test..."
-    @State private var isLoading = false
     @State private var currentKidName = "Test Kid"
-    @State private var showKidSelector = false
-    
-    // Mock kid ID for testing (you'll need to get this from your actual kid)
-    @State private var testKidID: CKRecord.ID?
     
     // Test rewards (just first two from catalog)
     private var testRewards: [Reward] {
@@ -42,6 +36,9 @@ struct RewardsTestDebugView: View {
                     // MARK: - Collected Rewards
                     collectedRewardsSection
                     
+                    // MARK: - Father Operations
+                    fatherOperationsSection
+                    
                     // MARK: - CloudKit Actions
                     cloudKitActionsSection
                     
@@ -52,6 +49,13 @@ struct RewardsTestDebugView: View {
             }
             .navigationTitle("Rewards CloudKit Test")
             .navigationBarTitleDisplayMode(.inline)
+            .alert("Error", isPresented: $store.showError) {
+                Button("OK", role: .cancel) {
+                    store.clearError()
+                }
+            } message: {
+                Text(store.errorMessage)
+            }
         }
     }
     
@@ -78,29 +82,18 @@ struct RewardsTestDebugView: View {
                 .font(.headline)
             
             HStack {
-                if testKidID != nil {
-                    VStack(alignment: .leading) {
-                        Text("Name: \(currentKidName)")
-                        Text("ID: \(testKidID?.recordName.prefix(8) ?? "nil")...")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    Spacer()
-                    Button("Load Data") {
-                        loadDataForKid()
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(isLoading)
-                } else {
-                    Text("No kid ID set - need to create or fetch a kid first")
+                VStack(alignment: .leading) {
+                    Text("Name: \(currentKidName)")
+                    Text("Coins: \(store.coins)")
+                        .font(.caption)
                         .foregroundColor(.secondary)
-                    Spacer()
-                    Button("Create Test Kid") {
-                        createTestKid()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(isLoading)
                 }
+                Spacer()
+                Button("Create Test Kid") {
+                    store.createTestKid(name: currentKidName)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(store.isLoading)
             }
         }
         .padding()
@@ -119,23 +112,23 @@ struct RewardsTestDebugView: View {
             }
             
             HStack {
-                Button("Add 50 Coins") {
-                    testAddCoins(50)
+                Button("Add 50") {
+                    store.addCoins(50)
                 }
                 .buttonStyle(.bordered)
-                .disabled(testKidID == nil || isLoading)
+                .disabled(store.isLoading)
                 
-                Button("Add 100 Coins") {
-                    testAddCoins(100)
+                Button("Add 100") {
+                    store.addCoins(100)
                 }
                 .buttonStyle(.bordered)
-                .disabled(testKidID == nil || isLoading)
+                .disabled(store.isLoading)
                 
-                Button("Remove 25 Coins") {
-                    testRemoveCoins(25)
+                Button("Remove 25") {
+                    store.removeCoins(25)
                 }
                 .buttonStyle(.bordered)
-                .disabled(testKidID == nil || isLoading)
+                .disabled(store.isLoading)
             }
         }
         .padding()
@@ -166,10 +159,10 @@ struct RewardsTestDebugView: View {
                     Spacer()
                     
                     Button("Buy") {
-                        testCollectReward(reward)
+                        store.buyReward(reward)
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(store.coins < reward.cost || isLoading || testKidID == nil)
+                    .disabled(!store.canAfford(reward) || store.isLoading)
                 }
                 .padding(12)
                 .background(Color.green.opacity(0.1))
@@ -200,27 +193,54 @@ struct RewardsTestDebugView: View {
             } else {
                 ForEach(store.collectedRewards, id: \.id) { collectedReward in
                     HStack(spacing: 12) {
-                        Text(collectedReward.reward.image)
-                            .font(.system(size: 24))
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(collectedReward.reward.name)
-                                .font(.caption)
-                                .fontWeight(.medium)
+                        if let reward = collectedReward.reward {
+                            Text(reward.image)
+                                .font(.system(size: 24))
                             
-                            Text(collectedReward.date, style: .date)
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(reward.name)
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                
+                                Text(collectedReward.dateCollected, style: .date)
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                
+                                if collectedReward.isDelivered {
+                                    Text("✅ Delivered")
+                                        .font(.caption2)
+                                        .foregroundColor(.green)
+                                } else {
+                                    Text("⏳ Pending")
+                                        .font(.caption2)
+                                        .foregroundColor(.orange)
+                                }
+                            }
+                        } else {
+                            Image(systemName: "questionmark.circle")
+                                .font(.system(size: 24))
+                                .foregroundColor(.gray)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Unknown Reward")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.red)
+                                
+                                Text("ID: \(collectedReward.rewardID)")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
                         }
                         
                         Spacer()
                         
                         Button("Remove") {
-                            testRemoveCollectedReward(collectedReward.id)
+                            store.deleteCollectedReward(collectedReward)
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.mini)
-                        .disabled(isLoading || testKidID == nil)
+                        .disabled(store.isLoading)
                     }
                     .padding(8)
                     .background(Color.orange.opacity(0.1))
@@ -233,37 +253,53 @@ struct RewardsTestDebugView: View {
         .cornerRadius(12)
     }
     
+    private var fatherOperationsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("👨‍👧‍👦 Father Operations")
+                .font(.headline)
+            
+            HStack {
+                Text("Pending: \(store.getPendingRewards().count)")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+                
+                Spacer()
+                
+                Text("Delivered: \(store.getDeliveredRewards().count)")
+                    .font(.caption)
+                    .foregroundColor(.green)
+            }
+            
+            // Mark first pending reward as delivered for testing
+            if let firstPending = store.getPendingRewards().first {
+                Button("Mark '\(firstPending.reward?.name ?? "Unknown")' as Delivered") {
+                    store.markRewardAsDelivered(firstPending)
+                }
+                .buttonStyle(.bordered)
+                .disabled(store.isLoading)
+            } else {
+                Text("No pending rewards to deliver")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .italic()
+            }
+        }
+        .padding()
+        .background(Color.purple.opacity(0.1))
+        .cornerRadius(12)
+    }
+    
     private var cloudKitActionsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("☁️ CloudKit Actions")
                 .font(.headline)
             
             VStack(spacing: 8) {
-                Button("Refresh from CloudKit") {
-                    loadDataForKid()
+                Button("Refresh Collected Rewards") {
+                    store.refreshCollectedRewards()
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(isLoading || testKidID == nil)
-                
-                HStack {
-                    Button("Sync Coins Only") {
-                        syncCoinsOnly()
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(isLoading || testKidID == nil)
-                    
-                    Button("Sync Rewards Only") {
-                        syncRewardsOnly()
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(isLoading || testKidID == nil)
-                }
-                
-                Button("Sync All Data") {
-                    syncAllData()
-                }
-                .buttonStyle(.bordered)
-                .disabled(isLoading || testKidID == nil)
+                .disabled(store.isLoading)
             }
         }
         .padding()
@@ -277,12 +313,12 @@ struct RewardsTestDebugView: View {
                 .font(.headline)
             
             HStack {
-                if isLoading || store.isLoading {
+                if store.isLoading {
                     ProgressView()
                         .controlSize(.mini)
                 }
                 
-                Text(statusMessage)
+                Text(store.isLoading ? "Loading..." : "Ready")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
@@ -292,152 +328,6 @@ struct RewardsTestDebugView: View {
         .padding()
         .background(Color.gray.opacity(0.1))
         .cornerRadius(12)
-    }
-    
-    // MARK: - Test Functions
-    
-    private func createTestKid() {
-        isLoading = true
-        statusMessage = "Creating test kid..."
-        
-        let kid = Kid(name: currentKidName, coins: 100) // Start with 100 coins for testing
-        
-        CloudService.shared.saveKid(kid) { result in
-            isLoading = false
-            switch result {
-            case .success(let savedKid):
-                testKidID = savedKid.id
-                statusMessage = "✅ Test kid created successfully"
-                loadDataForKid()
-            case .failure(let error):
-                statusMessage = "❌ Failed to create test kid: \(error.localizedDescription)"
-            }
-        }
-    }
-    
-    private func loadDataForKid() {
-        guard let kidID = testKidID else {
-            statusMessage = "No kid ID available"
-            return
-        }
-        
-        isLoading = true
-        statusMessage = "Loading data for kid..."
-        
-        store.loadDataForKid(kidID) { result in
-            isLoading = false
-            switch result {
-            case .success:
-                statusMessage = "✅ Data loaded successfully"
-            case .failure(let error):
-                statusMessage = "❌ Failed to load data: \(error.localizedDescription)"
-            }
-        }
-    }
-    
-    private func testAddCoins(_ amount: Int) {
-        isLoading = true
-        statusMessage = "Adding \(amount) coins..."
-        
-        store.addCoinsAndSync(amount) { result in
-            isLoading = false
-            switch result {
-            case .success:
-                statusMessage = "✅ Added \(amount) coins successfully"
-            case .failure(let error):
-                statusMessage = "❌ Failed to add coins: \(error.localizedDescription)"
-            }
-        }
-    }
-    
-    private func testRemoveCoins(_ amount: Int) {
-        isLoading = true
-        statusMessage = "Removing \(amount) coins..."
-        
-        store.removeCoinsAndSync(amount) { result in
-            isLoading = false
-            switch result {
-            case .success:
-                statusMessage = "✅ Removed \(amount) coins successfully"
-            case .failure(let error):
-                statusMessage = "❌ Failed to remove coins: \(error.localizedDescription)"
-            }
-        }
-    }
-    
-    private func testCollectReward(_ reward: Reward) {
-        isLoading = true
-        statusMessage = "Collecting reward: \(reward.name)..."
-        
-        store.collectRewardAndSync(reward: reward) { result in
-            isLoading = false
-            switch result {
-            case .success:
-                statusMessage = "✅ Collected '\(reward.name)' successfully"
-            case .failure(let error):
-                    statusMessage = "❌ Failed to collect reward: \(error.localizedDescription)"
-            }
-        }
-    }
-    
-    private func testRemoveCollectedReward(_ rewardID: UUID) {
-        isLoading = true
-        statusMessage = "Removing collected reward..."
-        
-        store.removeCollectedRewardAndSync(by: rewardID) { result in
-            isLoading = false
-            switch result {
-            case .success:
-                statusMessage = "✅ Removed collected reward successfully"
-            case .failure(let error):
-                statusMessage = "❌ Failed to remove reward: \(error.localizedDescription)"
-            }
-        }
-    }
-    
-    private func syncCoinsOnly() {
-        isLoading = true
-        statusMessage = "Syncing coins to CloudKit..."
-        
-        store.syncCoinsToCloudKit { result in
-            isLoading = false
-            switch result {
-            case .success:
-                statusMessage = "✅ Coins synced successfully"
-            case .failure(let error):
-                statusMessage = "❌ Failed to sync coins: \(error.localizedDescription)"
-            }
-        }
-    }
-    
-    private func syncRewardsOnly() {
-        isLoading = true
-        statusMessage = "Syncing collected rewards to CloudKit..."
-        
-        store.syncCollectedRewardsToCloudKit { result in
-            isLoading = false
-            switch result {
-            case .success:
-                statusMessage = "✅ Collected rewards synced successfully"
-            case .failure(let error):
-                statusMessage = "❌ Failed to sync rewards: \(error.localizedDescription)"
-            }
-        }
-    }
-    
-    private func syncAllData() {
-        isLoading = true
-        statusMessage = "Syncing all data to CloudKit..."
-        
-        store.syncAllToCloudKit { result in
-            isLoading = false
-            switch result {
-            case .success:
-                statusMessage = "✅ All data synced successfully"
-            case .failure(let error):
-                statusMessage = "❌ Failed to sync data: \(error.localizedDescription)"
-            }
-        }
     }
 }
 

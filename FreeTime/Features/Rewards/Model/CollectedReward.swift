@@ -74,6 +74,7 @@ extension CollectedReward: RecordProtocol {
         record["dateCollected"] = dateCollected
         record["isDelivered"] = isDelivered
         
+        // IMPORTANT: Preserve the kidReference for updates
         if let kidRef = kidReference {
             record["kidReference"] = kidRef
         }
