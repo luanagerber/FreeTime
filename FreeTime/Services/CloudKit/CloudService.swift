@@ -718,3 +718,96 @@ extension CloudService {
         return recordID
     }
 }
+
+// MARK: - CollectedReward Operations
+extension CloudService {
+    
+    func saveCollectedReward(_ collectedReward: CollectedReward, completion: @escaping (Result<CollectedReward, CloudError>) -> Void) {
+        client.save(collectedReward, dbType: .privateDB, completion: completion)
+    }
+    
+    func fetchAllCollectedRewards(forKid kidID: String, completion: @escaping (Result<[CollectedReward], CloudError>) -> Void) {
+        let predicate = NSPredicate(format: "kidID == %@", kidID)
+        
+        client.fetch(
+            recordType: RecordType.collectedReward.rawValue,
+            dbType: .privateDB,
+            inZone: CloudConfig.recordZone.zoneID,
+            predicate: predicate
+        ) { (result: Result<[CollectedReward], CloudError>) in
+            switch result {
+            case .success(let collectedRewards):
+                let sortedRewards = collectedRewards.sorted {
+                    $0.dateCollected > $1.dateCollected // Most recent first
+                }
+                completion(.success(sortedRewards))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+    
+    func updateCollectedReward(_ collectedReward: CollectedReward, isShared: Bool, completion: @escaping (Result<CollectedReward, CloudError>) -> Void) {
+        let dbType: CloudConfig = isShared ? .sharedDB : .privateDB
+        client.modify(collectedReward, dbType: dbType, completion: completion)
+    }
+    
+    func deleteCollectedReward(_ collectedReward: CollectedReward, isShared: Bool, completion: @escaping (Result<Bool, CloudError>) -> Void) {
+        let dbType: CloudConfig = isShared ? .sharedDB : .privateDB
+        client.delete(collectedReward, dbType: dbType, completion: completion)
+    }
+    
+    func fetchSharedCollectedRewards(forKid kidID: String, completion: @escaping (Result<[CollectedReward], CloudError>) -> Void) {
+        guard let rootRecordID = getRootRecordID() else {
+            print("SHARED: Nenhum rootRecordID encontrado no UserDefaults")
+            completion(.failure(.kidNotCreated))
+            return
+        }
+        
+        print("SHARED: Buscando recompensas compartilhadas para kidID: \(kidID)")
+        print("SHARED: Usando rootRecordID.zoneID: \(rootRecordID.zoneID.zoneName)")
+        
+        let predicate = NSPredicate(format: "kidID == %@", kidID)
+        
+        client.fetch(
+            recordType: RecordType.collectedReward.rawValue,
+            dbType: .sharedDB,
+            inZone: rootRecordID.zoneID,
+            predicate: predicate
+        ) { (result: Result<[CollectedReward], CloudError>) in
+            switch result {
+            case .success(let collectedRewards):
+                print("SHARED: Sucesso! Encontradas \(collectedRewards.count) recompensas com predicate kidID")
+                let sortedRewards = collectedRewards.sorted {
+                    $0.dateCollected > $1.dateCollected
+                }
+                completion(.success(sortedRewards))
+            case .failure(let error):
+                print("SHARED: Falha ao buscar por kidID: \(error)")
+                
+                // Fallback: search by kidReference
+                print("SHARED: Tentando buscar por referência ao Kid")
+                let parentPredicate = NSPredicate(format: "kidReference == %@", CKRecord.Reference(recordID: rootRecordID, action: .none))
+                
+                self.client.fetch(
+                    recordType: RecordType.collectedReward.rawValue,
+                    dbType: .sharedDB,
+                    inZone: rootRecordID.zoneID,
+                    predicate: parentPredicate
+                ) { (parentResult: Result<[CollectedReward], CloudError>) in
+                    switch parentResult {
+                    case .success(let parentRewards):
+                        print("SHARED: Sucesso! Encontradas \(parentRewards.count) recompensas com predicate parentReference")
+                        let sortedRewards = parentRewards.sorted {
+                            $0.dateCollected > $1.dateCollected
+                        }
+                        completion(.success(sortedRewards))
+                    case .failure(let parentError):
+                        print("SHARED: Falha também ao buscar por referência: \(parentError)")
+                        completion(.failure(parentError))
+                    }
+                }
+            }
+        }
+    }
+}
