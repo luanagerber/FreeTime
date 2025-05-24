@@ -4,7 +4,7 @@ import CloudKit
 
 enum UserRole: String {
     case parent = "parent"
-    case child = "child"
+    case kid = "child"
     case undefined = "undefined"
 }
 
@@ -83,7 +83,7 @@ class UserManager: ObservableObject {
     // MARK: - Child Methods
     
     func setAsChild(withKidID kidID: CKRecord.ID, name: String) {
-        self.userRole = .child
+        self.userRole = .kid
         self.currentKidID = kidID
         self.currentKidName = name
         
@@ -97,7 +97,7 @@ class UserManager: ObservableObject {
             return
         }
         
-        self.userRole = .child
+        self.userRole = .kid
         self.currentKidID = kidID
         self.currentKidName = kid.name
         
@@ -111,7 +111,7 @@ class UserManager: ObservableObject {
     }
     
     var isChild: Bool {
-        return userRole == .child
+        return userRole == .kid
     }
     
     var hasValidKid: Bool {

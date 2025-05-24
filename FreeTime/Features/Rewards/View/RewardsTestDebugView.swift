@@ -4,45 +4,33 @@
 //
 //  Created by Luana Gerber on 23/05/25.
 //
+
 import SwiftUI
 import CloudKit
 
 struct RewardsTestDebugView: View {
     @StateObject private var store = RewardsStore()
-    @State private var currentKidName = "Test Kid"
-    
-    // Test rewards (just first two from catalog)
+    @ObservedObject private var userManager = UserManager.shared
+
+    private var currentKidName: String {
+        userManager.currentKidName.isEmpty ? "No Kid" : userManager.currentKidName
+    }
+
     private var testRewards: [Reward] {
         Array(Reward.catalog.prefix(2))
     }
-    
+
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
-                    
-                    // MARK: - Header
                     headerSection
-                    
-                    // MARK: - Kid Selection
-                    kidSelectionSection
-                    
-                    // MARK: - Coins Section
+                    kidInfoSection
                     coinsSection
-                    
-                    // MARK: - Available Rewards
                     availableRewardsSection
-                    
-                    // MARK: - Collected Rewards
                     collectedRewardsSection
-                    
-                    // MARK: - Father Operations
                     fatherOperationsSection
-                    
-                    // MARK: - CloudKit Actions
                     cloudKitActionsSection
-                    
-                    // MARK: - Status
                     statusSection
                 }
                 .padding()
@@ -56,17 +44,19 @@ struct RewardsTestDebugView: View {
             } message: {
                 Text(store.errorMessage)
             }
+            .onAppear {
+                if let kidID = userManager.currentKidID, userManager.hasValidKid {
+                    store.loadKidData()
+                }
+            }
         }
     }
-    
-    // MARK: - Sections
-    
+
     private var headerSection: some View {
         VStack {
             Text("🧪 CloudKit Test & Debug")
                 .font(.title2)
                 .fontWeight(.bold)
-            
             Text("Test rewards store CloudKit integration")
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -75,55 +65,42 @@ struct RewardsTestDebugView: View {
         .background(Color.blue.opacity(0.1))
         .cornerRadius(12)
     }
-    
-    private var kidSelectionSection: some View {
+
+    private var kidInfoSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("👶 Current Kid")
                 .font(.headline)
-            
-            HStack {
-                VStack(alignment: .leading) {
-                    Text("Name: \(currentKidName)")
-                    Text("Coins: \(store.coins)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                Spacer()
-                Button("Create Test Kid") {
-                    store.createTestKid(name: currentKidName)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(store.isLoading)
+            VStack(alignment: .leading) {
+                Text("Name: \(currentKidName)")
+                Text("Coins: \(store.coins)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
         }
         .padding()
         .background(Color.gray.opacity(0.1))
         .cornerRadius(12)
     }
-    
+
     private var coinsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("🪙 Coins")
                 .font(.headline)
-            
             HStack {
                 CoinsView(amount: store.coins, opacity: 0.3)
                 Spacer()
             }
-            
             HStack {
                 Button("Add 50") {
                     store.addCoins(50)
                 }
                 .buttonStyle(.bordered)
                 .disabled(store.isLoading)
-                
                 Button("Add 100") {
                     store.addCoins(100)
                 }
                 .buttonStyle(.bordered)
                 .disabled(store.isLoading)
-                
                 Button("Remove 25") {
                     store.removeCoins(25)
                 }
@@ -135,29 +112,24 @@ struct RewardsTestDebugView: View {
         .background(Color.yellow.opacity(0.1))
         .cornerRadius(12)
     }
-    
+
     private var availableRewardsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("🎁 Available Rewards")
                 .font(.headline)
-            
-            ForEach(testRewards, id: \.id) { reward in
+            ForEach(testRewards, id: \ .id) { reward in
                 HStack(spacing: 12) {
                     Text(reward.image)
                         .font(.system(size: 32))
-                    
                     VStack(alignment: .leading, spacing: 4) {
                         Text(reward.name)
                             .font(.subheadline)
                             .fontWeight(.medium)
-                        
                         Text("\(reward.cost) coins")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
-                    
                     Spacer()
-                    
                     Button("Buy") {
                         store.buyReward(reward)
                     }
@@ -173,7 +145,7 @@ struct RewardsTestDebugView: View {
         .background(Color.green.opacity(0.05))
         .cornerRadius(12)
     }
-    
+
     private var collectedRewardsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -184,28 +156,24 @@ struct RewardsTestDebugView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
             if store.collectedRewards.isEmpty {
                 Text("No rewards collected yet")
                     .foregroundColor(.secondary)
                     .italic()
                     .padding()
             } else {
-                ForEach(store.collectedRewards, id: \.id) { collectedReward in
+                ForEach(store.collectedRewards, id: \ .id) { collectedReward in
                     HStack(spacing: 12) {
                         if let reward = collectedReward.reward {
                             Text(reward.image)
                                 .font(.system(size: 24))
-                            
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(reward.name)
                                     .font(.caption)
                                     .fontWeight(.medium)
-                                
                                 Text(collectedReward.dateCollected, style: .date)
                                     .font(.caption2)
                                     .foregroundColor(.secondary)
-                                
                                 if collectedReward.isDelivered {
                                     Text("✅ Delivered")
                                         .font(.caption2)
@@ -220,21 +188,17 @@ struct RewardsTestDebugView: View {
                             Image(systemName: "questionmark.circle")
                                 .font(.system(size: 24))
                                 .foregroundColor(.gray)
-                            
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Unknown Reward")
                                     .font(.caption)
                                     .fontWeight(.medium)
                                     .foregroundColor(.red)
-                                
                                 Text("ID: \(collectedReward.rewardID)")
                                     .font(.caption2)
                                     .foregroundColor(.secondary)
                             }
                         }
-                        
                         Spacer()
-                        
                         Button("Remove") {
                             store.deleteCollectedReward(collectedReward)
                         }
@@ -252,25 +216,20 @@ struct RewardsTestDebugView: View {
         .background(Color.orange.opacity(0.05))
         .cornerRadius(12)
     }
-    
+
     private var fatherOperationsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("👨‍👧‍👦 Father Operations")
                 .font(.headline)
-            
             HStack {
                 Text("Pending: \(store.getPendingRewards().count)")
                     .font(.caption)
                     .foregroundColor(.orange)
-                
                 Spacer()
-                
                 Text("Delivered: \(store.getDeliveredRewards().count)")
                     .font(.caption)
                     .foregroundColor(.green)
             }
-            
-            // Mark first pending reward as delivered for testing
             if let firstPending = store.getPendingRewards().first {
                 Button("Mark '\(firstPending.reward?.name ?? "Unknown")' as Delivered") {
                     store.markRewardAsDelivered(firstPending)
@@ -288,40 +247,34 @@ struct RewardsTestDebugView: View {
         .background(Color.purple.opacity(0.1))
         .cornerRadius(12)
     }
-    
+
     private var cloudKitActionsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("☁️ CloudKit Actions")
                 .font(.headline)
-            
-            VStack(spacing: 8) {
-                Button("Refresh Collected Rewards") {
-                    store.refreshCollectedRewards()
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(store.isLoading)
+            Button("Refresh Collected Rewards") {
+                store.refreshCollectedRewards()
             }
+            .buttonStyle(.borderedProminent)
+            .disabled(store.isLoading)
         }
         .padding()
         .background(Color.blue.opacity(0.1))
         .cornerRadius(12)
     }
-    
+
     private var statusSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("📋 Status")
                 .font(.headline)
-            
             HStack {
                 if store.isLoading {
                     ProgressView()
                         .controlSize(.mini)
                 }
-                
                 Text(store.isLoading ? "Loading..." : "Ready")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
                 Spacer()
             }
         }

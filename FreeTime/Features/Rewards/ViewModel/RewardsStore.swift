@@ -17,7 +17,7 @@ class RewardsStore: ObservableObject {
     @Published var errorMessage: String = ""
     @Published var showError: Bool = false
     
-    private var currentKidID: CKRecord.ID?
+    var currentKidID: CKRecord.ID?
     
     init() {
         self.rewards = Reward.catalog
@@ -38,7 +38,7 @@ extension RewardsStore {
         loadKidData()
     }
     
-    private func loadKidData() {
+    func loadKidData() {
         guard let kidID = currentKidID else { return }
         
         isLoading = true
