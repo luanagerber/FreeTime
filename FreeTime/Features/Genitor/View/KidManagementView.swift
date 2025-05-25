@@ -12,9 +12,10 @@ struct KidManagementView: View {
     
     @EnvironmentObject var coordinator: Coordinator
     @EnvironmentObject var invitationManager: InvitationStatusManager
+    @EnvironmentObject var firstLaunchManager: FirstLaunchManager
+
     
     @StateObject private var viewModel = GenitorViewModel.shared
-    @State private var hasSharedSuccessfully = false
     
     var body: some View {
         NavigationView {
@@ -33,7 +34,7 @@ struct KidManagementView: View {
                 Spacer()
                 
                 // Botão só aparece após compartilhamento bem-sucedido
-                if hasSharedSuccessfully || invitationManager.currentStatus == .sent {
+                if firstLaunchManager.hasCompletedInitialSetup {
                     Button("Próxima") {
                         goToNextView()
                     }
@@ -48,7 +49,7 @@ struct KidManagementView: View {
                         .fontWeight(.bold)
                     Text("Invitation Status: \(invitationManager.currentStatus.rawValue)")
                         .font(.caption2)
-                    Text("Has Shared: \(hasSharedSuccessfully ? "Yes" : "No")")
+                    Text("Has Shared: \(firstLaunchManager.hasCompletedInitialSetup ? "Yes" : "No")")
                         .font(.caption2)
                     Text("Kids Count: \(viewModel.kids.count)")
                         .font(.caption2)
@@ -65,16 +66,10 @@ struct KidManagementView: View {
             .padding()
             .onAppear {
                 viewModel.setupCloudKit()
-                // Se já foi compartilhado anteriormente, mostra o botão
-                if invitationManager.currentStatus == .sent {
-                    hasSharedSuccessfully = true
-                }
             }
             .sheet(isPresented: $viewModel.sharingSheet, onDismiss: {
                 // Quando o sheet de compartilhamento fechar, marca como compartilhado
-                if invitationManager.currentStatus == .sent {
-                    hasSharedSuccessfully = true
-                }
+                firstLaunchManager.hasCompletedInitialSetup = true
             }) {
                 if let shareView = viewModel.shareView {
                     shareView
@@ -112,7 +107,7 @@ struct KidManagementView: View {
                 Text("Criança: \(firstKid.name)")
                     .font(.headline)
                 
-                if !hasSharedSuccessfully {
+                if !firstLaunchManager.hasCompletedInitialSetup {
                     Button("Compartilhar Link") {
                         viewModel.selectedKid = firstKid
                         viewModel.shareKid(firstKid)

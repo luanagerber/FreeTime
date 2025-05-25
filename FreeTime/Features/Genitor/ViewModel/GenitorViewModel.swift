@@ -382,6 +382,7 @@ class GenitorViewModel: ObservableObject {
         UserDefaults.standard.removeObject(forKey: "invitationStatus")
         UserDefaults.standard.removeObject(forKey: "currentKidRecordName")
         UserDefaults.standard.removeObject(forKey: "currentKidName")
+        UserDefaults.standard.removeObject(forKey: "hasCompletedInitialSetup") // Nova linha
         UserDefaults.standard.synchronize()
         
         // Clear local data
@@ -389,6 +390,7 @@ class GenitorViewModel: ObservableObject {
         selectedKid = nil
         childName = ""
         InvitationStatusManager.shared.updateStatus(to: .pending)
+        FirstLaunchManager.shared.reset() // Nova linha
         UserManager.shared.reset()
         feedbackMessage = "✅ App resetado completamente!"
     }

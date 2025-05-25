@@ -11,7 +11,8 @@ struct CoordinatorView: View {
     
     @StateObject var coordinator = Coordinator()
     @StateObject private var invitationManager = InvitationStatusManager.shared
-    
+    @StateObject private var launchManager = FirstLaunchManager.shared
+
     var body: some View {
         NavigationStack(path: $coordinator.path) {
             coordinator.build(page: initialPage)
@@ -21,6 +22,7 @@ struct CoordinatorView: View {
         }
         .environmentObject(coordinator)
         .environmentObject(invitationManager)
+        .environmentObject(launchManager)
     }
     
     private var initialPage: Page {
@@ -37,8 +39,8 @@ struct CoordinatorView: View {
     private var phoneInitialPage: Page {
         switch invitationManager.currentStatus {
         case .accepted, .sent:
-//            return .genitorHome
-            return .rewardsStoreDebug
+            return .genitorHome
+//            return .rewardsStoreDebug
         case .pending:
             return .kidManagement
         }
