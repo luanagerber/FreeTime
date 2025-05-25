@@ -21,6 +21,9 @@ struct RewardsStoreView: View {
     var body: some View {
         ZStack {
             VStack {
+                // Debug info
+                debugInfoSection
+                
                 ScrollView(.vertical) {
                     headerSection
                     
@@ -54,18 +57,43 @@ struct RewardsStoreView: View {
         }
     }
     
+    private var debugInfoSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Debug Info:")
+                .font(.caption)
+                .fontWeight(.bold)
+            Text("Kid ID: \(store.currentKidID?.recordName ?? "None")")
+                .font(.caption2)
+            Text("Kid Name: \(UserManager.shared.currentKidName)")
+                .font(.caption2)
+            Text("User Role: \(UserManager.shared.userRole.rawValue)")
+                .font(.caption2)
+        }
+        .padding(8)
+        .background(Color.orange.opacity(0.1))
+        .cornerRadius(8)
+        .padding(.horizontal)
+    }
+    
     private var headerSection: some View {
         HStack {
-            KidMiniProfileView(name: "Current Kid") // You might want to pass actual kid name
+            KidMiniProfileView(name: UserManager.shared.currentKidName.isEmpty ? "Current Kid" : UserManager.shared.currentKidName)
             CoinsView(amount: store.coins, opacity: 0.2)
         }
         .padding(.horizontal)
     }
     
     private var bottomButtonsSection: some View {
-        HStack(spacing: 16) {
-            collectedRewardsButton
-            addCoinsButtonTest
+        VStack(spacing: 16) {
+            HStack(spacing: 16) {
+                collectedRewardsButton
+                refreshButton
+            }
+            
+            HStack(spacing: 16) {
+                addCoinsButtonTest
+                addCoinsButtonAlternative
+            }
         }
         .padding()
     }
@@ -79,6 +107,34 @@ struct RewardsStoreView: View {
                 .padding()
                 .background(Color.green)
                 .cornerRadius(8)
+        }
+        .disabled(store.isLoading)
+    }
+    
+    private var addCoinsButtonAlternative: some View {
+        Button {
+            store.addCoinsAlternative(50)
+        } label: {
+            Text("Add 50 (Alt)")
+                .foregroundStyle(.white)
+                .padding()
+                .background(Color.blue)
+                .cornerRadius(8)
+        }
+        .disabled(store.isLoading)
+    }
+    
+    private var refreshButton: some View {
+        Button {
+            store.loadKidData()
+        } label: {
+            HStack {
+                Image(systemName: "arrow.clockwise")
+                Text("Refresh")
+            }
+            .padding()
+            .background(Color.gray.opacity(0.2))
+            .cornerRadius(8)
         }
         .disabled(store.isLoading)
     }
