@@ -1,5 +1,5 @@
 //
-//  ActivityManagementView.swift
+//  ActivityManagementDebugView.swift
 //  FreeTime
 //
 //  Created by Luana Gerber on 22/05/25.
@@ -10,8 +10,9 @@ import CloudKit
 
 struct ActivityManagementDebugView: View {
     @EnvironmentObject var coordinator: Coordinator
-
     @StateObject private var viewModel = GenitorViewModel.shared
+    @State private var selectedKidActivities: [ActivitiesRegister] = []
+    @State private var isLoadingActivities = false
     
     var body: some View {
         NavigationView {
@@ -27,11 +28,15 @@ struct ActivityManagementDebugView: View {
                     
                     if !viewModel.kids.isEmpty {
                         kidsActivitiesSection
+                        
+                        if viewModel.selectedKid != nil {
+                            registeredActivitiesSection
+                        }
                     } else if !viewModel.isLoading && viewModel.zoneReady {
                         emptyStateView
                     }
                     
-                    if viewModel.isLoading {
+                    if viewModel.isLoading || isLoadingActivities {
                         ProgressView()
                             .padding()
                     }
@@ -55,6 +60,9 @@ struct ActivityManagementDebugView: View {
             .navigationTitle("Gerenciar Atividades")
             .refreshable {
                 viewModel.refresh()
+                if let selectedKid = viewModel.selectedKid {
+                    loadActivities(for: selectedKid)
+                }
             }
         }
     }
@@ -81,7 +89,12 @@ struct ActivityManagementDebugView: View {
     }
     
     private var refreshButton: some View {
-        Button(action: viewModel.refresh) {
+        Button(action: {
+            viewModel.refresh()
+            if let selectedKid = viewModel.selectedKid {
+                loadActivities(for: selectedKid)
+            }
+        }) {
             Label("Atualizar dados", systemImage: "arrow.clockwise")
                 .padding()
                 .frame(maxWidth: .infinity)
@@ -89,7 +102,7 @@ struct ActivityManagementDebugView: View {
                 .foregroundColor(.blue)
                 .cornerRadius(8)
         }
-        .disabled(viewModel.isLoading)
+        .disabled(viewModel.isLoading || isLoadingActivities)
     }
     
     private var kidsActivitiesSection: some View {
@@ -108,17 +121,61 @@ struct ActivityManagementDebugView: View {
                     }
                     Spacer()
                     
-                    Button("Atribuir Atividade") {
-                        viewModel.selectedKid = kid
-                        viewModel.showActivitySelector = true
+                    HStack(spacing: 12) {
+                        Button("Ver Atividades") {
+                            viewModel.selectedKid = kid
+                            loadActivities(for: kid)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        
+                        Button("Atribuir Nova") {
+                            viewModel.selectedKid = kid
+                            viewModel.showActivitySelector = true
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
                     }
-                    .buttonStyle(.bordered)
                 }
+                .padding(.vertical, 4)
             }
-            .frame(height: 200)
+            .frame(height: CGFloat(viewModel.kids.count * 80).clamped(to: 100...300))
         }
         .padding()
         .background(Color.gray.opacity(0.1))
+        .cornerRadius(8)
+    }
+    
+    private var registeredActivitiesSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Atividades de \(viewModel.selectedKid?.name ?? "")")
+                    .font(.headline)
+                Spacer()
+                Text("\(selectedKidActivities.count) atividades")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            if selectedKidActivities.isEmpty && !isLoadingActivities {
+                Text("Nenhuma atividade registrada ainda")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 20)
+            } else {
+                ScrollView {
+                    VStack(spacing: 8) {
+                        ForEach(selectedKidActivities, id: \.id) { activityRegister in
+                            ActivityRowView(activityRegister: activityRegister)
+                        }
+                    }
+                }
+                .frame(maxHeight: 400)
+            }
+        }
+        .padding()
+        .background(Color.blue.opacity(0.05))
         .cornerRadius(8)
     }
     
@@ -214,9 +271,131 @@ struct ActivityManagementDebugView: View {
             }
         }
     }
+    
+    // MARK: - Helper Methods
+    
+    private func loadActivities(for kid: Kid) {
+        guard let kidID = kid.id?.recordName else { return }
+        
+        isLoadingActivities = true
+        CloudService.shared.fetchAllActivities(forKid: kidID) { result in
+            DispatchQueue.main.async {
+                isLoadingActivities = false
+                switch result {
+                case .success(let activities):
+                    selectedKidActivities = activities
+                case .failure(let error):
+                    print("Erro ao carregar atividades: \(error)")
+                    selectedKidActivities = []
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Activity Row View
+
+struct ActivityRowView: View {
+    let activityRegister: ActivitiesRegister
+    
+    private var activity: Activity? {
+        activityRegister.activity
+    }
+    
+    private var statusIcon: String {
+        switch activityRegister.registerStatus {
+        case .notStarted:
+            return "clock"
+        case .inProgress:
+            return "play.circle"
+        case .completed:
+            return "checkmark.circle.fill"
+        }
+    }
+    
+    private var statusColor: Color {
+        switch activityRegister.registerStatus {
+        case .notStarted:
+            return .green
+        case .inProgress:
+            return .yellow
+        case .completed:
+            return .gray
+        }
+    }
+    
+    var body: some View {
+        HStack {
+            Image(systemName: statusIcon)
+                .foregroundColor(statusColor)
+                .font(.title2)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(activity?.name ?? "Atividade Desconhecida")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                
+                HStack {
+                    Text(activityRegister.date, style: .date)
+                    Text("•")
+                    Text(activityRegister.date, style: .time)
+                    Text("•")
+                    Text(formatDuration(activityRegister.duration))
+                }
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            Text(activityRegister.registerStatus.displayName)
+                .font(.caption)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(statusColor.opacity(0.2))
+                .foregroundColor(statusColor)
+                .cornerRadius(4)
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(Color.white)
+        .cornerRadius(8)
+        .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+    }
+    
+    private func formatDuration(_ duration: TimeInterval) -> String {
+        let hours = Int(duration) / 3600
+        let minutes = (Int(duration) % 3600) / 60
+        
+        if hours > 0 {
+            return "\(hours)h \(minutes)min"
+        } else {
+            return "\(minutes)min"
+        }
+    }
+}
+
+// MARK: - Extensions
+
+extension RegisterStatus {
+    var displayName: String {
+        switch self {
+        case .notStarted:
+            return "Agendada"
+        case .inProgress:
+            return "Em Progresso"
+        case .completed:
+            return "Concluída"
+        }
+    }
+}
+
+extension Comparable {
+    func clamped(to limits: ClosedRange<Self>) -> Self {
+        return min(max(self, limits.lowerBound), limits.upperBound)
+    }
 }
 
 #Preview {
     ActivityManagementDebugView()
 }
-
