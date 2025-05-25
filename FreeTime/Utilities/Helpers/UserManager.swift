@@ -3,7 +3,7 @@ import SwiftUI
 import CloudKit
 
 enum UserRole: String {
-    case parent = "parent"
+    case genitor = "parent"
     case kid = "child"
     case undefined = "undefined"
 }
@@ -69,13 +69,13 @@ class UserManager: ObservableObject {
             return
         }
         
-        self.userRole = .parent
+        self.userRole = .genitor
         self.currentKidID = kidID
         self.currentKidName = kid.name
     }
     
     func setAsParent(withKidID kidID: CKRecord.ID, name: String) {
-        self.userRole = .parent
+        self.userRole = .genitor
         self.currentKidID = kidID
         self.currentKidName = name
     }
@@ -107,7 +107,7 @@ class UserManager: ObservableObject {
     // MARK: - Helper Methods
     
     var isParent: Bool {
-        return userRole == .parent
+        return userRole == .genitor
     }
     
     var isChild: Bool {

@@ -37,6 +37,12 @@ struct CoordinatorView: View {
     }
     
     private var phoneInitialPage: Page {
+        // Se for o primeiro acesso, sempre mostra KidManagement
+        if !launchManager.hasCompletedInitialSetup {
+            return .kidManagement
+        }
+        
+        // Para acessos subsequentes, navega baseado no status
         switch invitationManager.currentStatus {
         case .accepted, .sent:
             return .genitorHome

@@ -205,9 +205,6 @@ class GenitorViewModel: ObservableObject {
                         self.feedbackMessage = "✅ Compartilhamento preparado para \(kid.name)"
                         self.sharingSheet = true
                         
-                        // Apenas atualiza o status, não navega automaticamente
-                        InvitationStatusManager.shared.updateStatus(to: .sent)
-                        
                     case .failure(let error):
                         self.feedbackMessage = "❌ Erro ao compartilhar criança: \(error)"
                     }
