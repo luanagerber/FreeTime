@@ -1,5 +1,5 @@
 //
-//  ChildManagementView.swift
+//  KidManagementView.swift
 //  FreeTime
 //
 //  Created by Luana Gerber on 22/05/25.
@@ -11,8 +11,15 @@ import CloudKit
 struct KidManagementView: View {
     
     @EnvironmentObject var coordinator: Coordinator
+    @EnvironmentObject var invitationManager: InvitationStatusManager
     
     @StateObject private var viewModel = GenitorViewModel.shared
+    @State private var hasSharedSuccessfully = false
+    
+    @State private var isSharing = false
+    @State private var shareCompleted = false
+    @State private var sharedURL: URL? = nil
+
     
     var body: some View {
         NavigationView {
@@ -30,17 +37,30 @@ struct KidManagementView: View {
                 
                 Spacer()
                 
-                Button("Próxima View"){
-                    goToNextView()
+                // Botão só aparece após compartilhamento bem-sucedido
+                if hasSharedSuccessfully || invitationManager.currentStatus == .sent {
+                    Button("Próxima") {
+                        goToNextView()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .padding(.bottom)
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(viewModel.shouldNavigateToNextView)
-                .padding(.bottom)
                 
-                // Feedback message at the bottom
-//                if !viewModel.feedbackMessage.isEmpty {
-//                    feedbackMessageView
-//                }
+                // Debug info
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Debug Info:")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                    Text("Invitation Status: \(invitationManager.currentStatus.rawValue)")
+                        .font(.caption2)
+                    Text("Has Shared: \(hasSharedSuccessfully ? "Yes" : "No")")
+                        .font(.caption2)
+                    Text("Kids Count: \(viewModel.kids.count)")
+                        .font(.caption2)
+                }
+                .padding(8)
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(8)
                 
                 if viewModel.isLoading {
                     ProgressView()
@@ -50,8 +70,17 @@ struct KidManagementView: View {
             .padding()
             .onAppear {
                 viewModel.setupCloudKit()
+                // Se já foi compartilhado anteriormente, mostra o botão
+                if invitationManager.currentStatus == .sent {
+                    hasSharedSuccessfully = true
+                }
             }
-            .sheet(isPresented: $viewModel.sharingSheet) {
+            .sheet(isPresented: $viewModel.sharingSheet, onDismiss: {
+                // Quando o sheet de compartilhamento fechar, marca como compartilhado
+                if invitationManager.currentStatus == .sent {
+                    hasSharedSuccessfully = true
+                }
+            }) {
                 if let shareView = viewModel.shareView {
                     shareView
                 } else {
@@ -88,13 +117,18 @@ struct KidManagementView: View {
                 Text("Criança: \(firstKid.name)")
                     .font(.headline)
                 
-                Button("Compartilhar Link") {
-                    viewModel.selectedKid = firstKid
-                    viewModel.shareKid(firstKid)
+                if !hasSharedSuccessfully {
+                    Button("Compartilhar Link") {
+                        viewModel.selectedKid = firstKid
+                        viewModel.shareKid(firstKid)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(viewModel.isLoading)
+                } else {
+                    Label("Link Compartilhado", systemImage: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                        .font(.subheadline)
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(viewModel.isLoading)
-                
             }
         }
         .padding()
@@ -102,21 +136,13 @@ struct KidManagementView: View {
         .cornerRadius(12)
     }
     
-    private var feedbackMessageView: some View {
-        Text(viewModel.feedbackMessage)
-            .padding()
-            .background(Color.orange.opacity(0.1))
-            .cornerRadius(8)
-            .multilineTextAlignment(.center)
-    }
-    
     func goToNextView() {
-//        coordinator.push(.genitorHome)
         coordinator.push(.rewardsStoreDebug)
-
     }
 }
 
 #Preview {
     KidManagementView()
+        .environmentObject(Coordinator())
+        .environmentObject(InvitationStatusManager.shared)
 }

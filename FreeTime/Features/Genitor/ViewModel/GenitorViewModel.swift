@@ -25,7 +25,6 @@ class GenitorViewModel: ObservableObject {
     
     // MARK: - Published Properties
     @Published var childName = ""
-    @Published var shouldNavigateToNextView = false
     @Published var kids: [Kid] = []
     @Published var selectedKid: Kid?
     @Published var isLoading = false
@@ -124,7 +123,8 @@ class GenitorViewModel: ObservableObject {
                 }
                 self?.isLoading = false
             }
-        }    }
+        }
+    }
     
     private func loadKids() {
         isLoading = true
@@ -205,9 +205,8 @@ class GenitorViewModel: ObservableObject {
                         self.feedbackMessage = "✅ Compartilhamento preparado para \(kid.name)"
                         self.sharingSheet = true
                         
-                        
+                        // Apenas atualiza o status, não navega automaticamente
                         InvitationStatusManager.shared.updateStatus(to: .sent)
-                        prepareForNextView()
                         
                     case .failure(let error):
                         self.feedbackMessage = "❌ Erro ao compartilhar criança: \(error)"
@@ -373,15 +372,6 @@ class GenitorViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Navigation & UI Control
-    
-    func prepareForNextView() {
-        // Trigger navigation after successful sharing
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            self.shouldNavigateToNextView = true
-        }
-    }
-    
     // MARK: - Utility & Reset Operations
     
     func resetAllData() {
@@ -389,13 +379,17 @@ class GenitorViewModel: ObservableObject {
         UserDefaults.standard.removeObject(forKey: "userRole")
         UserDefaults.standard.removeObject(forKey: "rootRecordID")
         UserDefaults.standard.removeObject(forKey: "isZoneCreated")
+        UserDefaults.standard.removeObject(forKey: "invitationStatus")
+        UserDefaults.standard.removeObject(forKey: "currentKidRecordName")
+        UserDefaults.standard.removeObject(forKey: "currentKidName")
         UserDefaults.standard.synchronize()
         
         // Clear local data
         kids.removeAll()
         selectedKid = nil
         childName = ""
-        invitationManager.updateStatus(to: .pending)
+        InvitationStatusManager.shared.updateStatus(to: .pending)
+        UserManager.shared.reset()
         feedbackMessage = "✅ App resetado completamente!"
     }
     
