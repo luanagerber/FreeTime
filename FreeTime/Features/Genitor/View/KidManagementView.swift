@@ -16,11 +16,6 @@ struct KidManagementView: View {
     @StateObject private var viewModel = GenitorViewModel.shared
     @State private var hasSharedSuccessfully = false
     
-    @State private var isSharing = false
-    @State private var shareCompleted = false
-    @State private var sharedURL: URL? = nil
-
-    
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
