@@ -466,3 +466,63 @@ class GenitorViewModel: ObservableObject {
     }
     
 }
+
+// MARK: - Kid Management Extension
+extension GenitorViewModel {
+    
+    // MARK: - Computed Properties
+    
+    var hasKids: Bool {
+        !kids.isEmpty
+    }
+    
+    var firstKid: Kid? {
+        kids.first
+    }
+    
+    var canAddChild: Bool {
+        !childName.isEmpty && !isLoading && zoneReady
+    }
+    
+    var canShareKid: Bool {
+        !isLoading && firstKid != nil
+    }
+    
+    // MARK: - Kid Management Methods
+    
+    func prepareKidSharing() {
+        guard let kid = firstKid else { return }
+        selectedKid = kid
+        shareKid(kid)
+    }
+    
+    func clearChildName() {
+        childName = ""
+    }
+    
+    // MARK: - State Check Methods
+    
+    func checkShareState(for invitationStatus: InvitationStatus) -> Bool {
+        // Verifica se já existe um compartilhamento com base no status do convite
+        return invitationStatus == .sent
+    }
+    
+    func shouldShowShareButton(hasSharedSuccessfully: Bool) -> Bool {
+        return hasKids && !hasSharedSuccessfully
+    }
+    
+    func shouldShowShareConfirmation(hasSharedSuccessfully: Bool) -> Bool {
+        return hasKids && hasSharedSuccessfully
+    }
+    
+    // MARK: - Debug Info
+    
+    var debugInfo: [(label: String, value: String)] {
+        [
+            ("Zone Ready", zoneReady ? "Yes" : "No"),
+            ("Kids Count", "\(kids.count)"),
+            ("Is Loading", isLoading ? "Yes" : "No"),
+            ("Has Share View", shareView != nil ? "Yes" : "No")
+        ]
+    }
+}
