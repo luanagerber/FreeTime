@@ -240,77 +240,51 @@ extension RewardsStore {
             return
         }
         
-        // Determina qual banco usar baseado no tipo de usuário
-        let isSharedUser = UserManager.shared.isChild
-        print("RewardsStore: syncCoinsToCloudKit - isSharedUser: \(isSharedUser)")
+        let targetCoins = self.coins
+        print("RewardsStore: syncCoinsToCloudKit - Objetivo: atualizar para \(targetCoins) moedas")
         
-        let fetchCompletion: (Result<Kid, CloudError>) -> Void = { [weak self] result in
-            switch result {
-            case .success(var kid):
-                print("RewardsStore: Kid encontrado para atualizar moedas")
-                let currentKidCoins = kid.coins
-                let targetCoins = self?.coins ?? 0
+        // Busca diretamente o registro mais recente do CloudKit
+        let container = CKContainer(identifier: CloudConfig.containerIdentifier)
+        let database = UserManager.shared.isChild ? container.sharedCloudDatabase : container.privateCloudDatabase
+        
+        Task {
+            do {
+                // Busca o registro mais recente
+                let record = try await database.record(for: kidID)
+                print("RewardsStore: Registro encontrado, moedas atuais no CloudKit: \(record["coins"] ?? "nil")")
                 
-                print("RewardsStore: Moedas atuais: \(currentKidCoins), Moedas alvo: \(targetCoins)")
+                // Atualiza o valor das moedas
+                record["coins"] = targetCoins
                 
-                if targetCoins > currentKidCoins {
-                    kid.addCoins(targetCoins - currentKidCoins)
-                } else if targetCoins < currentKidCoins {
-                    kid.removeCoins(currentKidCoins - targetCoins)
-                }
+                // Salva o registro atualizado
+                let savedRecord = try await database.save(record)
+                print("RewardsStore: Registro salvo, moedas no CloudKit agora: \(savedRecord["coins"] ?? "nil")")
                 
-                // Usa associatedRecord ao invés de record
-                guard let recordToSave = kid.associatedRecord else {
-                    print("RewardsStore: Erro - associatedRecord é nil")
-                    DispatchQueue.main.async {
-                        completion(.failure(.recordNotFound))
-                    }
-                    return
-                }
-                
-                print("RewardsStore: Salvando record com \(kid.coins) moedas")
-                
-                let container = CKContainer(identifier: CloudConfig.containerIdentifier)
-                let database = isSharedUser ? container.sharedCloudDatabase : container.privateCloudDatabase
-                
-                Task {
-                    do {
-                        let savedRecord = try await database.save(recordToSave)
-                        print("RewardsStore: Record salvo com sucesso")
-                        
-                        if let updatedKid = Kid(record: savedRecord) {
-                            DispatchQueue.main.async {
-                                print("RewardsStore: Moedas atualizadas para \(updatedKid.coins)")
-                                self?.coins = updatedKid.coins
-                                completion(.success(()))
-                            }
-                        } else {
-                            print("RewardsStore: Erro ao criar Kid do record salvo")
-                            DispatchQueue.main.async {
-                                completion(.failure(.recordNotFound))
-                            }
-                        }
-                    } catch {
-                        print("RewardsStore: Erro ao salvar record: \(error)")
-                        DispatchQueue.main.async {
-                            completion(.failure(.couldNotSaveRecord))
-                        }
-                    }
-                }
-                
-            case .failure(let error):
-                print("RewardsStore: Erro ao buscar kid: \(error)")
                 DispatchQueue.main.async {
-                    completion(.failure(error))
+                    // Confirma que as moedas locais estão corretas
+                    self.coins = targetCoins
+                    completion(.success(()))
+                }
+                
+            } catch let error as CKError {
+                print("RewardsStore: Erro CKError ao sincronizar: \(error.localizedDescription)")
+                if error.code == .serverRecordChanged {
+                    // Em caso de conflito, tenta novamente
+                    print("RewardsStore: Conflito de versão detectado, tentando novamente...")
+                    DispatchQueue.main.async {
+                        self.syncCoinsToCloudKit(completion: completion)
+                    }
+                } else {
+                    DispatchQueue.main.async {
+                        completion(.failure(.couldNotSaveRecord))
+                    }
+                }
+            } catch {
+                print("RewardsStore: Erro geral ao sincronizar: \(error)")
+                DispatchQueue.main.async {
+                    completion(.failure(.couldNotSaveRecord))
                 }
             }
-        }
-        
-        // Busca o kid no banco apropriado
-        if isSharedUser {
-            CloudService.shared.fetchKid(withRecordID: kidID, completion: fetchCompletion)
-        } else {
-            CloudService.shared.fetchPrivateKid(withRecordID: kidID, completion: fetchCompletion)
         }
     }
 }
@@ -391,16 +365,29 @@ extension RewardsStore {
     func deleteCollectedReward(_ collectedReward: CollectedReward) {
         isLoading = true
         
-        let isSharedUser = UserManager.shared.isChild
+        guard let rewardID = collectedReward.id else {
+            isLoading = false
+            handleError("Invalid reward ID")
+            return
+        }
         
-        CloudService.shared.deleteCollectedReward(collectedReward, isShared: isSharedUser) { [weak self] result in
-            DispatchQueue.main.async {
-                self?.isLoading = false
-                switch result {
-                case .success:
+        let container = CKContainer(identifier: CloudConfig.containerIdentifier)
+        let database = UserManager.shared.isChild ? container.sharedCloudDatabase : container.privateCloudDatabase
+        
+        Task {
+            do {
+                // Deleta o registro
+                let deletedID = try await database.deleteRecord(withID: rewardID)
+                
+                DispatchQueue.main.async { [weak self] in
+                    self?.isLoading = false
                     // Remove from local list
-                    self?.collectedRewards.removeAll { $0.id == collectedReward.id }
-                case .failure(let error):
+                    self?.collectedRewards.removeAll { $0.id == deletedID }
+                }
+                
+            } catch {
+                DispatchQueue.main.async { [weak self] in
+                    self?.isLoading = false
                     self?.handleError("Failed to delete reward: \(error.localizedDescription)")
                 }
             }
@@ -451,21 +438,53 @@ extension RewardsStore {
     func markRewardAsDelivered(_ collectedReward: CollectedReward) {
         isLoading = true
         
-        var updatedReward = collectedReward
-        updatedReward.isDelivered = true
+        guard let rewardID = collectedReward.id else {
+            isLoading = false
+            handleError("Invalid reward ID")
+            return
+        }
         
-        let isSharedUser = UserManager.shared.isChild
+        let container = CKContainer(identifier: CloudConfig.containerIdentifier)
+        let database = UserManager.shared.isChild ? container.sharedCloudDatabase : container.privateCloudDatabase
         
-        CloudService.shared.updateCollectedReward(updatedReward, isShared: isSharedUser) { [weak self] result in
-            DispatchQueue.main.async {
-                self?.isLoading = false
-                switch result {
-                case .success(let savedReward):
-                    // Update local list
-                    if let index = self?.collectedRewards.firstIndex(where: { $0.id == collectedReward.id }) {
-                        self?.collectedRewards[index] = savedReward
+        Task {
+            do {
+                // Busca o registro mais recente antes de atualizar
+                let record = try await database.record(for: rewardID)
+                
+                // Atualiza o campo
+                record["isDelivered"] = true
+                
+                // Salva o registro atualizado
+                let savedRecord = try await database.save(record)
+                
+                if let updatedReward = CollectedReward(record: savedRecord) {
+                    DispatchQueue.main.async { [weak self] in
+                        self?.isLoading = false
+                        // Update local list
+                        if let index = self?.collectedRewards.firstIndex(where: { $0.id == collectedReward.id }) {
+                            self?.collectedRewards[index] = updatedReward
+                        }
                     }
-                case .failure(let error):
+                } else {
+                    DispatchQueue.main.async { [weak self] in
+                        self?.isLoading = false
+                        self?.handleError("Failed to update reward status")
+                    }
+                }
+                
+            } catch let error as CKError {
+                DispatchQueue.main.async { [weak self] in
+                    self?.isLoading = false
+                    if error.code == .serverRecordChanged {
+                        self?.handleError("Reward was modified by another device. Please refresh and try again.")
+                    } else {
+                        self?.handleError("Failed to mark as delivered: \(error.localizedDescription)")
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async { [weak self] in
+                    self?.isLoading = false
                     self?.handleError("Failed to mark as delivered: \(error.localizedDescription)")
                 }
             }

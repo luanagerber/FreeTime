@@ -2,79 +2,102 @@
 //  Kid.swift
 //  FreeTime
 //
-//  Created by Pedro Larry Rodrigues Lopes on 06/05/25.
+//  Created by Luana Gerber on 05/05/25.
 //
 
 import Foundation
 import CloudKit
 
-struct Kid {
+struct Kid: Identifiable {
     var id: CKRecord.ID?
-    let name: String
-    var shareReference: CKRecord.Reference?
-    var associatedRecord: CKRecord?
+    var name: String
+    var coins: Int
     
-    private(set) var coins: Int
+    // CloudKit related properties
+    var shareReference: CKRecord.Reference?
+    
+    // Store the actual CKRecord for updates
+    private var _record: CKRecord?
     
     init(name: String, coins: Int = 0) {
         self.name = name
         self.coins = coins
     }
     
+    // Methods to manage coins
     mutating func addCoins(_ amount: Int) {
         coins += amount
+        // Update the stored record if it exists
+        if _record != nil {
+            _record?["coins"] = coins
+        }
     }
     
     mutating func removeCoins(_ amount: Int) {
-        coins = max(0, coins - amount) // Ensure coins never go negative
+        coins = max(0, coins - amount)
+        // Update the stored record if it exists
+        if _record != nil {
+            _record?["coins"] = coins
+        }
     }
 }
 
-// Extension to make Kid Hashable and Equatable
-extension Kid: Hashable, Equatable {
-    static func == (lhs: Kid, rhs: Kid) -> Bool {
-        return lhs.id?.recordName == rhs.id?.recordName && lhs.name == rhs.name
-    }
-    
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(id?.recordName)
-        hasher.combine(name)
-    }
-}
-
+// RecordProtocol extension
 extension Kid: RecordProtocol {
-    
     var record: CKRecord? {
-        let recordToUpdate: CKRecord
+        // Only create a new record if we don't have an ID
+        guard id == nil else { return nil }
         
-        // Use existing record if available, otherwise create new one
-        if let existingRecord = associatedRecord {
-            recordToUpdate = existingRecord
-        } else if let id = id {
-            // Create record with existing ID (for updates)
-            recordToUpdate = CKRecord(recordType: RecordType.kid.rawValue, recordID: id)
-        } else {
-            // Create completely new record
-            recordToUpdate = CKRecord(recordType: RecordType.kid.rawValue, zoneID: CloudConfig.recordZone.zoneID)
+        let newRecord = CKRecord(recordType: RecordType.kid.rawValue, zoneID: CloudConfig.recordZone.zoneID)
+        newRecord["kidName"] = name
+        newRecord["coins"] = coins
+        
+        return newRecord
+    }
+    
+    var associatedRecord: CKRecord? {
+        // Return the stored record if available
+        if let storedRecord = _record {
+            // Ensure values are up to date
+            storedRecord["kidName"] = name
+            storedRecord["coins"] = coins
+            return storedRecord
         }
         
-        // Update fields
-        recordToUpdate["kidName"] = name
-        recordToUpdate["coins"] = coins
+        // Otherwise create a record with the existing ID
+        guard let recordID = id else { return nil }
         
-        return recordToUpdate
+        let record = CKRecord(recordType: RecordType.kid.rawValue, recordID: recordID)
+        record["kidName"] = name
+        record["coins"] = coins
+        
+        return record
     }
     
     init?(record: CKRecord) {
-        guard let name = record["kidName"] as? String,
-              let coins = record["coins"] as? Int else {
+        guard let name = record["kidName"] as? String else {
             return nil
         }
         
         self.id = record.recordID
         self.name = name
-        self.coins = coins
+        self.coins = record["coins"] as? Int ?? 0
         self.shareReference = record.share
-        self.associatedRecord = record
+        self._record = record // Store the actual record
+    }
+}
+
+// Equatable and Hashable extensions
+extension Kid: Equatable, Hashable {
+    static func == (lhs: Kid, rhs: Kid) -> Bool {
+        return lhs.id == rhs.id &&
+               lhs.name == rhs.name &&
+               lhs.coins == rhs.coins
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(name)
+        hasher.combine(coins)
     }
 }
