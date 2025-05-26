@@ -54,7 +54,7 @@ class Coordinator: ObservableObject {
         case .kidHome:
             KidHomeView()
         case .genitorHome:
-            GenitorHomeView()
+            GenitorCalendarView()
         case .rewardsStore:
             RewardsStoreView(store: self.rewardsStore)
         case .collectedRewards:

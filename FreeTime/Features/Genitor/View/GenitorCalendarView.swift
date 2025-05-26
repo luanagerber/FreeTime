@@ -4,12 +4,10 @@
 //
 //  Created by Thales Araújo on 19/05/25.
 //
-
 import SwiftUI
 
-struct GenitorHomeView: View {
-    @EnvironmentObject var coordinator: Coordinator
-
+struct GenitorCalendarView: View {
+    
     /// Task Manager Properties
     @State private var weekSlider: [[Date.WeekDay]] = []
     @State private var currentWeekIndex: Int = 1
@@ -62,7 +60,7 @@ struct GenitorHomeView: View {
             
             // Mês
             Text(viewModel.currentDate.format("MMMM"))
-                .font(.largeTitle)
+                .font(.custom("SF Pro", size: 34, relativeTo: .largeTitle))
                 .fontWeight(.semibold)
             
             // Semana
@@ -102,7 +100,7 @@ struct GenitorHomeView: View {
             ForEach(week) { day in
                 
                 // Visualização do dia
-                VStack(){                    
+                VStack(){
                     Text(day.date.format("E"))
                         .font(.custom("SF Pro", size: 13, relativeTo: .footnote))
                         .fontWeight(.medium)
@@ -242,5 +240,5 @@ struct GenitorHomeView: View {
 }
 
 #Preview {
-    GenitorHomeView()
+    GenitorCalendarView()
 }

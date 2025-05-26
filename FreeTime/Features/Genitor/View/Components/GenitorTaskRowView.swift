@@ -20,10 +20,6 @@ struct GenitorTaskRowView: View {
                     .font(.body)
                     .fontWeight(.regular)
             }
-            
-//            Circle()
-//                .fill(Color.gray)
-//                .frame(width: 40, height: 40)
         }
         .padding(22)
         .frame(width: 350, height: 116, alignment: .leading)
