@@ -109,20 +109,8 @@ extension KidViewModel {
         print("KidViewModel: Carregando dados compartilhados do kid: \(kidID.recordName)")
         isLoading = true
         
-        cloudService.fetchKid(withRecordID: kidID) { [weak self] result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let kid):
-                    print("KidViewModel: Kid compartilhado encontrado")
-                    self?.kid = kid
-                    self?.loadActivities()
-                case .failure(let error):
-                    print("KidViewModel: Falha ao carregar kid compartilhado: \(error)")
-                    self?.handleError("Failed to load shared kid: \(error.localizedDescription)")
-                    self?.isLoading = false
-                }
-            }
-        }
+        // Usa o mesmo método que funciona na KidReceiverView
+        fetchKidInfo(rootRecordID: kidID)
     }
     
     func loadFromRootRecord() {
@@ -134,18 +122,71 @@ extension KidViewModel {
         self.currentKidID = rootRecordID
         loadSharedKidData()
     }
+    
+    private func fetchKidInfo(rootRecordID: CKRecord.ID) {
+        let container = CKContainer(identifier: CloudConfig.containerIdentifier)
+        let sharedDB = container.sharedCloudDatabase
+        
+        Task {
+            do {
+                let record = try await sharedDB.record(for: rootRecordID)
+                print("✅ Registro compartilhado encontrado: \(record.recordID.recordName)")
+                
+                DispatchQueue.main.async { [weak self] in
+                    if let fetchedKid = Kid(record: record) {
+                        self?.kid = fetchedKid
+                        self?.currentKidID = rootRecordID
+                        self?.feedbackMessage = "✅ Conectado como \(fetchedKid.name)"
+                        self?.loadActivities(for: fetchedKid, using: record.recordID.zoneID)
+                    } else {
+                        print("❌ Falha ao converter o registro para Kid")
+                        self?.isLoading = false
+                        self?.handleError("Failed to load kid information from shared record")
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async { [weak self] in
+                    print("❌ Erro ao acessar registro compartilhado: \(error.localizedDescription)")
+                    self?.isLoading = false
+                    self?.handleError("Failed to load invitation: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
 }
 
 // MARK: - Activities Management
 extension KidViewModel {
     
     private func loadActivities() {
-        guard let kidID = currentKidID else {
+        guard let kid = kid else {
             isLoading = false
             return
         }
         
-        print("KidViewModel: Carregando atividades para kid: \(kidID.recordName)")
+        guard let currentKidID = currentKidID else {
+            isLoading = false
+            return
+        }
+        
+        print("KidViewModel: Carregando atividades para kid: \(currentKidID.recordName)")
+        loadActivities(for: kid, using: currentKidID.zoneID)
+    }
+    
+    private func loadActivities(for kid: Kid, using zoneID: CKRecordZone.ID) {
+        guard let kidID = kid.id?.recordName else {
+            feedbackMessage = "ID do filho não encontrado"
+            print("KidViewModel: ID do filho não encontrado")
+            isLoading = false
+            return
+        }
+        
+        print("🔍 KidViewModel: Iniciando busca de atividades")
+        print("🔍 KidViewModel: kidID procurado: \(kidID)")
+        print("🔍 KidViewModel: zoneID: \(zoneID)")
+        
+        isLoading = true
+        feedbackMessage = "Carregando atividades..."
         
         let container = CKContainer(identifier: CloudConfig.containerIdentifier)
         let database = UserManager.shared.isChild ? container.sharedCloudDatabase : container.privateCloudDatabase
@@ -153,15 +194,63 @@ extension KidViewModel {
         Task {
             do {
                 let zones = try await database.allRecordZones()
+                print("KidViewModel: Zonas disponíveis: \(zones.map { $0.zoneID.zoneName })")
+                
                 var allActivities: [ActivitiesRegister] = []
                 
                 for zone in zones {
-                    let activities = await fetchActivitiesInZone(zone.zoneID, kidID: kidID.recordName, database: database)
-                    allActivities.append(contentsOf: activities)
+                    print("\n🔍 KidViewModel: === TESTANDO ZONA: \(zone.zoneID.zoneName) ===")
+                    
+                    // Busca geral por ScheduledActivity (mesmo método da KidReceiverView)
+                    do {
+                        let query = CKQuery(recordType: RecordType.activity.rawValue, predicate: NSPredicate(value: true))
+                        let (results, _) = try await database.records(matching: query, inZoneWith: zone.zoneID)
+                        print("KidViewModel: Encontrados \(results.count) registros ScheduledActivity")
+                        
+                        for (id, result) in results {
+                            switch result {
+                            case .success(let record):
+                                print("KidViewModel: 📋 Record: \(id.recordName)")
+                                print("  - Tipo: \(record.recordType)")
+                                
+                                let recordKidID = record["kidID"] as? String
+                                let recordKidRef = record["kidReference"] as? CKRecord.Reference
+                                
+                                print("  - kidID: \(recordKidID ?? "nil")")
+                                print("  - kidReference: \(recordKidRef?.recordID.recordName ?? "nil")")
+                                print("  - Match kidID? \(recordKidID == kidID)")
+                                print("  - Match kidRef? \(recordKidRef?.recordID.recordName == kidID)")
+                                
+                                // Verifica se pertence ao kid
+                                let belongsToKid = recordKidID == kidID || recordKidRef?.recordID.recordName == kidID
+                                
+                                if belongsToKid {
+                                    if let activity = ActivitiesRegister(record: record) {
+                                        print("  - ✅ Conversão bem-sucedida!")
+                                        allActivities.append(activity)
+                                    } else {
+                                        print("  - ❌ Falha na conversão!")
+                                    }
+                                }
+                                
+                            case .failure(let error):
+                                print("KidViewModel: ❌ Erro ao processar registro: \(error.localizedDescription)")
+                            }
+                        }
+                    } catch {
+                        print("KidViewModel: ❌ Erro ao buscar atividades na zona \(zone.zoneID.zoneName): \(error.localizedDescription)")
+                    }
+                }
+                
+                print("\n🔍 KidViewModel: === CONCLUSÃO ===")
+                if allActivities.isEmpty {
+                    print("KidViewModel: ❌ Nenhuma atividade encontrada")
+                } else {
+                    print("KidViewModel: ✅ Encontradas \(allActivities.count) atividades")
                 }
                 
                 DispatchQueue.main.async { [weak self] in
-                    self?.processLoadedActivities(allActivities, kidID: kidID.recordName)
+                    self?.processLoadedActivities(allActivities, kidID: kidID)
                 }
             } catch {
                 DispatchQueue.main.async { [weak self] in
@@ -170,35 +259,6 @@ extension KidViewModel {
                 }
             }
         }
-    }
-    
-    private func fetchActivitiesInZone(_ zoneID: CKRecordZone.ID, kidID: String, database: CKDatabase) async -> [ActivitiesRegister] {
-        var fetchedActivities: [ActivitiesRegister] = []
-        
-        do {
-            let query = CKQuery(recordType: RecordType.activity.rawValue, predicate: NSPredicate(value: true))
-            let (results, _) = try await database.records(matching: query, inZoneWith: zoneID)
-            
-            for (_, result) in results {
-                switch result {
-                case .success(let record):
-                    if let activity = ActivitiesRegister(record: record) {
-                        let belongsToKid = activity.kidID == kidID ||
-                        activity.kidReference?.recordID.recordName == kidID
-                        
-                        if belongsToKid {
-                            fetchedActivities.append(activity)
-                        }
-                    }
-                case .failure(let error):
-                    print("❌ Erro ao processar registro: \(error.localizedDescription)")
-                }
-            }
-        } catch {
-            print("❌ Erro ao buscar atividades na zona \(zoneID.zoneName): \(error.localizedDescription)")
-        }
-        
-        return fetchedActivities
     }
     
     private func processLoadedActivities(_ allActivities: [ActivitiesRegister], kidID: String) {
@@ -223,7 +283,11 @@ extension KidViewModel {
     }
     
     func refreshActivities() {
-        loadActivities()
+        if let kid = kid, let currentKidID = currentKidID {
+            loadActivities(for: kid, using: currentKidID.zoneID)
+        } else {
+            loadActivities()
+        }
     }
 }
 
@@ -252,6 +316,7 @@ extension KidViewModel {
         }
         
         isLoading = true
+        feedbackMessage = "Atualizando status da atividade..."
         
         let container = CKContainer(identifier: CloudConfig.containerIdentifier)
         let database = UserManager.shared.isChild ? container.sharedCloudDatabase : container.privateCloudDatabase
@@ -369,37 +434,6 @@ extension KidViewModel {
     func markInvitationAsAccepted() {
         invitationManager.updateStatus(to: .accepted)
         hasAcceptedShareLink = true
-    }
-    
-    private func fetchKidInfo(rootRecordID: CKRecord.ID) {
-        let container = CKContainer(identifier: CloudConfig.containerIdentifier)
-        let sharedDB = container.sharedCloudDatabase
-        
-        Task {
-            do {
-                let record = try await sharedDB.record(for: rootRecordID)
-                print("✅ Registro compartilhado encontrado: \(record.recordID.recordName)")
-                
-                DispatchQueue.main.async { [weak self] in
-                    if let fetchedKid = Kid(record: record) {
-                        self?.kid = fetchedKid
-                        self?.currentKidID = rootRecordID
-                        self?.feedbackMessage = "✅ Conectado como \(fetchedKid.name)"
-                        self?.loadActivities()
-                    } else {
-                        print("❌ Falha ao converter o registro para Kid")
-                        self?.isLoading = false
-                        self?.handleError("Failed to load kid information from shared record")
-                    }
-                }
-            } catch {
-                DispatchQueue.main.async { [weak self] in
-                    print("❌ Erro ao acessar registro compartilhado: \(error.localizedDescription)")
-                    self?.isLoading = false
-                    self?.handleError("Failed to load invitation: \(error.localizedDescription)")
-                }
-            }
-        }
     }
 }
 
