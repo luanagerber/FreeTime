@@ -173,7 +173,7 @@ extension KidViewModel {
         }
         
         self.currentKidID = rootRecordID
-        loadSharedKidData()
+        loadChildData()
     }
     
     private func fetchKidInfo(rootRecordID: CKRecord.ID) {
