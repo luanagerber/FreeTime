@@ -58,6 +58,7 @@ class Coordinator: ObservableObject {
                 .navigationBarBackButtonHidden(true)
         case .genitorHome:
             GenitorCalendarView()
+                .navigationBarBackButtonHidden(true)
         case .rewardsStore:
             RewardsStoreView(store: self.rewardsStore)
         case .collectedRewards:
