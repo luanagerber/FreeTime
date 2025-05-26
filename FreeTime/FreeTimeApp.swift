@@ -17,8 +17,8 @@ struct FreeTimeApp: App {
 //            CoordinatorView()
             
 //            KidManagementDebugView()
-//            ActivityManagementDebugView()
-            RewardsTestDebugView()
+            ActivityManagementDebugView()
+//            RewardsTestDebugView()
         }
     }
 }

@@ -78,6 +78,7 @@ extension RewardsStore {
                     self?.loadCollectedRewards()
                 case .failure(let error):
                     print("RewardsStore: Falha no banco privado: \(error), tentando banco compartilhado...")
+                    
                     // Se falhar no privado, tenta no compartilhado
                     CloudService.shared.fetchKid(withRecordID: kidID) { result in
                         DispatchQueue.main.async {
