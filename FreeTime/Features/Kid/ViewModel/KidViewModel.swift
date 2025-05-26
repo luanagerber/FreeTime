@@ -69,32 +69,35 @@ extension KidViewModel {
         }
         
         print("KidViewModel: Carregando dados do kid: \(kidID.recordName)")
+        print("KidViewModel: Zone ID: \(kidID.zoneID)")
         isLoading = true
         
-        // Tenta primeiro no banco privado (para kids próprios)
-        cloudService.fetchPrivateKid(withRecordID: kidID) { [weak self] result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let kid):
-                    print("KidViewModel: Kid encontrado no banco privado")
-                    self?.kid = kid
-                    self?.loadActivities()
-                case .failure(let error):
-                    print("KidViewModel: Falha no banco privado: \(error), tentando banco compartilhado...")
-                    // Se falhar no privado, tenta no compartilhado
-                    self?.cloudService.fetchKid(withRecordID: kidID) { result in
-                        DispatchQueue.main.async {
-                            switch result {
-                            case .success(let kid):
-                                print("KidViewModel: Kid encontrado no banco compartilhado")
-                                self?.kid = kid
-                            case .failure(let error):
-                                print("KidViewModel: Falha ao carregar kid: \(error)")
-                                self?.handleError("Failed to load kid data: \(error.localizedDescription)")
-                            }
-                            self?.loadActivities()
-                        }
+        // Determina qual banco usar baseado na zona
+        let container = CKContainer(identifier: CloudConfig.containerIdentifier)
+        let database = kidID.zoneID.ownerName == CKCurrentUserDefaultName ?
+                      container.privateCloudDatabase : container.sharedCloudDatabase
+        
+        print("KidViewModel: Usando \(kidID.zoneID.ownerName == CKCurrentUserDefaultName ? "banco privado" : "banco compartilhado")")
+        
+        Task {
+            do {
+                let record = try await database.record(for: kidID)
+                print("✅ KidViewModel: Kid encontrado")
+                
+                DispatchQueue.main.async { [weak self] in
+                    if let kid = Kid(record: record) {
+                        self?.kid = kid
+                        self?.loadActivities(for: kid, using: record.recordID.zoneID)
+                    } else {
+                        self?.isLoading = false
+                        self?.handleError("Failed to convert record to Kid")
                     }
+                }
+            } catch {
+                DispatchQueue.main.async { [weak self] in
+                    print("❌ KidViewModel: Erro ao carregar kid: \(error)")
+                    self?.isLoading = false
+                    self?.handleError("Failed to load kid data: \(error.localizedDescription)")
                 }
             }
         }
@@ -107,10 +110,17 @@ extension KidViewModel {
         }
         
         print("KidViewModel: Carregando dados compartilhados do kid: \(kidID.recordName)")
+        print("KidViewModel: Zone ID: \(kidID.zoneID)")
         isLoading = true
         
-        // Usa o mesmo método que funciona na KidReceiverView
-        fetchKidInfo(rootRecordID: kidID)
+        // Verifica se é realmente uma zona compartilhada
+        if kidID.zoneID.ownerName == CKCurrentUserDefaultName {
+            print("KidViewModel: Zona privada detectada, usando banco privado")
+            loadKidData()
+        } else {
+            print("KidViewModel: Zona compartilhada detectada, usando banco compartilhado")
+            fetchKidInfo(rootRecordID: kidID)
+        }
     }
     
     func loadFromRootRecord() {
@@ -189,7 +199,11 @@ extension KidViewModel {
         feedbackMessage = "Carregando atividades..."
         
         let container = CKContainer(identifier: CloudConfig.containerIdentifier)
-        let database = UserManager.shared.isChild ? container.sharedCloudDatabase : container.privateCloudDatabase
+        // Determina qual banco usar baseado na zona do kid
+        let database = zoneID.ownerName == CKCurrentUserDefaultName ?
+                      container.privateCloudDatabase : container.sharedCloudDatabase
+        
+        print("KidViewModel: Usando \(zoneID.ownerName == CKCurrentUserDefaultName ? "banco privado" : "banco compartilhado") para atividades")
         
         Task {
             do {
@@ -319,7 +333,11 @@ extension KidViewModel {
         feedbackMessage = "Atualizando status da atividade..."
         
         let container = CKContainer(identifier: CloudConfig.containerIdentifier)
-        let database = UserManager.shared.isChild ? container.sharedCloudDatabase : container.privateCloudDatabase
+        // Determina qual banco usar baseado na zona da atividade
+        let database = activityID.zoneID.ownerName == CKCurrentUserDefaultName ?
+                      container.privateCloudDatabase : container.sharedCloudDatabase
+        
+        print("KidViewModel: Atualizando status usando \(activityID.zoneID.ownerName == CKCurrentUserDefaultName ? "banco privado" : "banco compartilhado")")
         
         Task {
             do {
