@@ -64,6 +64,7 @@ extension KidViewModel {
         loadKidData()
     }
     
+    // No arquivo KidViewModel.swift, substitua o método loadKidData() por:
     func loadKidData() {
         guard let kidID = currentKidID else {
             print("KidViewModel: loadKidData - Nenhum kidID definido")
@@ -72,14 +73,23 @@ extension KidViewModel {
         
         print("KidViewModel: Carregando dados do kid: \(kidID.recordName)")
         print("KidViewModel: Zone ID: \(kidID.zoneID)")
+        print("KidViewModel: Zone Owner: \(kidID.zoneID.ownerName)")
         isLoading = true
         
-        // Determina qual banco usar baseado na zona
         let container = CKContainer(identifier: CloudConfig.containerIdentifier)
-        let database = kidID.zoneID.ownerName == CKCurrentUserDefaultName ?
-                      container.privateCloudDatabase : container.sharedCloudDatabase
         
-        print("KidViewModel: Usando \(kidID.zoneID.ownerName == CKCurrentUserDefaultName ? "banco privado" : "banco compartilhado")")
+        // CORREÇÃO: Determinar qual banco usar baseado no owner da zona E no role do usuário
+        let isSharedZone = kidID.zoneID.ownerName != CKCurrentUserDefaultName
+        let isChildUser = UserManager.shared.isChild
+        
+        print("KidViewModel: isSharedZone: \(isSharedZone), isChildUser: \(isChildUser)")
+        
+        // Para crianças, SEMPRE usar banco compartilhado se a zona for compartilhada
+        let database = (isSharedZone || isChildUser) ?
+                       container.sharedCloudDatabase :
+                       container.privateCloudDatabase
+        
+        print("KidViewModel: Usando \((isSharedZone || isChildUser) ? "banco compartilhado" : "banco privado")")
         
         Task {
             do {
@@ -240,77 +250,55 @@ extension KidViewModel {
             return
         }
         
-        print("🔍 KidViewModel: Iniciando busca de atividades (Parents)")
-        print("🔍 KidViewModel: kidID procurado: \(kidID)")
+        print("🔍 KidViewModel: Carregando atividades")
+        print("🔍 KidViewModel: kidID: \(kidID)")
         print("🔍 KidViewModel: zoneID: \(zoneID)")
+        print("🔍 KidViewModel: Zone Owner: \(zoneID.ownerName)")
         
         feedbackMessage = "Carregando atividades..."
         
         let container = CKContainer(identifier: CloudConfig.containerIdentifier)
-        // Para parents, usa banco privado
-        let database = container.privateCloudDatabase
         
-        print("KidViewModel: Usando banco privado para atividades (parent)")
+        // CORREÇÃO: Determinar qual banco usar baseado no owner da zona E no role do usuário
+        let isSharedZone = zoneID.ownerName != CKCurrentUserDefaultName
+        let isChildUser = UserManager.shared.isChild
+        
+        print("KidViewModel: Para atividades - isSharedZone: \(isSharedZone), isChildUser: \(isChildUser)")
+        
+        // Para crianças, SEMPRE usar banco compartilhado se a zona for compartilhada
+        let database = (isSharedZone || isChildUser) ?
+                       container.sharedCloudDatabase :
+                       container.privateCloudDatabase
+        
+        print("KidViewModel: Usando \((isSharedZone || isChildUser) ? "banco compartilhado" : "banco privado") para atividades")
         
         Task {
             do {
-                let zones = try await database.allRecordZones()
-                print("KidViewModel: Zonas disponíveis: \(zones.map { $0.zoneID.zoneName })")
+                // Buscar atividades diretamente na zona especificada
+                let predicate = NSPredicate(format: "kidID == %@", kidID)
+                let query = CKQuery(recordType: RecordType.activity.rawValue, predicate: predicate)
+                
+                let (results, _) = try await database.records(matching: query, inZoneWith: zoneID)
+                print("KidViewModel: Encontrados \(results.count) registros de atividades")
                 
                 var allActivities: [ActivitiesRegister] = []
                 
-                for zone in zones {
-                    print("\n🔍 KidViewModel: === TESTANDO ZONA: \(zone.zoneID.zoneName) ===")
-                    
-                    do {
-                        let query = CKQuery(recordType: RecordType.activity.rawValue, predicate: NSPredicate(value: true))
-                        let (results, _) = try await database.records(matching: query, inZoneWith: zone.zoneID)
-                        print("KidViewModel: Encontrados \(results.count) registros ScheduledActivity")
-                        
-                        for (id, result) in results {
-                            switch result {
-                            case .success(let record):
-                                print("KidViewModel: 📋 Record: \(id.recordName)")
-                                
-                                let recordKidID = record["kidID"] as? String
-                                let recordKidRef = record["kidReference"] as? CKRecord.Reference
-                                
-                                print("  - kidID: \(recordKidID ?? "nil")")
-                                print("  - kidReference: \(recordKidRef?.recordID.recordName ?? "nil")")
-                                print("  - Match kidID? \(recordKidID == kidID)")
-                                print("  - Match kidRef? \(recordKidRef?.recordID.recordName == kidID)")
-                                
-                                // Verifica se pertence ao kid
-                                let belongsToKid = recordKidID == kidID || recordKidRef?.recordID.recordName == kidID
-                                
-                                if belongsToKid {
-                                    if let activity = ActivitiesRegister(record: record) {
-                                        print("  - ✅ Conversão bem-sucedida!")
-                                        allActivities.append(activity)
-                                    } else {
-                                        print("  - ❌ Falha na conversão!")
-                                    }
-                                }
-                                
-                            case .failure(let error):
-                                print("KidViewModel: ❌ Erro ao processar registro: \(error.localizedDescription)")
-                            }
+                for (id, result) in results {
+                    switch result {
+                    case .success(let record):
+                        if let activity = ActivitiesRegister(record: record) {
+                            allActivities.append(activity)
+                            print("  ✅ Atividade carregada: \(activity.activity?.name ?? "Sem nome")")
                         }
-                    } catch {
-                        print("KidViewModel: ❌ Erro ao buscar atividades na zona \(zone.zoneID.zoneName): \(error.localizedDescription)")
+                    case .failure(let error):
+                        print("  ❌ Erro ao processar atividade: \(error)")
                     }
-                }
-                
-                print("\n🔍 KidViewModel: === CONCLUSÃO ===")
-                if allActivities.isEmpty {
-                    print("KidViewModel: ❌ Nenhuma atividade encontrada")
-                } else {
-                    print("KidViewModel: ✅ Encontradas \(allActivities.count) atividades")
                 }
                 
                 DispatchQueue.main.async { [weak self] in
                     self?.processLoadedActivities(allActivities, kidID: kidID)
                 }
+                
             } catch {
                 DispatchQueue.main.async { [weak self] in
                     self?.isLoading = false
@@ -319,7 +307,6 @@ extension KidViewModel {
             }
         }
     }
-    
     private func loadActivitiesFromSharedDB(for kid: Kid) {
         guard let kidID = kid.id?.recordName else {
             feedbackMessage = "ID do filho não encontrado"

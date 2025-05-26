@@ -1,4 +1,9 @@
-// UserManager.swift
+//
+//  UserManager.swift
+//  FreeTime
+//
+//  Created by Luana Gerber on 22/05/25.
+//
 
 import SwiftUI
 import CloudKit
@@ -15,7 +20,6 @@ class UserManager: ObservableObject {
     @AppStorage("userRole") private var storedRole: String = UserRole.undefined.rawValue
     @AppStorage("currentKidRecordName") private var storedKidRecordName: String = ""
     @AppStorage("currentKidName") private var storedKidName: String = ""
-    // CORREÇÃO: Salvar também informações da zona
     @AppStorage("currentKidZoneName") private var storedKidZoneName: String = ""
     @AppStorage("currentKidZoneOwner") private var storedKidZoneOwner: String = ""
     
@@ -66,9 +70,16 @@ class UserManager: ObservableObject {
             let zoneID: CKRecordZone.ID
             
             if !savedKidZoneName.isEmpty && !savedKidZoneOwner.isEmpty {
-                // Usa a zona salva (pode ser compartilhada)
-                zoneID = CKRecordZone.ID(zoneName: savedKidZoneName, ownerName: savedKidZoneOwner)
-                print("UserManager: Reconstituindo kidID com zona salva: \(savedKidZoneName):\(savedKidZoneOwner)")
+                // IMPORTANTE: Verificar se é zona compartilhada
+                if savedKidZoneOwner != CKCurrentUserDefaultName {
+                    // É uma zona compartilhada
+                    zoneID = CKRecordZone.ID(zoneName: savedKidZoneName, ownerName: savedKidZoneOwner)
+                    print("UserManager: Reconstituindo kidID com zona COMPARTILHADA: \(savedKidZoneName):\(savedKidZoneOwner)")
+                } else {
+                    // É zona privada
+                    zoneID = CKRecordZone.ID(zoneName: savedKidZoneName, ownerName: savedKidZoneOwner)
+                    print("UserManager: Reconstituindo kidID com zona PRIVADA: \(savedKidZoneName):\(savedKidZoneOwner)")
+                }
             } else {
                 // Fallback para zona padrão
                 zoneID = CloudConfig.recordZone.zoneID
@@ -80,6 +91,7 @@ class UserManager: ObservableObject {
             print("UserManager: KidID reconstituído:")
             print("  - Record Name: \(savedKidRecordName)")
             print("  - Zone: \(zoneID.zoneName):\(zoneID.ownerName)")
+            print("  - É zona compartilhada? \(zoneID.ownerName != CKCurrentUserDefaultName)")
         }
     }
     
@@ -116,6 +128,7 @@ class UserManager: ObservableObject {
         print("UserManager: Definindo como criança: \(name)")
         print("  - Kid ID: \(kidID.recordName)")
         print("  - Zone: \(kidID.zoneID.zoneName):\(kidID.zoneID.ownerName)")
+        print("  - É zona compartilhada? \(kidID.zoneID.ownerName != CKCurrentUserDefaultName)")
         
         self.userRole = .kid
         self.currentKidID = kidID
@@ -134,6 +147,7 @@ class UserManager: ObservableObject {
         print("UserManager: Definindo como criança com Kid: \(kid.name)")
         print("  - Kid ID: \(kidID.recordName)")
         print("  - Zone: \(kidID.zoneID.zoneName):\(kidID.zoneID.ownerName)")
+        print("  - É zona compartilhada? \(kidID.zoneID.ownerName != CKCurrentUserDefaultName)")
         
         self.userRole = .kid
         self.currentKidID = kidID
@@ -171,12 +185,14 @@ class UserManager: ObservableObject {
     
     var debugDescription: String {
         let zoneInfo = currentKidID?.zoneID
+        let isSharedZone = zoneInfo?.ownerName != CKCurrentUserDefaultName
         return """
         UserManager Debug:
         - Role: \(userRole.rawValue)
         - Kid Name: \(currentKidName.isEmpty ? "None" : currentKidName)
         - Kid ID: \(currentKidID?.recordName ?? "None")
         - Zone: \(zoneInfo?.zoneName ?? "None"):\(zoneInfo?.ownerName ?? "None")
+        - É zona compartilhada? \(isSharedZone)
         """
     }
 }

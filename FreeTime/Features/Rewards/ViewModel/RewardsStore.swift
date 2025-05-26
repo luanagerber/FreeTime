@@ -136,25 +136,42 @@ extension RewardsStore {
         }
         
         print("RewardsStore: Carregando dados compartilhados do kid: \(kidID.recordName)")
+        print("RewardsStore: Zone: \(kidID.zoneID.zoneName):\(kidID.zoneID.ownerName)")
         isLoading = true
         
-        // Busca kid compartilhado
-        CloudService.shared.fetchKid(withRecordID: kidID) { [weak self] result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let kid):
-                    print("RewardsStore: Kid compartilhado encontrado - Moedas: \(kid.coins)")
-                    self?.coins = kid.coins
-                    self?.loadSharedCollectedRewards()
-                case .failure(let error):
-                    print("RewardsStore: Falha ao carregar kid compartilhado: \(error)")
-                    self?.handleError("Failed to load shared kid: \(error.localizedDescription)")
+        let container = CKContainer(identifier: CloudConfig.containerIdentifier)
+        
+        // CORREÇÃO: Determinar qual banco usar baseado no owner da zona
+        let isSharedZone = kidID.zoneID.ownerName != CKCurrentUserDefaultName
+        let database = isSharedZone ?
+                       container.sharedCloudDatabase :
+                       container.privateCloudDatabase
+        
+        print("RewardsStore: Usando \(isSharedZone ? "banco compartilhado" : "banco privado")")
+        
+        Task {
+            do {
+                let record = try await database.record(for: kidID)
+                print("✅ RewardsStore: Kid encontrado - Moedas: \(record["coins"] ?? 0)")
+                
+                DispatchQueue.main.async { [weak self] in
+                    if let kid = Kid(record: record) {
+                        self?.coins = kid.coins
+                        self?.loadSharedCollectedRewards()
+                    } else {
+                        self?.handleError("Failed to convert record to Kid")
+                        self?.isLoading = false
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async { [weak self] in
+                    print("❌ RewardsStore: Erro ao carregar kid: \(error)")
+                    self?.handleError("Failed to load kid: \(error.localizedDescription)")
                     self?.isLoading = false
                 }
             }
         }
     }
-    
     private func loadCollectedRewards() {
         guard let kidID = currentKidID else {
             isLoading = false
