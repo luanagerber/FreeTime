@@ -33,12 +33,16 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 if let rootRecordID = metadata.hierarchicalRootRecordID {
                     CloudService.shared.saveRootRecordID(rootRecordID)
                     
+                    // IMPORTANTE: Salvar também a zona do registro compartilhado
+                    print("SceneDelegate: Salvando rootRecordID com zona: \(rootRecordID.zoneID.zoneName):\(rootRecordID.zoneID.ownerName)")
+                    
                     // Busca o Kid para obter o nome
                     CloudService.shared.fetchKid(withRecordID: rootRecordID) { kidResult in
                         DispatchQueue.main.async {
                             switch kidResult {
                             case .success(let kid):
                                 // Define o usuário como criança com todas as informações
+                                // O UserManager já vai salvar a zona corretamente
                                 UserManager.shared.setAsChild(withKid: kid)
                                 
                             case .failure(let error):
@@ -64,7 +68,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 debugPrint("Error accepting share: \(error)")
             }
         }
-        
         operation.acceptSharesResultBlock = { result in
             if case .failure(let error) = result {
                 debugPrint("Error accepting CloudKit Share: \(error)")

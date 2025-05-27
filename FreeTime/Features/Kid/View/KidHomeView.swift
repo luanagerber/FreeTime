@@ -12,7 +12,7 @@ struct KidHomeView: View {
     
     @State private var currentPage: Page = .kidHome
     @StateObject private var vmKid = KidViewModel()
-    @State private var selectedRegister: ActivitiesRegister? = ActivitiesRegister.sample1
+    @State private var selectedRegister: ActivitiesRegister? = nil
     @State private var showActivityModal: Bool = false
     
     var body: some View {
@@ -25,6 +25,23 @@ struct KidHomeView: View {
         }
         .ignoresSafeArea()
         .navigationBarBackButtonHidden(true)
+        .onAppear {
+            vmKid.refreshActivities()
+        }
+        .alert("Erro", isPresented: $vmKid.showError) {
+            Button("OK") {
+                vmKid.clearError()
+            }
+        } message: {
+            Text(vmKid.errorMessage)
+        }
+        .overlay {
+            if vmKid.isLoading {
+                ProgressView("Carregando...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.black.opacity(0.3))
+            }
+        }
     }
     
     private var HeaderView: some View {
@@ -34,7 +51,6 @@ struct KidHomeView: View {
             .frame(height: 126)
             .overlay {
                 HStack(spacing: 20) {
-                    //Then delete the empty child
                     KidDataView(kid: vmKid.kid ?? Kid(name: "", coins: 0))
                     Spacer()
                     NavButton(title: "Atividades", page: .kidHome)
@@ -58,7 +74,6 @@ struct KidHomeView: View {
         }
     }
 
-
     private var ActivitiesView: some View {
         VStack(alignment: .leading, spacing: 32) {
             VStack(alignment: .leading, spacing: 4) {
@@ -68,10 +83,21 @@ struct KidHomeView: View {
                     .font(.system(size: 22))
             }
 
+            // Atividades Para Fazer (não iniciadas + em progresso)
             ActivitySection(
                 title: "Para fazer",
-                registers: ActivitiesRegister.samples,
+                registers: vmKid.notStartedRegister() + vmKid.inProgressRegister(),
                 emptyMessage: "Não há atividades a serem realizadas hoje.",
+                selectedRegister: $selectedRegister,
+                showActivityModal: $showActivityModal,
+                vmKid: vmKid
+            )
+            
+            // Atividades Concluídas
+            ActivitySection(
+                title: "Concluídas",
+                registers: vmKid.completedRegister(),
+                emptyMessage: "Nenhuma atividade concluída hoje.",
                 selectedRegister: $selectedRegister,
                 showActivityModal: $showActivityModal,
                 vmKid: vmKid
@@ -145,13 +171,13 @@ struct ActivitySection: View {
                                 CardActivity(register: register)
                             }
                         }
-                        .sheet(isPresented: $showActivityModal) {
-                            if let _ = selectedRegister {
-                                DetailView(kidViewModel: vmKid, register: ActivitiesRegister.sample1)
-                            }
-                        }
                     }
                 }
+            }
+        }
+        .sheet(isPresented: $showActivityModal) {
+            if let register = selectedRegister {
+                DetailView(kidViewModel: vmKid, register: register)
             }
         }
     }

@@ -49,7 +49,7 @@ struct KidManagementView: View {
             .sheet(isPresented: $viewModel.sharingSheet, onDismiss: handleShareSheetDismiss) {
                 shareSheetContent
             }
-            .alert("Compartilhamento Enviado!", isPresented: $showingShareConfirmation) {
+            .alert("Compartilhamento enviado!", isPresented: $showingShareConfirmation) {
                 Button("OK") { navigateToNextView() }
             } message: {
                 Text("O link foi compartilhado com sucesso. Agora você pode prosseguir.")
@@ -111,7 +111,7 @@ struct KidManagementView: View {
     }
     
     private var shareConfirmationLabel: some View {
-        Label("Link Compartilhado", systemImage: "checkmark.circle.fill")
+        Label("Link compartilhado", systemImage: "checkmark.circle.fill")
             .foregroundColor(.green)
             .font(.subheadline)
     }
