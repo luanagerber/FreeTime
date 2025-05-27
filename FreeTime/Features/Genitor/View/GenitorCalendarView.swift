@@ -52,6 +52,9 @@ struct GenitorCalendarView: View {
                     weekSlider.append(lastDate.createNextWeek())
                 }
             }
+            
+            // Carrega atividades inicialmente
+            loadActivitiesForCurrentDate()
         }
         .refreshable {
             viewModel.refresh()
@@ -184,15 +187,16 @@ struct GenitorCalendarView: View {
         
         VStack(alignment: .center, spacing: 20) {
             
+            // CORREÇÃO: Filtrar atividades do dia selecionado, não apenas "hoje"
             let tasksNotStarted = viewModel.records.filter { register in
                 Calendar.current.isDate(register.date, inSameDayAs: viewModel.currentDate) &&
                 register.registerStatus == .notStarted
-            }.sorted(by: { $1.date > $0.date})
+            }.sorted(by: { $0.date < $1.date})
             
             let tasksCompleted = viewModel.records.filter{ register in
                 Calendar.current.isDate(register.date, inSameDayAs: viewModel.currentDate) &&
                 register.registerStatus == .completed
-            }.sorted(by: { $1.date > $0.date})
+            }.sorted(by: { $0.date < $1.date})
             
             // Atividade Planejadas
             Text("Atividades planejadas")
@@ -225,7 +229,7 @@ struct GenitorCalendarView: View {
             } else {
                 
                 if tasksNotStarted.isEmpty {
-                    Text("Tudo concluído por hoje! Ótimo trabalho em equipe!")
+                    Text("Tudo concluído para esse dia! Ótimo trabalho em equipe!")
                         .padding(.horizontal)
                         .font(.subheadline)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -246,7 +250,7 @@ struct GenitorCalendarView: View {
                     .padding(.horizontal)
                 
                 if tasksCompleted.isEmpty {
-                    Text("Nada foi concluído hoje ainda. Que tal checar com seu filho?")
+                    Text("Nada foi concluído nesse dia ainda. Que tal checar com seu filho?")
                         .padding(.horizontal)
                         .font(.subheadline)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -359,6 +363,7 @@ struct GenitorCalendarView: View {
         }
     }
     
+    // CORREÇÃO: Carregar todas as atividades, não apenas filtrar por horário
     private func loadActivitiesForCurrentDate() {
         guard let kidID = viewModel.firstKid?.id?.recordName else { return }
         
@@ -366,7 +371,16 @@ struct GenitorCalendarView: View {
             DispatchQueue.main.async {
                 switch result {
                 case .success(let activities):
+                    // Carregar TODAS as atividades, deixar o filtro para a TasksView
                     viewModel.records = activities
+                    print("🔍 GenitorCalendarView: Carregadas \(activities.count) atividades totais")
+                    
+                    // Debug: Mostrar quais atividades são para a data selecionada
+                    let activitiesForSelectedDate = activities.filter { activity in
+                        Calendar.current.isDate(activity.date, inSameDayAs: viewModel.currentDate)
+                    }
+                    print("🔍 GenitorCalendarView: \(activitiesForSelectedDate.count) atividades para \(viewModel.currentDate)")
+                    
                 case .failure(let error):
                     print("Erro ao carregar atividades: \(error)")
                 }

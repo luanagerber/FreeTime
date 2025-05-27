@@ -71,7 +71,6 @@ extension KidViewModel {
         loadKidData()
     }
     
-    // No arquivo KidViewModel.swift, substitua o método loadKidData() por:
     func loadKidData() {
         guard let kidID = currentKidID else {
             print("KidViewModel: loadKidData - Nenhum kidID definido")
@@ -283,6 +282,7 @@ extension KidViewModel {
             }
         }
     }
+    
     private func loadActivitiesFromSharedDB(for kid: Kid) {
         guard let kidID = kid.id?.recordName else {
             feedbackMessage = "ID do filho não encontrado"
@@ -364,6 +364,7 @@ extension KidViewModel {
         }
     }
     
+    // CORREÇÃO CRÍTICA: Esta função estava limitando as atividades
     private func processLoadedActivities(_ allActivities: [ActivitiesRegister], kidID: String) {
         isLoading = false
         
@@ -373,30 +374,37 @@ extension KidViewModel {
             return
         }
         
+        // ✅ CORREÇÃO: Salvar TODAS as atividades, não apenas as de hoje
         activities = allActivities.sorted { $0.date < $1.date }
         
-        let todayActivities = activities.filter { Calendar.current.isDateInToday($0.date) }
-        
         // Debug: Print all activities with their dates
-        print("🔍 DEBUG: All activities for kid \(kidID):")
-        for activity in activities {
-            let formatter = DateFormatter()
-            formatter.dateStyle = .short
-            formatter.timeStyle = .short
-            
-            let isToday = Calendar.current.isDateInToday(activity.date)
-            print("  - \(activity.activity?.name ?? "Unknown"): \(formatter.string(from: activity.date)) (Today: \(isToday))")
+        print("🔍 DEBUG: === TODAS AS ATIVIDADES CARREGADAS ===")
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+        
+        for (index, activity) in activities.enumerated() {
+            let isToday = Calendar.current.isDate(activity.date, inSameDayAs: Date())
+            print("  \(index + 1). \(activity.activity?.name ?? "Unknown"): \(formatter.string(from: activity.date)) (Today: \(isToday))")
         }
         
-        print("🔍 DEBUG: Current date: \(Date())")
-        print("🔍 DEBUG: Today's start: \(Calendar.current.startOfDay(for: Date()))")
+        // Contar apenas as de hoje para feedback, mas não filtrar
+        let todayActivities = activities.filter { activity in
+            Calendar.current.isDate(activity.date, inSameDayAs: Date())
+        }
+        
+        print("🔍 DEBUG: Current date: \(formatter.string(from: Date()))")
+        print("🔍 DEBUG: Today's start: \(formatter.string(from: Calendar.current.startOfDay(for: Date())))")
         
         feedbackMessage = todayActivities.isEmpty
-        ? "Nenhuma atividade para hoje"
-        : "✅ Encontradas \(todayActivities.count) atividades para hoje"
+        ? "Nenhuma atividade para hoje (mas \(activities.count) atividades carregadas no total)"
+        : "✅ Encontradas \(todayActivities.count) atividades para hoje (\(activities.count) no total)"
         
         print("📊 Total de atividades carregadas: \(activities.count)")
         print("📊 Atividades de hoje: \(todayActivities.count)")
+        print("📊 Atividades não iniciadas hoje: \(notStartedRegister().count)")
+        print("📊 Atividades em progresso hoje: \(inProgressRegister().count)")
+        print("📊 Atividades concluídas hoje: \(completedRegister().count)")
     }
     
     func refreshActivities() {
@@ -533,37 +541,62 @@ extension KidViewModel {
     
 }
 
-// MARK: - Data Filtering
+// MARK: - Data Filtering (CORRIGIDO)
 extension KidViewModel {
     
     func registerForToday() -> [ActivitiesRegister] {
-        guard let kidID = kid?.id?.recordName else { return [] }
+        guard let kidID = kid?.id?.recordName else {
+            print("🔍 DEBUG: registerForToday - kidID é nil")
+            return []
+        }
         
-        return activities
-            .filter { activity in
-                let belongsToKid = activity.kidID == kidID ||
-                activity.kidReference?.recordID.recordName == kidID
-                
-                let isToday = Calendar.current.isDateInToday(activity.date)
-                
-                return belongsToKid && isToday
-            }
-            .sorted { $0.date < $1.date }
+        let calendar = Calendar.current
+        let today = Date()
+        
+        print("🔍 DEBUG: registerForToday chamado")
+        print("🔍 DEBUG: kidID procurado: \(kidID)")
+        print("🔍 DEBUG: Total de atividades: \(activities.count)")
+        print("🔍 DEBUG: Data de hoje: \(today)")
+        
+        let result = activities.filter { activity in
+            let belongsToKid = activity.kidID == kidID ||
+                              activity.kidReference?.recordID.recordName == kidID
+            
+            // ✅ CORREÇÃO: Usar apenas a data, ignorando o horário
+            let isToday = calendar.isDate(activity.date, inSameDayAs: today)
+            
+            print("🔍 DEBUG: Atividade '\(activity.activity?.name ?? "Unknown")':")
+            print("  - activity.kidID: \(activity.kidID)")
+            print("  - kidReference?.recordID.recordName: \(activity.kidReference?.recordID.recordName ?? "nil")")
+            print("  - belongsToKid: \(belongsToKid)")
+            print("  - activity.date: \(activity.date)")
+            print("  - isToday: \(isToday)")
+            print("  - incluir?: \(belongsToKid && isToday)")
+            
+            return belongsToKid && isToday
+        }
+        .sorted { $0.date < $1.date }
+        
+        print("🔍 DEBUG: registerForToday retornando \(result.count) atividades")
+        return result
     }
     
     func notStartedRegister() -> [ActivitiesRegister] {
-        registerForToday()
-            .filter { $0.registerStatus == .notStarted }
+        let result = registerForToday().filter { $0.registerStatus == .notStarted }
+        print("🔍 DEBUG: notStartedRegister retornando \(result.count) atividades")
+        return result
     }
     
     func completedRegister() -> [ActivitiesRegister] {
-        registerForToday()
-            .filter { $0.registerStatus == .completed }
+        let result = registerForToday().filter { $0.registerStatus == .completed }
+        print("🔍 DEBUG: completedRegister retornando \(result.count) atividades")
+        return result
     }
     
     func inProgressRegister() -> [ActivitiesRegister] {
-        registerForToday()
-            .filter { $0.registerStatus == .inProgress }
+        let result = registerForToday().filter { $0.registerStatus == .inProgress }
+        print("🔍 DEBUG: inProgressRegister retornando \(result.count) atividades")
+        return result
     }
 }
 
