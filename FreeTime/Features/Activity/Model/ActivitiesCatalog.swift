@@ -23,9 +23,9 @@ extension Activity {
             rewardPoints: 50
         ),
         Activity(
-            name: "Atividade 3",
+            name: "Brincar de esconde esconde ",
             tags: [.mentalExercise, .study],
-            description: "Construção de um vulcão com bicarbonato e vinagre.",
+            description: "Correr com os amigos",
             necessaryMaterials: ["Bicarbonato de sódio", "Vinagre", "Argila", "Corante alimentício"],
             rewardPoints: 15
         )

@@ -10,21 +10,46 @@ import SwiftUI
 struct GenitorHomeView: View {
     
     @State private var currentTab: TabSelection = .activities
+    @StateObject var viewModel = GenitorViewModel.shared
     
     var body: some View {
         TabView (selection: $currentTab){
             Tab(value: .activities) {
                 GenitorCalendarView()
             } label: {
-                Image(systemName: "calendar")
+                VStack {
+                    Image(systemName: "calendar")
+                }
+                
             }
             
-            Tab("", systemImage: "cart", value: .rewards) {
+            Tab(value: .addActivity) {
+                
+            } label: {
+                VStack() {
+                    Image(systemName: "plus.circle.fill")
+                }
+                Button(action: {
+                    viewModel.createNewTask.toggle()
+                    print("hello")
+                },label: {
+                    Image(systemName: "plus.circle.fill")
+                })
+            }
+            
+            Tab(value: .rewards) {
                 GenitorRewardsView()
+            } label: {
+                Image(systemName: "cart")
             }
-            
         }
         .tint(.mainGenitor)
+        .onChange(of: currentTab) {
+            print("Aba ativa: \(currentTab)")
+        }
+        .sheet(isPresented: $viewModel.createNewTask, content: {
+            NewTaskView()
+        })
     }
 }
 

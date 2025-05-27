@@ -9,6 +9,7 @@ import SwiftUI
 
 enum TabSelection: Hashable {
     case activities
+    case addActivity
     case rewards
 }
 

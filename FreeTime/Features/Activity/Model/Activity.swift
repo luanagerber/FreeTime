@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 
-struct Activity: Identifiable {
+struct Activity: Identifiable, Hashable {
     let id: UUID
     let name: String
     var tags: [Tag]

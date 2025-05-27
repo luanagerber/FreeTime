@@ -20,7 +20,7 @@ class GenitorViewModel: ObservableObject {
     
     // MARK: - ViewModel Thales
     @Published var records: [ActivitiesRegister] = ActivitiesRegister.samples
-    @Published var rewards: [CollectedReward] = /*CollectedReward.samples*/ []
+    @Published var rewards: [CollectedReward] = CollectedReward.samples
     @Published var currentDate: Date = .init()
     
     // MARK: - Published Properties
@@ -29,6 +29,7 @@ class GenitorViewModel: ObservableObject {
     @Published var selectedKid: Kid?
     @Published var isLoading = false
     @Published var isRefreshing = false
+    @Published var createNewTask = false
     @Published var feedbackMessage = ""
     @Published var sharingSheet = false
     @Published var shareView: AnyView?
