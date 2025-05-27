@@ -10,33 +10,41 @@ import SwiftUI
 struct GenitorRewardsRowView: View {
     @Binding var reward: CollectedReward
 
-        var body: some View {
-            HStack {
-                // Ícone de checado ou círculo, dependendo do status 'delivered'
+    var body: some View {
+        HStack {
+            // Ícone de checado ou círculo, dependendo do status 'delivered'
+            Button(action: {
+                reward.isDelivered.toggle()
+            }, label: {
+                Image(systemName: reward.isDelivered ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(reward.isDelivered ? .green : .blue)
+            })
+            
+            VStack(alignment: .leading) {
+                // Usar o catálogo existente de Reward
+                Text(Reward.find(by: reward.rewardID)?.name ?? "Recompensa Desconhecida")
+                    .font(.custom("SF Pro", size: 17, relativeTo: .body))
+                    .fontWeight(.medium)
                 
-                Button(action: {
-                    reward.isDelivered.toggle()
-                }, label: {
-                    Image(systemName: reward.isDelivered ? "checkmark.circle.fill" : "circle")
-                        
-                })
-                
-                
-                Text(Reward.catalog[reward.rewardID].name) // Nome da recompensa
-                
-                Spacer()
-                
-                Text("- \(Reward.catalog[reward.rewardID].cost)")
-                
-                Image(systemName: "dollarsign.circle.fill")
+                Text(reward.dateCollected, style: .time)
+                    .font(.custom("SF Pro", size: 13, relativeTo: .caption))
+                    .foregroundColor(.secondary)
             }
-            .foregroundColor(reward.isDelivered ? .secondary : .black)
-            .hSpacing(.center)
-            .font(.custom("SF Pro", size: 17, relativeTo: .body))
-            .fontWeight(.medium)
-            .foregroundStyle(.black)
-            //.foregroundColor(reward.isDelivered ? .secondary : .black)
+            
+            Spacer()
+            
+            Text("- \(Reward.find(by: reward.rewardID)?.cost ?? 0)")
+                .font(.custom("SF Pro", size: 17, relativeTo: .body))
+                .fontWeight(.medium)
+            
+            Image(systemName: "dollarsign.circle.fill")
+                .foregroundColor(.orange)
         }
+        .foregroundColor(reward.isDelivered ? .secondary : .primary)
+        .hSpacing(.center)
+        .padding(.vertical, 8)
+        .opacity(reward.isDelivered ? 0.6 : 1.0)
+    }
 }
 
 #Preview {

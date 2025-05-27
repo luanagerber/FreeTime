@@ -24,6 +24,7 @@ struct FreeTimeApp: App {
 //            KidManagementDebugView() // essa é a que reset
 //            ActivityManagementDebugView()
 //            RewardsTestDebugView()
+//            GenitorRewardsView()
         }
     }
 }

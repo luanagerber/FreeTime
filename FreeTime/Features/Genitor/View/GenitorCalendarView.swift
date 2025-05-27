@@ -1,5 +1,5 @@
 //
-//  GenitorHomeView.swift
+//  GenitorCalendarView.swift
 //  FreeTime
 //
 //  Created by Thales Araújo on 19/05/25.
@@ -12,7 +12,6 @@ struct GenitorCalendarView: View {
     @State private var weekSlider: [[Date.WeekDay]] = []
     @State private var currentWeekIndex: Int = 1
     @State private var createWeek: Bool = false
-    @State private var createNewTask: Bool = false
     @StateObject var viewModel = GenitorViewModel.shared
     
     /// Animation Namespace
@@ -38,6 +37,8 @@ struct GenitorCalendarView: View {
         }
         .vSpacing(.top)
         .onAppear {
+            viewModel.setupCloudKit()
+            
             if weekSlider.isEmpty {
                 let currentWeek = Date().fetchWeek()
                 
@@ -52,16 +53,40 @@ struct GenitorCalendarView: View {
                 }
             }
         }
+        .refreshable {
+            viewModel.refresh()
+            loadActivitiesForCurrentDate()
+        }
+        .sheet(isPresented: $viewModel.showActivitySelector) {
+            ActivitySelectorView()
+        }
     }
     
     @ViewBuilder
     func HeaderView() -> some View {
         VStack (alignment: .leading) {
             
-            // Mês
-            Text(viewModel.currentDate.format("MMMM"))
-                .font(.custom("SF Pro", size: 34, relativeTo: .largeTitle))
-                .fontWeight(.semibold)
+            HStack {
+                // Mês
+                Text(viewModel.currentDate.format("MMMM"))
+                    .font(.custom("SF Pro", size: 34, relativeTo: .largeTitle))
+                    .fontWeight(.semibold)
+                
+                Spacer()
+                
+                // Botão para adicionar atividade
+                Button(action: {
+                    if !viewModel.kids.isEmpty {
+                        viewModel.selectedKid = viewModel.firstKid
+                        viewModel.showActivitySelector = true
+                    }
+                }) {
+                    Image(systemName: "plus")
+                        .font(.title2)
+                        .foregroundColor(.blue)
+                }
+                .disabled(viewModel.kids.isEmpty)
+            }
             
             // Semana
             TabView(selection: $currentWeekIndex) {
@@ -123,6 +148,7 @@ struct GenitorCalendarView: View {
                     // Updating current date
                     withAnimation(.snappy) {
                         viewModel.currentDate = day.date
+                        loadActivitiesForCurrentDate()
                     }
                 }
                 .background {
@@ -141,8 +167,8 @@ struct GenitorCalendarView: View {
                 let minX = $0.frame(in: .global).minX
                 
                 Color.clear
-                    .preference(key: OffsetKey.self, value: minX)
-                    .onPreferenceChange(OffsetKey.self) { value in
+                    .preference(key: CalendarOffsetKey.self, value: minX)
+                    .onPreferenceChange(CalendarOffsetKey.self) { value in
                         /// When the offset reaches 15 and and if the createWeek is toggled then simply generating next set of weak
                         if value.rounded() == 15 && createWeek {
                             paginateWeek()
@@ -176,10 +202,26 @@ struct GenitorCalendarView: View {
                 .padding(.horizontal)
             
             if (tasksCompleted.isEmpty && tasksNotStarted.isEmpty) {
-                Text("Nenhuma atividade foi planejada ainda. Clique em \"+\" para começar!")
-                    .padding(.horizontal)
-                    .font(.subheadline)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                VStack(spacing: 16) {
+                    Text("Nenhuma atividade foi planejada ainda.")
+                        .font(.subheadline)
+                        .multilineTextAlignment(.center)
+                    
+                    if !viewModel.kids.isEmpty {
+                        Button("Adicionar Atividade") {
+                            viewModel.selectedKid = viewModel.firstKid
+                            viewModel.showActivitySelector = true
+                        }
+                        .buttonStyle(.borderedProminent)
+                    } else {
+                        Text("Adicione uma criança primeiro para planejar atividades.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                }
+                .padding(.horizontal)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 
                 if tasksNotStarted.isEmpty {
@@ -214,6 +256,85 @@ struct GenitorCalendarView: View {
                     }
                 }
             }
+            
+            if viewModel.isLoading {
+                ProgressView()
+                    .padding()
+            }
+        }
+    }
+    
+    @ViewBuilder
+    func ActivitySelectorView() -> some View {
+        NavigationView {
+            VStack {
+                // Activity list
+                List(Activity.catalog, id: \.id) { activity in
+                    Button(action: {
+                        viewModel.selectedActivity = activity
+                    }) {
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(activity.name)
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Text(activity.description)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(2)
+                            }
+                            Spacer()
+                            if viewModel.selectedActivity?.id == activity.id {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+                
+                // Date and duration selectors
+                VStack(alignment: .leading, spacing: 16) {
+                    DatePicker("Data e hora", selection: $viewModel.scheduledDate)
+                        .datePickerStyle(.compact)
+                    
+                    Picker("Duração", selection: $viewModel.duration) {
+                        Text("30 minutos").tag(TimeInterval(1800))
+                        Text("1 hora").tag(TimeInterval(3600))
+                        Text("1 hora e 30 minutos").tag(TimeInterval(5400))
+                        Text("2 horas").tag(TimeInterval(7200))
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                }
+                .padding()
+                
+                // Schedule button
+                Button("Agendar Atividade") {
+                    viewModel.scheduleActivity()
+                    loadActivitiesForCurrentDate()
+                }
+                .disabled(viewModel.selectedActivity == nil || viewModel.selectedKid == nil || viewModel.isLoading)
+                .padding()
+                .background(viewModel.selectedActivity != nil ? Color.blue : Color.gray)
+                .foregroundColor(.white)
+                .cornerRadius(8)
+                .padding()
+                
+                if viewModel.isLoading {
+                    ProgressView()
+                        .padding()
+                }
+            }
+            .navigationTitle("Nova Atividade")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancelar") {
+                        viewModel.showActivitySelector = false
+                        viewModel.selectedActivity = nil
+                    }
+                }
+            }
         }
     }
     
@@ -236,6 +357,29 @@ struct GenitorCalendarView: View {
                 viewModel.currentDate = Calendar.current.date(byAdding: .day, value: 7, to: viewModel.currentDate) ?? viewModel.currentDate
             }
         }
+    }
+    
+    private func loadActivitiesForCurrentDate() {
+        guard let kidID = viewModel.firstKid?.id?.recordName else { return }
+        
+        CloudService.shared.fetchAllActivities(forKid: kidID) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let activities):
+                    viewModel.records = activities
+                case .failure(let error):
+                    print("Erro ao carregar atividades: \(error)")
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Offset Key for Week Pagination (renamed to avoid conflicts)
+private struct CalendarOffsetKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
 
