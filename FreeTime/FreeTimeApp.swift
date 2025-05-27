@@ -21,7 +21,7 @@ struct FreeTimeApp: App {
 //                                    print("🔄 UserManager resetado para teste")
 //                                }
             
-//            KidManagementDebugView()
+//            KidManagementDebugView() // essa é a que reset
 //            ActivityManagementDebugView()
 //            RewardsTestDebugView()
         }
