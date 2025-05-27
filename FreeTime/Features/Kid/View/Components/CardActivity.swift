@@ -12,41 +12,56 @@ struct CardActivity: View {
     
     var body: some View {
         VStack{
-            Rectangle()
+            RoundedRectangle(cornerRadius: 20)
                 .fill(.white)
-                .frame(width: 360, height: 200)
-            
+                .frame(width: 365, height: 200)
                 .overlay(
                     VStack(spacing: 0) {
                         
                         //Image of the Planned Activity
                         Rectangle()
-                            .fill(register.registerStatus.color)
+                            .fill(.gray.opacity(0.1))
                         
                         Rectangle()
-                            .fill(.gray)
-                            .frame(height: 55)
+                            .fill(.orangeKid)
+                            .frame(height: 60)
                             .overlay{
                                 
-                                VStack(spacing: 0){
+                                VStack(spacing: 5){
                                     
                                     Text(register.activity?.name ?? "Sem atividade")
-                                        .font(.system(size: 22, weight: .medium))
+                                        .font(.title2)
+                                        .fontWeight(.medium)
                                     
                                     Text(register.date.timeRange(duration: register.duration))
-                                        .font(.system(size: 17, weight: .medium))
+                                        .font(.headline)
                                     
                                 }
-                                .lineLimit(1)
-                                .foregroundColor(.white)
+                                .foregroundColor(.fontColorKid)
                             }
-                        
                     }
                     
                 )
-        }.cornerRadius(20)
+                .roundedBorder(.borderCardActivyKid, width: 1, cornerRadius: 20)
+        }
+        
+        
+        .cornerRadius(20)
+        
+        .ignoresSafeArea()
+        
     }
 }
+
+extension View {
+    func roundedBorder(_ color: Color, width: CGFloat, cornerRadius: CGFloat) -> some View {
+        self.overlay(
+            RoundedRectangle(cornerRadius: cornerRadius)
+                .stroke(color, lineWidth: width)
+        )
+    }
+}
+
 
 
 #Preview {
