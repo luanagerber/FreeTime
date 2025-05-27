@@ -11,7 +11,6 @@ import CloudKit
 struct KidWaitingInviteView: View {
     
     @EnvironmentObject var coordinator: Coordinator
-    
     @StateObject private var kidViewModel = KidViewModel()
     
     var body: some View {
@@ -30,12 +29,9 @@ struct KidWaitingInviteView: View {
                 .padding(.horizontal, 70)
                 .font(.system(size: 23))
             
-            // Botão de refresh
-
-//            Button(action: nextView) {
-//                Label("Próxima Tela", systemImage: "arrowshape.right.circle")
-
-            Button(action: kidViewModel.refresh) {
+            Button(action: {
+                kidViewModel.checkForSharedKid()
+            }) {
                 Label("Atualizar dados", systemImage: "arrow.clockwise")
                     .padding()
                     .frame(maxWidth: 200)
@@ -54,31 +50,38 @@ struct KidWaitingInviteView: View {
                 ProgressView()
                     .padding()
             }
-
-            
         }
         .padding(.vertical, 100)
         .background(Color.gray.opacity(0.1))
         .cornerRadius(12)
         .padding(.horizontal, 200)
         .refreshable {
+            kidViewModel.checkForSharedKid()
             if kidViewModel.hasAcceptedShareLink {
                 goToNextView()
             }
-            //chamar a funcao antes
         }
         .onAppear {
             kidViewModel.checkForSharedKid()
         }
-        
+        .onChange(of: kidViewModel.hasAcceptedShareLink) { hasAccepted in
+            if hasAccepted {
+                goToNextView()
+            }
+        }
+        .alert("Erro", isPresented: $kidViewModel.showError) {
+            Button("OK") {
+                kidViewModel.clearError()
+            }
+        } message: {
+            Text(kidViewModel.errorMessage)
+        }
     }
     
     private func goToNextView() {
         coordinator.push(.kidHome)
     }
-
 }
-
 
 #Preview("WaitingInvite") {
     CoordinatorView()

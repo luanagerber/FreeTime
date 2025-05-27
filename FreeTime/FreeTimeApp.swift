@@ -15,11 +15,6 @@ struct FreeTimeApp: App {
     var body: some Scene {
         WindowGroup {
             CoordinatorView()
-//                .onAppear {
-//                                    // TEMPORÁRIO: Limpa dados salvos para testar correção
-//                                    UserManager.shared.reset()
-//                                    print("🔄 UserManager resetado para teste")
-//                                }
             
 //            KidManagementDebugView() // essa é a que reset
 //            ActivityManagementDebugView()

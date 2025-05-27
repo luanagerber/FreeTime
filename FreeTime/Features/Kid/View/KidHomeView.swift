@@ -51,7 +51,7 @@ struct KidHomeView: View {
             .frame(height: 126)
             .overlay {
                 HStack(spacing: 20) {
-                    KidDataView(kid: vmKid.kid ?? Kid(name: "", coins: 0))
+                    KidDataView(kidName: vmKid.kidName ?? "No Kid", kidCoins: vmKid.kidCoins ?? 0)
                     Spacer()
                     NavButton(title: "Atividades", page: .kidHome)
                     Divider().frame(width: 2, height: 70).background(Color.white)
@@ -127,7 +127,8 @@ struct KidHomeView: View {
 }
 
 struct KidDataView: View {
-    let kid: Kid
+    let kidName: String
+    var kidCoins: Int
 
     var body: some View {
         HStack(spacing: 10) {
@@ -135,9 +136,9 @@ struct KidDataView: View {
                 .frame(width: 50, height: 50)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(kid.name)
+                Text(kidName)
                     .font(.system(size: 20, weight: .bold))
-                Text("$ \(kid.coins)")
+                Text("$ \(kidCoins)")
                     .font(.system(size: 17))
             }
         }
