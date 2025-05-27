@@ -217,29 +217,7 @@ extension KidViewModel {
 
 // MARK: - Activities Management
 extension KidViewModel {
-  
-    // UNUSED
-//    private func loadActivities() {
-//        guard let kid = kid else {
-//            isLoading = false
-//            return
-//        }
-//        
-//        guard let currentKidID = currentKidID else {
-//            isLoading = false
-//            return
-//        }
-//        
-//        print("KidViewModel: Carregando atividades para kid: \(currentKidID.recordName)")
-//        
-//        // Para crianças, sempre usa banco compartilhado para atividades
-//        if UserManager.shared.isChild {
-//            loadActivitiesFromSharedDB(for: kid)
-//        } else {
-//            loadActivities(for: kid, using: currentKidID.zoneID)
-//        }
-//    }
-//    
+   
     private func loadActivities(for kid: Kid, using zoneID: CKRecordZone.ID) {
         guard let kidID = kid.id?.recordName else {
             feedbackMessage = "ID do filho não encontrado"
@@ -398,6 +376,20 @@ extension KidViewModel {
         activities = allActivities.sorted { $0.date < $1.date }
         
         let todayActivities = activities.filter { Calendar.current.isDateInToday($0.date) }
+        
+        // Debug: Print all activities with their dates
+        print("🔍 DEBUG: All activities for kid \(kidID):")
+        for activity in activities {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .short
+            formatter.timeStyle = .short
+            
+            let isToday = Calendar.current.isDateInToday(activity.date)
+            print("  - \(activity.activity?.name ?? "Unknown"): \(formatter.string(from: activity.date)) (Today: \(isToday))")
+        }
+        
+        print("🔍 DEBUG: Current date: \(Date())")
+        print("🔍 DEBUG: Today's start: \(Calendar.current.startOfDay(for: Date()))")
         
         feedbackMessage = todayActivities.isEmpty
         ? "Nenhuma atividade para hoje"
