@@ -29,7 +29,11 @@ struct DetailView: View {
                         height: 92,
                         topPadding: 0)
                 
-                ConfirmButton(title: "Concluir Atividade", showPopUp: $showPopUp)
+                ConfirmButton(title: "Concluir Atividade",
+                             showPopUp: $showPopUp,
+                             onConfirm: {
+                    kidViewModel.concludeActivity(register: register)
+                })
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .overlay(alignment: .topTrailing){
@@ -135,9 +139,11 @@ struct InfoBox: View {
 struct ConfirmButton: View {
     let title: String
     @Binding var showPopUp: Bool
+    let onConfirm: () -> Void
     
     var body: some View {
         Button {
+            onConfirm()
             withAnimation {
                 showPopUp = true
             }
@@ -156,7 +162,6 @@ struct ConfirmButton: View {
         .padding(.bottom, 22)
     }
 }
-
 
 #Preview {
     DetailView(kidViewModel: KidViewModel(), register: ActivitiesRegister.sample1)

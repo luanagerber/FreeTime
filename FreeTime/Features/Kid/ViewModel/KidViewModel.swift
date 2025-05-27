@@ -15,6 +15,7 @@ class KidViewModel: ObservableObject {
     
     // MARK: - Published Properties
     @Published var kid: Kid?
+    @Published var kidCoins: Int?
     @Published var activities: [ActivitiesRegister] = []
     @Published var isLoading = false
     @Published var errorMessage: String = ""
@@ -22,10 +23,15 @@ class KidViewModel: ObservableObject {
     @Published var feedbackMessage = ""
     @Published var hasAcceptedShareLink = false
     
-    // MARK: - Private Properties
+    // MARK: - Other Properties
     private let cloudService = CloudService.shared
     private let invitationManager = InvitationStatusManager.shared
+    
     var currentKidID: CKRecord.ID?
+
+    var kidName: String? {
+        return UserManager.shared.currentKidName
+    }
     
     // MARK: - Initialization
     init() {
@@ -43,6 +49,7 @@ class KidViewModel: ObservableObject {
             if userManager.isChild {
                 // Para crianças, sempre tenta primeiro o banco compartilhado
                 loadChildData()
+                updateKidCoins()
             } else {
                 loadKidData()
             }
@@ -176,16 +183,6 @@ extension KidViewModel {
         }
     }
     
-    func loadFromRootRecord() {
-        guard let rootRecordID = cloudService.getRootRecordID() else {
-            handleError("No shared kid found")
-            return
-        }
-        
-        self.currentKidID = rootRecordID
-        loadChildData()
-    }
-    
     private func fetchKidInfo(rootRecordID: CKRecord.ID) {
         let container = CKContainer(identifier: CloudConfig.containerIdentifier)
         let sharedDB = container.sharedCloudDatabase
@@ -220,28 +217,29 @@ extension KidViewModel {
 
 // MARK: - Activities Management
 extension KidViewModel {
-    
-    private func loadActivities() {
-        guard let kid = kid else {
-            isLoading = false
-            return
-        }
-        
-        guard let currentKidID = currentKidID else {
-            isLoading = false
-            return
-        }
-        
-        print("KidViewModel: Carregando atividades para kid: \(currentKidID.recordName)")
-        
-        // Para crianças, sempre usa banco compartilhado para atividades
-        if UserManager.shared.isChild {
-            loadActivitiesFromSharedDB(for: kid)
-        } else {
-            loadActivities(for: kid, using: currentKidID.zoneID)
-        }
-    }
-    
+  
+    // UNUSED
+//    private func loadActivities() {
+//        guard let kid = kid else {
+//            isLoading = false
+//            return
+//        }
+//        
+//        guard let currentKidID = currentKidID else {
+//            isLoading = false
+//            return
+//        }
+//        
+//        print("KidViewModel: Carregando atividades para kid: \(currentKidID.recordName)")
+//        
+//        // Para crianças, sempre usa banco compartilhado para atividades
+//        if UserManager.shared.isChild {
+//            loadActivitiesFromSharedDB(for: kid)
+//        } else {
+//            loadActivities(for: kid, using: currentKidID.zoneID)
+//        }
+//    }
+//    
     private func loadActivities(for kid: Kid, using zoneID: CKRecordZone.ID) {
         guard let kidID = kid.id?.recordName else {
             feedbackMessage = "ID do filho não encontrado"
@@ -417,7 +415,7 @@ extension KidViewModel {
                 loadActivities(for: kid, using: currentKidID.zoneID)
             }
         } else {
-            loadActivities()
+            print("Couldn't refresh activities: no kid selected")
         }
     }
 }
@@ -502,9 +500,45 @@ extension KidViewModel {
         }
     }
     
-    func concludedActivity(register: ActivitiesRegister) {
+    func concludeActivity(register: ActivitiesRegister) {
         updateActivityStatus(register)
+        updateKidCoins()
     }
+    
+    func updateKidCoins() {
+        guard let kidID = currentKidID else {
+            handleError("No kid ID available")
+            return
+        }
+        
+        let container = CKContainer(identifier: CloudConfig.containerIdentifier)
+        
+        // Determine which database to use based on zone owner and user role
+        let isSharedZone = kidID.zoneID.ownerName != CKCurrentUserDefaultName
+        let isChildUser = UserManager.shared.isChild
+        let database = (isSharedZone || isChildUser) ?
+                       container.sharedCloudDatabase :
+                       container.privateCloudDatabase
+        
+        Task {
+            do {
+                let record = try await database.record(for: kidID)
+                let currentCoins = record["coins"] as? Int ?? 0
+                
+                DispatchQueue.main.async { [weak self] in
+                    self?.kidCoins = currentCoins
+                    if let kid = self?.kid {
+                        self?.kid?.coins = currentCoins
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async { [weak self] in
+                    self?.handleError("Failed to update kid coins: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+    
 }
 
 // MARK: - Data Filtering
@@ -543,10 +577,6 @@ extension KidViewModel {
 
 // MARK: - Invitation Management
 extension KidViewModel {
-    
-    func refresh() {
-        checkForSharedKid()
-    }
     
     func checkForSharedKid() {
         let hasRootRecord = cloudService.getRootRecordID() != nil
