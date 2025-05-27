@@ -95,4 +95,17 @@ extension Date {
         let endDate = self.addingTimeInterval(duration)
         return "\(formatter.string(from: self)) - \(formatter.string(from: endDate))"
     }
+    
+    /// Formata a data para exibir o dia da semana abreviado, dia do mês e mês abreviado (ex: "Qua. 21 de mai.").
+    func formattedAsDayMonth() -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "pt_BR") // Define o idioma para o português do Brasil
+        formatter.dateFormat = "EEE dd 'de' MMM" // Formato como "Qua. 21 de mai."
+        return formatter.string(from: self)
+    }
+    
+    /// Retorna a data no início do dia, útil para agrupar recompensas que ocorreram no mesmo dia.
+    var startOfDay: Date {
+        Calendar.current.startOfDay(for: self)
+    }
 }
