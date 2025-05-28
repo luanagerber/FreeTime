@@ -58,8 +58,9 @@ struct KidWaitingInviteView: View {
             }
             .background(Color.white.opacity(1.0))
             .cornerRadius(15)
-            //.padding(.vertical, 314)
-            //.padding(.horizontal, 420)
+            
+            .padding(.vertical, 248)
+            .padding(.horizontal, 343)
             .refreshable {
                 kidViewModel.checkForSharedKid()
                 if kidViewModel.hasAcceptedShareLink {
