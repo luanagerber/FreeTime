@@ -60,15 +60,12 @@ struct KidHomeView: View {
                             .frame(maxHeight: 156, alignment: .top)
                     }
                     Spacer()
-                    HStack(spacing: 34){
-                        NavButton(page: .kidHome, iconEnable: .activitiesIconEnabled, iconDisable: .activitiesIconDisabled)
+                    HStack(spacing: 39){
+                        NavButton(page: .kidHome, icon: .iActiviesEnabled)
                         
-                        Divider().frame(width: 3, height: 93)
-                            .background(.fontColorKid)
-                        
-                        NavButton(page: .rewardsStore, iconEnable: .storeIconEnabled, iconDisable: .storeIconDisabled)
+                        NavButton(page: .rewardsStore, icon: .iScoreDisabled)
                     }
-                    .padding(.bottom, 9)
+                    .padding(.bottom, 15)
                     .ignoresSafeArea()
                     .frame(maxHeight: 156, alignment: .bottom)
                     
@@ -151,14 +148,15 @@ struct KidHomeView: View {
         
     }
     
-    private func NavButton(page: Page, iconEnable: ImageResource, iconDisable: ImageResource) -> some View {
+    private func NavButton(page: Page, icon: ImageResource) -> some View {
         let isSelected = currentPage == page
         return Button {
             currentPage = page
         } label: {
             VStack {
-                Image(isSelected ? iconEnable : iconDisable)
-                    .frame(width: 121, height: 119)
+                Image(icon)
+                    .frame(width: 137, height: 146)
+                    .opacity(isSelected ? 1 : 0.5)
             }
         }
         .disabled(isSelected)
@@ -229,6 +227,7 @@ struct ActivitySection: View {
         .sheet(isPresented: $showActivityModal) {
             if let register = selectedRegister {
                 DetailView(kidViewModel: vmKid, register: register)
+                    
             }
         }
     }

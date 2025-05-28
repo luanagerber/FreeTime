@@ -33,7 +33,7 @@ struct CardActivity: View {
                                         .font(.title2)
                                         .fontWeight(.medium)
                                     
-                                    Text(register.date.timeRange(duration: register.duration))
+                                    Text(register.date.formattedAsRoundedHour())
                                         .font(.headline)
                                     
                                 }
