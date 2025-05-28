@@ -23,14 +23,13 @@ struct RewardCardView: View {
     }
     
     var body: some View {
-        ZStack(alignment: .bottom){
-            baseRectangle
-            overlayBar
-        }
-        
+        baseRectangle
+            .overlay(alignment: .bottomLeading) {
+                overlayBar
+            }
     }
     
-     var rewardCostCapsule: some View {
+    var rewardCostCapsule: some View {
         ZStack{
             HStack {
                 // coin
@@ -46,7 +45,7 @@ struct RewardCardView: View {
                 Text("\(reward.cost)")
                     .foregroundStyle(.text)
                     .font(.title3)
-                    
+                
             }
             .padding()
             .background {
@@ -54,7 +53,7 @@ struct RewardCardView: View {
                     .padding(.vertical, 6)
                     .foregroundStyle(.capsuleCoin)
             }
-           
+            
         }
     }
     
@@ -63,13 +62,14 @@ struct RewardCardView: View {
             .foregroundStyle(.gray.mix(with: .white, by: 0.6))
             .frame(width: Sizes.rewardCardWidth, height: Sizes.rewardCardHeight)
             .clipShape(RoundedRectangle(cornerRadius: Constants.UI.cardCornerRadius))
-            .shadow(color: .black.opacity(0.2), radius: 5, x: 4, y: 4)
-           
+            .shadow(color: .black.opacity(0.2), radius: 4, x: 4, y: 4)
+        
+        
     }
     
     private var overlayBar: some View {
         Rectangle()
-            .frame(width: Sizes.rewardCardWidth, height: Sizes.rewardCardHeight/3)
+            .frame(width: Sizes.rewardCardWidth - 4, height: Sizes.rewardCardHeight/3)
             .clipShape(CustomCornerShape(radius: 20, corners: [.bottomLeft, .bottomRight]))
             .foregroundStyle(.cardOverlayBar)
             .overlay {
@@ -90,8 +90,8 @@ struct RewardCardView: View {
 
 #Preview ("Card não coletado") {
     ZStack {
-        Constants.UI.Colors.defaultBackground
-            .ignoresSafeArea(.all)
+        //        Color(.pink)
+        //            .ignoresSafeArea(.all)
         HStack {
             RewardCardView(reward: Reward.sample)
             RewardCardView(reward: Reward.sample)
