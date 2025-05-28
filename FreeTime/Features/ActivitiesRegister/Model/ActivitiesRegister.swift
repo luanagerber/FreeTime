@@ -57,7 +57,7 @@ extension ActivitiesRegister: RecordProtocol {
         
         let newRecord = CKRecord(recordType: RecordType.activity.rawValue, zoneID: CloudConfig.recordZone.zoneID)
         newRecord["kidID"] = kidID
-        newRecord["activityID"] = activityID // Novos registros usam Int
+        newRecord["activityID"] = String(activityID) // Convert Int to String for CloudKit
         newRecord["date"] = date
         newRecord["duration"] = duration
         newRecord["status"] = registerStatus.rawValue
@@ -75,7 +75,7 @@ extension ActivitiesRegister: RecordProtocol {
         
         let record = CKRecord(recordType: RecordType.activity.rawValue, recordID: recordID)
         record["kidID"] = kidID
-        record["activityID"] = activityID // Novos registros usam Int
+        record["activityID"] = String(activityID) // Convert Int to String for CloudKit
         record["date"] = date
         record["duration"] = duration
         record["status"] = registerStatus.rawValue
@@ -112,36 +112,42 @@ extension ActivitiesRegister: RecordProtocol {
                 return nil
         }
         
-        // MIGRAÇÃO: Tentar Int primeiro, depois String (UUID)
+        // MIGRAÇÃO: Tentar String primeiro (novo formato), depois Int (antigo formato)
         var finalActivityID: Int
         
-        if let activityIDInt = record["activityID"] as? Int {
-            // Novo formato: Int
-            print("🔧 INIT: ✅ ActivityID encontrado como Int: \(activityIDInt)")
-            finalActivityID = activityIDInt
-        } else if let activityIDString = record["activityID"] as? String {
-            // Formato antigo: String (UUID) - converter para Int baseado em mapeamento
-            print("🔧 INIT: ⚠️ ActivityID encontrado como String (UUID): \(activityIDString)")
-            
-            // Mapeamento de UUIDs antigos para novos IDs Int
-            let uuidToIntMapping: [String: Int] = [
-                "D118C97D-03B9-48CB-84FA-A8257980BD9A": 0, // Exemplo: mapear para Pintura Criativa
-                "5BB0D5CC-FC78-44B1-B56A-7CF00C0EBF51": 1, // Exemplo: mapear para Experimento de Vulcão
-                "DBDEEE3F-38CA-4270-A734-802D00FACD01": 2, // Exemplo: mapear para Brincar de esconde esconde
-                // Adicione mais mapeamentos conforme necessário
-            ]
-            
-            if let mappedID = uuidToIntMapping[activityIDString] {
-                print("🔧 INIT: ✅ UUID mapeado para Int: \(activityIDString) -> \(mappedID)")
-                finalActivityID = mappedID
+        if let activityIDString = record["activityID"] as? String {
+            // Novo formato: String (convertido do Int)
+            if let activityIDInt = Int(activityIDString) {
+                print("🔧 INIT: ✅ ActivityID encontrado como String convertível para Int: \(activityIDString) -> \(activityIDInt)")
+                finalActivityID = activityIDInt
             } else {
-                print("🔧 INIT: ❌ UUID não encontrado no mapeamento: \(activityIDString)")
-                // Usar ID padrão (0) para UUIDs desconhecidos
-                finalActivityID = 0
-                print("🔧 INIT: ⚠️ Usando ID padrão 0 para UUID desconhecido")
+                // Formato legacy: String (UUID) - converter para Int baseado em mapeamento
+                print("🔧 INIT: ⚠️ ActivityID encontrado como String (UUID): \(activityIDString)")
+                
+                // Mapeamento de UUIDs antigos para novos IDs Int
+                let uuidToIntMapping: [String: Int] = [
+                    "D118C97D-03B9-48CB-84FA-A8257980BD9A": 0, // Exemplo: mapear para Pintura Criativa
+                    "5BB0D5CC-FC78-44B1-B56A-7CF00C0EBF51": 1, // Exemplo: mapear para Experimento de Vulcão
+                    "DBDEEE3F-38CA-4270-A734-802D00FACD01": 2, // Exemplo: mapear para Brincar de esconde esconde
+                    // Adicione mais mapeamentos conforme necessário
+                ]
+                
+                if let mappedID = uuidToIntMapping[activityIDString] {
+                    print("🔧 INIT: ✅ UUID mapeado para Int: \(activityIDString) -> \(mappedID)")
+                    finalActivityID = mappedID
+                } else {
+                    print("🔧 INIT: ❌ UUID não encontrado no mapeamento: \(activityIDString)")
+                    // Usar ID padrão (0) para UUIDs desconhecidos
+                    finalActivityID = 0
+                    print("🔧 INIT: ⚠️ Usando ID padrão 0 para UUID desconhecido")
+                }
             }
+        } else if let activityIDInt = record["activityID"] as? Int {
+            // Formato muito antigo: Int direto (não deveria mais acontecer após a correção)
+            print("🔧 INIT: ⚠️ ActivityID encontrado como Int direto: \(activityIDInt)")
+            finalActivityID = activityIDInt
         } else {
-            print("🔧 INIT: ❌ ActivityID não é nem Int nem String")
+            print("🔧 INIT: ❌ ActivityID não é nem String nem Int")
             return nil
         }
         
