@@ -15,11 +15,13 @@ struct FreeTimeApp: App {
     var body: some Scene {
         WindowGroup {
             CoordinatorView()
+                .preferredColorScheme(.light)
             
 //            KidManagementDebugView() // essa é a que reset
 //            ActivityManagementDebugView()
 //            RewardsTestDebugView()
 //            GenitorRewardsView()
+            
         }
     }
 }
