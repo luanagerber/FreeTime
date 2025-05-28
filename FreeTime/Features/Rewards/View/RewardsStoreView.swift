@@ -175,61 +175,61 @@ struct RewardsStoreView: View {
 }
 
 
-//#Preview ("loja"){
-//    struct PreviewWrapper: View {
-//        @StateObject var coordinator = Coordinator()
-//        let impossibleRewardTest = Reward(id: 1, name: "bola", cost: 999999, image: "Fortuna do Japão")
-//        
-//        var body: some View {
-//            NavigationStack(path: $coordinator.path) {
-//                RewardsStoreView(store: coordinator.rewardsStore)
-//                    .sheet(item: $coordinator.sheet) { sheet in
-//                        coordinator.build(sheet: sheet)
-//                            .presentationSizing(.fitted)
-//                            .presentationCornerRadius(20)
-//                    }
-//                
-//            }
-//            .environmentObject(coordinator)
-//            .onAppear(){
-//                //coordinator.present(.buyRewardConfirmation(impossibleRewardTest))
-//            }
-//        }
-//    }
-//    
-//    return PreviewWrapper()
-//}
+#Preview ("loja"){
+    struct PreviewWrapper: View {
+        @StateObject var coordinator = Coordinator()
+        let impossibleRewardTest = Reward(id: 1, name: "bola", cost: 999999, image: "Fortuna do Japão")
+        
+        var body: some View {
+            NavigationStack(path: $coordinator.path) {
+                RewardsStoreView(store: coordinator.rewardsStore)
+                    .sheet(item: $coordinator.sheet) { sheet in
+                        coordinator.build(sheet: sheet)
+                            .presentationSizing(.fitted)
+                            .presentationCornerRadius(20)
+                    }
+                
+            }
+            .environmentObject(coordinator)
+            .onAppear(){
+                //coordinator.present(.buyRewardConfirmation(impossibleRewardTest))
+            }
+        }
+    }
+    
+    return PreviewWrapper()
+}
 
-//#Preview ("Card não coletado") {
-//    ZStack {
-//        Constants.UI.Colors.defaultBackground
-//            .ignoresSafeArea(.all)
-//        RewardCardView(reward: Reward.sample)
-//    }
-//}
-//
-//#Preview("Tela de confirmação - Modal") {
-//    
-//    struct PreviewWrapper: View {
-//        @StateObject var coordinator = Coordinator() // Use @StateObject para coordinators em Views
-//        
-//        var body: some View {
-//            NavigationStack(path: $coordinator.path) {
-//                RewardsStoreView(store: coordinator.rewardsStore)
-//                    .sheet(item: $coordinator.sheet) { sheet in
-//                        coordinator.build(sheet: sheet)
-//                            .presentationSizing(.fitted)
-//                            .presentationCornerRadius(20)
-//                    }
-//                
-//            }
-//            .environmentObject(coordinator)
-//            .onAppear(){
-//                coordinator.present(.buyRewardConfirmation(Reward.sample))
-//            }
-//        }
-//    }
-//    return PreviewWrapper()
-//}
+#Preview ("Card não coletado") {
+    ZStack {
+        Constants.UI.Colors.defaultBackground
+            .ignoresSafeArea(.all)
+        RewardCardView(reward: Reward.sample)
+    }
+}
+
+#Preview("Tela de confirmação - Modal") {
+    
+    struct PreviewWrapper: View {
+        @StateObject var coordinator = Coordinator() // Use @StateObject para coordinators em Views
+        
+        var body: some View {
+            NavigationStack(path: $coordinator.path) {
+                RewardsStoreView(store: coordinator.rewardsStore)
+                    .sheet(item: $coordinator.sheet) { sheet in
+                        coordinator.build(sheet: sheet)
+                            .presentationSizing(.fitted)
+                            .presentationCornerRadius(20)
+                    }
+                
+            }
+            .environmentObject(coordinator)
+            .onAppear(){
+                coordinator.present(.buyRewardConfirmation(Reward.catalog[0]))
+            }
+        }
+    }
+    return PreviewWrapper()
+}
 
 

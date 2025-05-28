@@ -25,7 +25,7 @@ struct KidWaitingInviteView: View {
                     VStack(alignment: .leading){
                         ZStack(alignment: .leading){
                             Rectangle()
-                                .fill(Color.pink)
+                                .fill(.message)
                                 .frame(height: 100)
                                 .cornerRadius(15)
                             
@@ -58,8 +58,8 @@ struct KidWaitingInviteView: View {
             }
             .background(Color.white.opacity(1.0))
             .cornerRadius(15)
-            .padding(.vertical, 314)
-            .padding(.horizontal, 420)
+            //.padding(.vertical, 314)
+            //.padding(.horizontal, 420)
             .refreshable {
                 kidViewModel.checkForSharedKid()
                 if kidViewModel.hasAcceptedShareLink {
