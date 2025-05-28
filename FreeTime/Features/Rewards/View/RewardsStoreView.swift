@@ -24,7 +24,6 @@ struct RewardsStoreView: View {
                 .ignoresSafeArea(.all)
             
             VStack {
-                upBar
                 
                 ScrollView(.vertical){
                     VStack(alignment: .leading){
@@ -69,16 +68,18 @@ struct RewardsStoreView: View {
     }
     
     @ViewBuilder
-    func buildHeader(message: String? = nil) -> some View {
+    func buildHeader(message: String? = nil, color: Color = .message) -> some View {
         HStack(alignment: .center){
-            VStack(alignment: .leading){
+            VStack(alignment: .leading, spacing: 8){
                 titleText
                 subtitleText
             }
             .padding(.trailing)
+            .padding([.top, .bottom], 32)
+            
             
             if let message = message {
-                headerMessage(message: message)
+                headerMessage(message: message, color: color)
                     .offset(x: messageOffset.rawValue)
                     .onAppear {
                         withAnimation(.bouncy(duration: 1.00, extraBounce: -0.5)) {
@@ -106,10 +107,10 @@ struct RewardsStoreView: View {
         .padding(.top, 32)
     }
     
-    func headerMessage(message: String) -> some View {
+    func headerMessage(message: String, color: Color) -> some View {
         ZStack(alignment: .leading){
             CustomCornerShape(radius: 20, corners: [.topLeft, .bottomLeft])
-                .fill(.message)
+                .fill(color)
                 .shadow(color: .messageShadow, radius: 0, x: 0, y: 5)
                 .frame(maxWidth: .infinity)
                 .frame(height: 75)
@@ -131,18 +132,9 @@ struct RewardsStoreView: View {
         switch type {
         case .normal:
             buildHeader()
-        case .withMessage(let message):
-            buildHeader(message: message)
+        case .withMessage(let message, let color):
+            buildHeader(message: message, color: color)
         }
-    }
-    
-    private var upBar: some View {
-        Rectangle()
-            .clipShape(CustomCornerShape(radius: 20, corners: [.bottomLeft, .bottomRight]))
-            .frame(height: 105)
-            .ignoresSafeArea(.all)
-            .foregroundStyle(.upBar)
-        
     }
     
     private var titleText: some View {
@@ -155,7 +147,7 @@ struct RewardsStoreView: View {
     
     private var subtitleText: some View {
         Text(store.rewards.isEmpty ?
-             "Hmm... parece que ainda não tem nenhuma recompensa para comprar. Que tal pedir pra um adulto adicionar uma recompensa pra você?" : "Clique nas recompensas que deseja adquirir"
+             "Hmm... parece que ainda não tem nenhuma recompensa para comprar. Que tal pedir pra um adulto adicionar uma recompensa pra você?" : "Clique nas recompensas que deseja ganhar!"
         )
         .font(.title2)
         .fontDesign(.rounded)
