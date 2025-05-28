@@ -11,49 +11,32 @@ struct CardActivity: View {
     var register: ActivitiesRegister
     
     var body: some View {
-        VStack{
-            RoundedRectangle(cornerRadius: 20)
-                .fill(.white)
-                .frame(width: 365, height: 200)
-                .overlay(
-                    VStack(spacing: 0) {
-                        
-                        //Image of the Planned Activity
-                        Image(register.activity?.imageNameKid ?? "Zoologico")
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                        
-//                        Rectangle()
-//                            .fill(.gray.opacity(0.1))
-                        
-                        Rectangle()
-                            .fill(.orangeKid)
-                            .frame(height: 60)
-                            .overlay{
+        ZStack{
+            Image(.imageDrawKid)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .overlay(alignment: .bottom){
+                    Rectangle()
+                        .fill(.orangeKid)
+                        .frame(height: 65)
+                        .overlay(alignment: .center){
+                            VStack(spacing: 5){
+                                Text(register.activity?.name ?? "Sem atividade")
+                                    .font(.title2)
+                                    .fontWeight(.medium)
                                 
-                                VStack(spacing: 5){
-                                    
-                                    Text(register.activity?.name ?? "Sem atividade")
-                                        .font(.title2)
-                                        .fontWeight(.medium)
-                                    
-                                    Text(register.date.formattedAsRoundedHour())
-                                        .font(.headline)
-                                    
-                                }
-                                .foregroundColor(.fontColorKid)
+                                Text(register.date.formattedAsRoundedHour())
+                                    .font(.headline)
+                                
                             }
-                    }
-                    
-                )
+                            .foregroundColor(.fontColorKid)
+                        }
+                }
                 .roundedBorder(.borderCardActivyKid, width: 1, cornerRadius: 20)
-        }
-        
-        
-        .cornerRadius(20)
-        
-        .ignoresSafeArea()
-        
+                .cornerRadius(20)
+                .frame(width: 365, height: 200)
+                
+            }
     }
 }
 
