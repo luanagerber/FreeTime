@@ -15,7 +15,7 @@ struct CoordinatorView: View {
 
     var body: some View {
         NavigationStack(path: $coordinator.path) {
-            coordinator.build(page: .kidManagement)
+            coordinator.build(page: initialPage)
                 .navigationDestination(for: Page.self) { page in
                     coordinator.build(page: page)
                 }
@@ -49,7 +49,6 @@ struct CoordinatorView: View {
         switch invitationManager.currentStatus {
         case .accepted, .sent:
             return .genitorHome
-//            return .rewardsStoreDebug
         case .pending:
             return .kidManagement
         }

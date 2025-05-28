@@ -12,7 +12,7 @@ extension Activity {
             id: 0,
             name: "Desenhar e colorir desenho",
             imageNameGenitor: "imageDrawGenitor",
-            imageNameKid: "Zoologico",
+            imageNameKid: "imageDrawKid",
             tags: [.creativity],
             description: "Separe lápis de cor, giz de cera, canetinhas e papéis ou desenhos para colorir. Deixe a criança soltar a imaginação!",
             kidDescription: "Use lápis, canetinhas ou o que tiver em casa para criar um desenho bem legal. Depois, pinte com as cores que mais combinarem com a sua ideia!",
