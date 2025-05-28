@@ -50,7 +50,7 @@ struct GenitorTaskRowView: View {
             //                .foregroundColor(statusColor)
             //                .font(.title2)
             
-            Image(record.activity?.imageName ?? "")
+            Image(record.activity?.imageNameGenitor ?? "")
                 .resizable()
                 .scaledToFill()
                 .frame(

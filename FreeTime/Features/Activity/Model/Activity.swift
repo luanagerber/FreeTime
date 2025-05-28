@@ -9,20 +9,24 @@ import Foundation
 import SwiftUI
 
 struct Activity: Identifiable, Hashable {
-    let id: UUID
+    let id: Int
     let name: String
-    let imageName: String
+    let imageNameGenitor: String
+    let imageNameKid: String
     var tags: [Tag]
     var description: String
+    var kidDescription: String?
     var necessaryMaterials: [String]
     var rewardPoints: Int
     
-    init (name: String, imageName: String, tags: [Tag], description: String, necessaryMaterials: [String], rewardPoints: Int) {
-        self.id = UUID()
+    init (id: Int, name: String, imageNameGenitor: String, imageNameKid: String, tags: [Tag], description: String, kidDescription: String? = nil, necessaryMaterials: [String], rewardPoints: Int) {
+        self.id = id
         self.name = name
-        self.imageName = imageName
+        self.imageNameGenitor = imageNameGenitor
+        self.imageNameKid = imageNameKid
         self.tags = tags
         self.description = description
+        self.kidDescription = kidDescription
         self.necessaryMaterials = necessaryMaterials
         self.rewardPoints = rewardPoints
     }
@@ -32,6 +36,6 @@ struct Activity: Identifiable, Hashable {
         case physicalExercise
         case socialActivity
         case study
+        case creativity
     }
-
 }
