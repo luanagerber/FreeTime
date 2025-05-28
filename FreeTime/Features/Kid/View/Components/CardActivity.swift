@@ -12,7 +12,7 @@ struct CardActivity: View {
     
     var body: some View {
         ZStack{
-            Image(.imageDrawKid)
+            Image(register.activity?.imageNameKid ?? " ")
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .overlay(alignment: .bottom){
