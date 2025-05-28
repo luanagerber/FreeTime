@@ -20,43 +20,46 @@ struct KidWaitingInviteView: View {
                 .aspectRatio(contentMode: .fill)
                 .ignoresSafeArea()
             
-            VStack(spacing: 20) {
-                Text("Aguardando Convite")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                
-                Text("Você ainda não recebeu o convite do seu responsável. Quando receber um convite, abra-o em seu dispositivo para acessar suas atividades.")
-                    .multilineTextAlignment(.leading)
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, 70)
-                    .font(.system(size: 23))
-                
-                Button(action: {
-                    kidViewModel.checkForSharedKid()
-                }) {
-                    Label("Atualizar dados", systemImage: "arrow.clockwise")
-                        .padding()
-                        .frame(maxWidth: 200)
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .font(.system(size: 17, weight: .bold))
-                        .cornerRadius(8)
-                }
-                .disabled(kidViewModel.isLoading)
-                
-                Text(kidViewModel.feedbackMessage)
-                    .foregroundColor(.secondary)
-                    .font(.system(size: 17, weight: .bold))
-                
-                if kidViewModel.isLoading {
-                    ProgressView()
-                        .padding()
+            VStack(){
+                ZStack() {
+                    VStack(alignment: .leading){
+                        ZStack(alignment: .leading){
+                            Rectangle()
+                                .fill(Color.pink)
+                                .frame(height: 100)
+                                .cornerRadius(15)
+                            
+                            Text("Aguardando convite...")
+                                .foregroundStyle(.primary)
+                                .font(.system(size: 28))
+                                .fontWeight(.semibold)
+                                .padding(.horizontal, 42)
+                        }
+                        
+                        Spacer()
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 30) {
+                        
+                        
+                        Text("Você ainda não recebeu o convite do seu responsável!")
+                            .foregroundColor(.primary)
+                            .font(.system(size: 23))
+                        
+                        Text("Assim que ele enviar, é só abrir o convite para ver suas atividades e começar a se divertir!")
+                            .multilineTextAlignment(.leading)
+                            .foregroundColor(.primary)
+                            .font(.system(size: 23))
+                        
+                    }.padding(.horizontal, 20)
+                    .padding(.top, 64)
+                    
                 }
             }
-            .padding(.vertical, 100)
-            .background(Color.gray.opacity(0.1))
-            .cornerRadius(12)
-            .padding(.horizontal, 200)
+            .background(Color.white.opacity(1.0))
+            .cornerRadius(15)
+            .padding(.vertical, 314)
+            .padding(.horizontal, 420)
             .refreshable {
                 kidViewModel.checkForSharedKid()
                 if kidViewModel.hasAcceptedShareLink {
