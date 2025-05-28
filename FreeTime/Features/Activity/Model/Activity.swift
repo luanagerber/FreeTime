@@ -4,20 +4,19 @@
 //
 //  Created by Luana Gerber on 05/05/25.
 //
-
 import Foundation
 import SwiftUI
 
 struct Activity: Identifiable, Hashable {
-    let id: UUID
+    let id: Int
     let name: String
     var tags: [Tag]
     var description: String
     var necessaryMaterials: [String]
     var rewardPoints: Int
     
-    init (name: String, tags: [Tag], description: String, necessaryMaterials: [String], rewardPoints: Int) {
-        self.id = UUID()
+    init (id: Int, name: String, tags: [Tag], description: String, necessaryMaterials: [String], rewardPoints: Int) {
+        self.id = id
         self.name = name
         self.tags = tags
         self.description = description
@@ -31,5 +30,4 @@ struct Activity: Identifiable, Hashable {
         case socialActivity
         case study
     }
-    
 }

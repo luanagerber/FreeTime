@@ -9,6 +9,7 @@ extension Activity {
     
     static let catalog: [Activity] = [
         Activity(
+            id: 0,
             name: "Pintura Criativa",
             tags: [.mentalExercise, .study],
             description: "Uma atividade de pintura livre para estimular a criatividade das crianças.",
@@ -16,6 +17,7 @@ extension Activity {
             rewardPoints: 25
         ),
         Activity(
+            id: 1,
             name: "Experimento de Vulcão",
             tags: [.mentalExercise, .study],
             description: "Construção de um vulcão com bicarbonato e vinagre.",
@@ -23,11 +25,17 @@ extension Activity {
             rewardPoints: 50
         ),
         Activity(
-            name: "Brincar de esconde esconde ",
-            tags: [.mentalExercise, .study],
+            id: 2,
+            name: "Brincar de esconde esconde",
+            tags: [.physicalExercise, .socialActivity],
             description: "Correr com os amigos",
-            necessaryMaterials: ["Bicarbonato de sódio", "Vinagre", "Argila", "Corante alimentício"],
+            necessaryMaterials: ["Espaço livre", "Amigos"],
             rewardPoints: 15
         )
     ]
+    
+    // Helper method to find activity by ID
+    static func find(by id: Int) -> Activity? {
+        catalog.first { $0.id == id }
+    }
 }
