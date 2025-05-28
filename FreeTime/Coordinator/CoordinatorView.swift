@@ -15,7 +15,7 @@ struct CoordinatorView: View {
     
     var body: some View {
         NavigationStack(path: $coordinator.path) {
-            coordinator.build(page: initialPage)
+            coordinator.build(page: .kidHome)
 
                 .navigationDestination(for: Page.self) { page in
                     coordinator.build(page: page)
