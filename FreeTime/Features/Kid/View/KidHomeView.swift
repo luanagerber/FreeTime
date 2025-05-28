@@ -13,7 +13,6 @@ struct KidHomeView: View {
     @State private var currentPage: Page = .kidHome
     @StateObject private var vmKid = KidViewModel()
     @State private var selectedRegister: ActivitiesRegister? = nil
-    @State private var showActivityModal: Bool = false
     
     var body: some View {
         ZStack {
@@ -61,9 +60,9 @@ struct KidHomeView: View {
                     }
                     Spacer()
                     HStack(spacing: 39){
-                        NavButton(page: .kidHome, icon: .iActiviesEnabled)
+                        NavButton(page: .kidHome, icon: .iActivity)
                         
-                        NavButton(page: .rewardsStore, icon: .iScoreDisabled)
+                        NavButton(page: .rewardsStore, icon: .iStore)
                     }
                     .padding(.bottom, 15)
                     .ignoresSafeArea()
@@ -90,8 +89,7 @@ struct KidHomeView: View {
                 EmptyView()
         }
     }
-    
-    
+
     private var ActivitiesView: some View {
         VStack(alignment: .leading, spacing: 24) {
             VStack(alignment: .leading, spacing: 4) {
@@ -103,9 +101,6 @@ struct KidHomeView: View {
                     .font(.title2)
                     .kerning(0.3)
             }
-            
-            
-            
             VStack{
                 HStack{
                     VStack(alignment: .leading ,spacing: 16){
@@ -115,11 +110,11 @@ struct KidHomeView: View {
                             .font(.title)
                             .kerning(0.38)
                             .fontWeight(.medium)
+                        
                         ActivitySection(
                             registers: ActivitiesRegister.samples,
                             emptyMessage: "Não há atividades a serem realizadas hoje.",
                             selectedRegister: $selectedRegister,
-                            showActivityModal: $showActivityModal,
                             vmKid: vmKid
                         )
                         .shadow(color: .black.opacity(0.2), radius: 4, x: 4, y: 4)
@@ -133,7 +128,6 @@ struct KidHomeView: View {
                             registers: ActivitiesRegister.samples,
                             emptyMessage: "Não há atividades a serem realizadas hoje.",
                             selectedRegister: $selectedRegister,
-                            showActivityModal: $showActivityModal,
                             vmKid: vmKid
                         )
                         .shadow(color: .black.opacity(0.2), radius: 4, x: 4, y: 4)
@@ -200,7 +194,6 @@ struct ActivitySection: View {
     let registers: [ActivitiesRegister]
     let emptyMessage: String
     @Binding var selectedRegister: ActivitiesRegister?
-    @Binding var showActivityModal: Bool
     var vmKid: KidViewModel
     
     var body: some View {
@@ -214,24 +207,20 @@ struct ActivitySection: View {
                         ForEach(registers) { register in
                             Button {
                                 selectedRegister = register
-                                showActivityModal = true
                             } label: {
                                 CardActivity(register: register)
                             }
                         }
                     }
-                    
                 }
             }
         }
-        .sheet(isPresented: $showActivityModal) {
-            if let register = selectedRegister {
-                DetailView(kidViewModel: vmKid, register: register)
-                    
-            }
+        .sheet(item: $selectedRegister) { register in
+            DetailView(kidViewModel: vmKid, register: register)
         }
     }
 }
+
 
 #Preview {
     KidHomeView()
