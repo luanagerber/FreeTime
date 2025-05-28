@@ -27,7 +27,9 @@ struct GenitorRewardsView: View {
         .refreshable {
             loadRewards()
         }
+        .background(Color("backgroundGenitor"))
     }
+    
     
     @ViewBuilder
     func HeaderView() -> some View {
@@ -148,11 +150,17 @@ struct GenitorRewardsView: View {
                 }
             }
             .padding(20)
-            .background(
-                // Borda fina arredondada por cima
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color(red: 0.87, green: 0.87, blue: 0.87), lineWidth: 2)
-            )
+            .background(Color.white) // ✅ Aqui define o fundo branco do bloco
+//            .background(
+//                // Borda fina arredondada por cima
+//                RoundedRectangle(cornerRadius: 10)
+//                    .stroke(Color(red: 0.87, green: 0.87, blue: 0.87), lineWidth: 2)
+//                
+//            )
+            .overlay( // Borda ao redor do bloco branco
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color(red: 0.87, green: 0.87, blue: 0.87), lineWidth: 2)
+                    )
             .cornerRadius(10)
         }
         .padding(.horizontal, 20)
