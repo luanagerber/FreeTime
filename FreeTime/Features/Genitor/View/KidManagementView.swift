@@ -43,6 +43,10 @@ struct KidManagementView: View {
                     ProgressView()
                         .padding()
                 }
+                
+                if !viewModel.feedbackMessage.isEmpty {
+                    feedbackMessageView
+                }
             }
             .padding()
             .onAppear(perform: handleOnAppear)
@@ -124,6 +128,22 @@ struct KidManagementView: View {
                 Text("Preparando compartilhamento...")
             }
         }
+    }
+    
+    private var feedbackMessageView: some View {
+        Text(viewModel.feedbackMessage)
+            .padding()
+            .background(
+                viewModel.feedbackMessage.contains("❌") ? Color.red.opacity(0.1) :
+                viewModel.feedbackMessage.contains("✅") ? Color.green.opacity(0.1) :
+                Color.blue.opacity(0.1)
+            )
+            .cornerRadius(8)
+            .foregroundColor(
+                viewModel.feedbackMessage.contains("❌") ? .red :
+                viewModel.feedbackMessage.contains("✅") ? .green :
+                .blue
+            )
     }
     
     private var debugInfoView: some View {
