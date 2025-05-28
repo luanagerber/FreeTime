@@ -25,7 +25,7 @@ class GenitorViewModel: ObservableObject {
     
     // MARK: - Published Properties
     @Published var childName = ""
-    @Published var kids: [Kid] = []
+    @Published var kids: [Kid] = /*[Kid.sample]*/ []
     @Published var selectedKid: Kid?
     @Published var isLoading = false
     @Published var isRefreshing = false

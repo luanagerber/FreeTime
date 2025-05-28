@@ -34,6 +34,8 @@ struct GenitorHomeView: View {
             // ✅ CORREÇÃO: Sheet moved to the correct level
             .sheet(isPresented: $viewModel.createNewTask) {
                 NewTaskView()
+                    .presentationDetents([.large]) // Alturas suportadas
+                    .presentationDragIndicator(.visible)   // Mostra o indicador de arraste
             }
         }
         .ignoresSafeArea(edges: .bottom)

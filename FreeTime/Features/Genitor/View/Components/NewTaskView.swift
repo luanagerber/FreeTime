@@ -39,13 +39,17 @@ struct NewTaskView: View {
             Text("Nova atividade")
                 .font(.custom("SF Pro", size: 20, relativeTo: .title3))
                 .fontWeight(.semibold)
+                .foregroundStyle(Color("primaryColor"))
                 .hSpacing(.leading)
             
-            // Atividade
+            // Preenchimento dos campos
             VStack (spacing: 20) {
-                // Campo do nome da atividade
+                // nome da atividade
                 HStack {
                     Text("Atividade")
+                        .font(.custom("SF Pro", size: 17, relativeTo: .title3))
+                        .fontWeight(.medium)
+                        .foregroundStyle(Color("primaryColor"))
                     
                     Spacer()
                     
@@ -60,33 +64,41 @@ struct NewTaskView: View {
                         }
                     } label: {
                         HStack(spacing: 4) {
+                            
                             Text(titleTask)
-                                .foregroundColor(titleTask == "Selecione" ? .secondary : .primary)
+                            
                             Image(systemName: "chevron.up.chevron.down")
+                            
                         }
-                        .foregroundColor(.blue)
+                        .foregroundColor(Color("backgroundTaskActivitySelected"))
                     }
                 }
                 .padding()
                 .background(Color.white)
                 .overlay(
                     RoundedRectangle(cornerRadius: 10)
-                        .stroke(titleTask == "Selecione" ? Color.red.opacity(0.3) : Color.gray.opacity(0.3), lineWidth: 1)
+                        .stroke(
+                            titleTask == "Selecione"
+                            ? Color("backgroundTaskActivitySelected")
+                            : Color(red: 0.87, green: 0.87, blue: 0.87)
+                            , lineWidth: 2)
                 )
                 
-                // Campo de descrição da atividade
+                // descrição da atividade
                 HStack {
                     Text(descriptionTask)
-                        .foregroundColor(descriptionTask == "Descrição" ? .secondary : .primary)
+                        .foregroundColor(Color("primaryColor").opacity(0.4))
+                        
+                        .hSpacing(.leading)
+                        .padding()
                 }
-                .hSpacing(.leading)
-                .padding()
+                .background(Color.white)
                 .overlay(
                     RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                        .stroke(Color(red: 0.87, green: 0.87, blue: 0.87), lineWidth: 2)
                 )
                 
-                // Campo de moedas da atividade
+                // valor da atividade
                 HStack {
                     Text("Valor da atividade")
                     
@@ -94,25 +106,32 @@ struct NewTaskView: View {
                     
                     if coinsTask == "-" {
                         Text(coinsTask)
-                            .foregroundColor(.secondary)
                     } else {
                         Text(coinsTask)
                         
                         Image(systemName: "dollarsign.circle.fill")
-                            .foregroundColor(.orange)
                     }
                 }
+                
+                .foregroundColor(Color("primaryColor").opacity(0.4))
                 .hSpacing(.leading)
                 .padding()
+                .background(Color.white)
                 .overlay(
                     RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                        .stroke(Color(red: 0.87, green: 0.87, blue: 0.87), lineWidth: 2)
                 )
                 
                 // Campo para escolher data
                 VStack {
+                    
+                    // seleção da data
                     HStack {
                         Text("Data")
+                            .font(.custom("SF Pro", size: 17, relativeTo: .title3))
+                            .fontWeight(.medium)
+                            .foregroundStyle(Color("primaryColor"))
+                        
                         Spacer()
                         
                         Button {
@@ -121,9 +140,11 @@ struct NewTaskView: View {
                             }
                         } label: {
                             Text(dateTask.formattedAsDayMonthAndHour())
+                                .foregroundStyle(Color("backgroundTaskActivitySelected"))
                         }
                     }
                     
+                    // picker
                     if isShowingPicker {
                         Divider()
                         DatePicker(
@@ -132,6 +153,7 @@ struct NewTaskView: View {
                             in: Date()..., // Só permite datas futuras
                             displayedComponents: [.date, .hourAndMinute]
                         )
+                        .tint(Color.yellow)
                         .datePickerStyle(.wheel)
                         .labelsHidden()
                         .transition(.opacity)
@@ -139,19 +161,20 @@ struct NewTaskView: View {
                 }
                 .hSpacing(.leading)
                 .padding()
+                .background(Color.white)
                 .overlay(
                     RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                        .stroke(Color(red: 0.87, green: 0.87, blue: 0.87), lineWidth: 2)
                 )
             }
             
             // Mensagem de erro se houver
-            if !canSave && titleTask == "Selecione" {
-                Text("Selecione uma atividade para continuar")
-                    .font(.caption)
-                    .foregroundColor(.red)
-                    .hSpacing(.leading)
-            }
+            //            if !canSave && titleTask == "Selecione" {
+            //                Text("Selecione uma atividade para continuar")
+            //                    .font(.caption)
+            //                    .foregroundColor(.red)
+            //                    .hSpacing(.leading)
+            //            }
             
             // Salvar
             Button(action: {
@@ -168,16 +191,25 @@ struct NewTaskView: View {
                 }
                 .font(.custom("SF Pro", size: 17, relativeTo: .body))
                 .fontWeight(.bold)
-                .foregroundColor(canSave ? .white : .secondary)
+                .foregroundColor(canSave
+                                 ? Color("primaryColor")
+                                 : Color("primaryColor").opacity(0.4)
+                )
                 .padding(.vertical, 16)
                 .frame(maxWidth: .infinity)
-                .background(canSave ? Color.blue : Color.gray.opacity(0.3))
+                .background(canSave
+                            ? Color("backgroundTaskButtonSave")
+                            : Color("backgroundTaskButtonSave").opacity(0.4)
+                )
                 .cornerRadius(40)
             })
             .disabled(!canSave || isSaving)
             .padding(.bottom, 100)
         }
+        .hSpacing(.leading)
+        .vSpacing(.top)
         .padding()
+        .background(Color("backgroundGenitor"))
         .onAppear {
             // Define a data padrão como uma hora a partir de agora
             dateTask = Calendar.current.date(byAdding: .hour, value: 1, to: Date()) ?? Date()

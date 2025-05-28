@@ -103,6 +103,7 @@ struct GenitorCalendarView: View {
             }
         }
     }
+    
     @ViewBuilder
     func WeekView(_ week: [Date.WeekDay]) -> some View {
         
@@ -191,7 +192,7 @@ struct GenitorCalendarView: View {
             
             if (tasksCompleted.isEmpty && tasksNotStarted.isEmpty) {
                 VStack(spacing: 16) {
-                    Text("Nenhuma atividade foi planejada ainda. Clique em \"+\" para começar!.")
+                    Text("Nenhuma atividade foi planejada ainda. Clique em \"+\" para começar!")
                         .font(.subheadline)
                         .foregroundStyle(Color("primaryColor"))
                         .multilineTextAlignment(.leading)
