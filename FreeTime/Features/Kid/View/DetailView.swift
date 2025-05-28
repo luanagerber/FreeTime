@@ -10,7 +10,6 @@ import SwiftUI
 struct DetailView: View {
     @ObservedObject var kidViewModel: KidViewModel
     var register: ActivitiesRegister
-    @State private var showPopUp = false
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -31,8 +30,11 @@ struct DetailView: View {
                             height: 92)
                 }
                 
-                ConfirmButton(isCompleted: $showPopUp, dismiss:{
-                    dismiss()})
+                ConfirmButton(
+                    kidViewModel: kidViewModel,
+                    register: register,
+                    dismiss: { dismiss() }
+                )
                 
             }
             
@@ -143,15 +145,18 @@ struct InfoBox: View {
 }
 
 struct ConfirmButton: View {
-    //@Binding var showPopUp: Bool
-    @Binding var isCompleted: Bool
+    @ObservedObject var kidViewModel: KidViewModel
+    var register: ActivitiesRegister
     let dismiss: () -> Void
+    
+    private var isCompleted: Bool {
+        register.registerStatus == .completed
+    }
     
     var body: some View {
         Button {
             withAnimation {
-                isCompleted.toggle() // Alterna entre concluído e não
-                //showPopUp = true
+                kidViewModel.toggleActivityCompletion(register)
             }
             dismiss()
         } label: {
