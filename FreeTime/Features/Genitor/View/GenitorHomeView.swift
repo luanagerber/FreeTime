@@ -13,103 +13,6 @@ struct GenitorHomeView: View {
     @StateObject var viewModel = GenitorViewModel.shared
     
     var body: some View {
-        
-        /// 1º forma
-        //        TabView (selection: $currentTab){
-        //            Tab(value: .activities) {
-        //                GenitorCalendarView()
-        //            } label: {
-        //                VStack {
-        //                    Image(systemName: "calendar")
-        //                }
-        //
-        //            }
-        //
-        //            Tab(value: .addActivity) {
-        //
-        //            } label: {
-        //                VStack() {
-        //                    Image(systemName: "plus.circle.fill")
-        //                }
-        //                Button(action: {
-        //                    viewModel.createNewTask.toggle()
-        //                    print("hello")
-        //                },label: {
-        //                    Image(systemName: "plus.circle.fill")
-        //                })
-        //            }
-        //
-        //            Tab(value: .rewards) {
-        //                GenitorRewardsView()
-        //            } label: {
-        //                Image(systemName: "cart")
-        //            }
-        //        }
-        //        .tint(.mainGenitor)
-        //        .onChange(of: currentTab) {
-        //            print("Aba ativa: \(currentTab)")
-        //        }
-        //        .sheet(isPresented: $viewModel.createNewTask, content: {
-        //            NewTaskView()
-        //        })
-        
-        /// 2º forma
-        //        ZStack {
-        //            TabView(selection: $currentTab) {
-        //                GenitorCalendarView()
-        //                    .tabItem {
-        //                        Image(systemName: "calendar")
-        //                    }
-        //                    .tag(TabSelection.activities)
-        //
-        //                GenitorRewardsView()
-        //                    .tabItem {
-        //                        VStack {
-        //                            Image(systemName: "cart")
-        //                            if (currentTab == .rewards) {
-        //                                Rectangle()
-        //                                    .fill(Color.mainGenitor)
-        //                                    .cornerRadius(50)
-        //                                    .frame(width: 2, height: 2, alignment: .center)
-        //                                    .padding(.horizontal, 20)
-        //                            }
-        //
-        //                        }
-        //
-        //                    }
-        //                    .tag(TabSelection.rewards)
-        //            }
-        //            .tint(Color.mainGenitor)
-        //
-        //            VStack {
-        //                Spacer()
-        //
-        //                HStack {
-        //                    Spacer()
-        //
-        //                    Button(action: {
-        //                        viewModel.createNewTask.toggle()
-        //                    }) {
-        //                        Image(systemName: "plus")
-        //                            .font(.system(size: 28, weight: .bold))
-        //                            .foregroundColor(.white)
-        //                            .padding()
-        //                            .background(Color.mainGenitor)
-        //                            .clipShape(Circle())
-        //                            .shadow(radius: 4)
-        //                    }
-        //                    //.offset(y: -10)
-        //                    .padding(.bottom, 10)
-        //
-        //                    Spacer()
-        //                }
-        //            }
-        //        }
-        //        .sheet(isPresented: $viewModel.createNewTask) {
-        //            NewTaskView()
-        //        }
-        
-        ///3º forma
         ZStack {
             // Conteúdo principal
             Group {
@@ -128,28 +31,30 @@ struct GenitorHomeView: View {
                 }
                 
             }
+            // ✅ CORREÇÃO: Sheet moved to the correct level
             .sheet(isPresented: $viewModel.createNewTask) {
                 NewTaskView()
             }
         }
         .ignoresSafeArea(edges: .bottom)
-        
-        
     }
+    
     @ViewBuilder
     func CustomTabBar() -> some View {
         HStack(spacing: 60) {
             TabBarItem(icon: "calendar", tab: .activities)
             
+            // ✅ CORREÇÃO: Este botão deve abrir NewTaskView
             Button(action: {
+                print("🔘 GenitorHomeView: Botão + pressionado")
                 viewModel.createNewTask = true
+                print("✅ GenitorHomeView: createNewTask = \(viewModel.createNewTask)")
             }) {
                 Image(systemName: "plus")
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(.white)
                     .padding()
                     .background(Circle().fill(Color.mainGenitor))
-                    //.shadow(radius: 4)
             }
             .offset(y: -10)
             
@@ -158,7 +63,6 @@ struct GenitorHomeView: View {
         .padding(.vertical, 19)
         .padding(.horizontal, 24)
         .background(Color.white)
-        //.clipShape(RoundedRectangle(cornerRadius: 0))
         .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: -2)
     }
     
@@ -180,8 +84,6 @@ struct GenitorHomeView: View {
             currentTab = tab
         }
     }
-    
-    
 }
 
 #Preview {

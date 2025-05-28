@@ -66,59 +66,48 @@ struct GenitorCalendarView: View {
     }
     
     @ViewBuilder
-    func HeaderView() -> some View {
-        VStack (alignment: .leading) {
-            
-            HStack {
-                // Mês
-                Text(viewModel.currentDate.format("MMMM"))
-                    .font(.custom("SF Pro", size: 34, relativeTo: .largeTitle))
-                    .fontWeight(.semibold)
+        func HeaderView() -> some View {
+            VStack (alignment: .leading) {
                 
-                Spacer()
+                HStack {
+                    // Mês
+                    Text(viewModel.currentDate.format("MMMM"))
+                        .font(.custom("SF Pro", size: 34, relativeTo: .largeTitle))
+                        .fontWeight(.semibold)
+                    
+                    Spacer()
+                    
+                    // ❌ REMOVIDO: Botão para adicionar atividade
+                    // O botão + agora está apenas na GenitorHomeView
+                }
                 
-                // Botão para adicionar atividade
-                Button(action: {
-                    if !viewModel.kids.isEmpty {
-                        viewModel.selectedKid = viewModel.firstKid
-                        viewModel.showActivitySelector = true
+                // Semana
+                TabView(selection: $currentWeekIndex) {
+                    ForEach(weekSlider.indices , id: \.self) { index in
+                        let week = weekSlider[index]
+                        WeekView(week)
+                            .padding(.horizontal, 15)
+                            .tag(index)
                     }
-                }) {
-                    Image(systemName: "plus")
-                        .font(.title2)
-                        .foregroundColor(.blue)
                 }
-                .disabled(viewModel.kids.isEmpty)
+                .padding(.horizontal, -15)
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .frame(height: 90)
             }
-            
-            // Semana
-            TabView(selection: $currentWeekIndex) {
-                ForEach(weekSlider.indices , id: \.self) { index in
-                    let week = weekSlider[index]
-                    WeekView(week)
-                        .padding(.horizontal, 15)
-                        .tag(index)
+            .hSpacing(.leading)
+            .padding(15)
+            .background(
+                    Color.backgroundHeader
+                        .cornerRadius(Constants.UI.cardCornerRadius, corners: [.bottomLeft, .bottomRight])
+                        .ignoresSafeArea(edges: .top)
+                )
+            .onChange(of: currentWeekIndex, initial: false) { oldValue, newValue in
+                /// Creating when it reaches first/last page
+                if newValue == 0 || newValue == (weekSlider.count - 1) {
+                    createWeek = true
                 }
-            }
-            .padding(.horizontal, -15)
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: 90)
-        }
-        .hSpacing(.leading)
-        .padding(15)
-        .background(
-                Color.backgroundHeader
-                    .cornerRadius(Constants.UI.cardCornerRadius, corners: [.bottomLeft, .bottomRight])
-                    .ignoresSafeArea(edges: .top)
-            )
-        .onChange(of: currentWeekIndex, initial: false) { oldValue, newValue in
-            /// Creating when it reaches first/last page
-            if newValue == 0 || newValue == (weekSlider.count - 1) {
-                createWeek = true
             }
         }
-    }
-    
     @ViewBuilder
     func WeekView(_ week: [Date.WeekDay]) -> some View {
         
