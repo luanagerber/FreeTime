@@ -29,6 +29,21 @@ extension View {
     func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
         clipShape( RoundedCorner(radius: radius, corners: corners) )
     }
+    
+    func shimmering() -> some View {
+        self
+            .overlay(
+                LinearGradient(
+                    gradient: Gradient(colors: [Color.clear, Color.white.opacity(0.4), Color.clear]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .rotationEffect(.degrees(30))
+                .offset(x: -150)
+                .mask(self)
+                .animation(.linear(duration: 1.5).repeatForever(autoreverses: false), value: UUID())
+            )
+    }
 }
 
 struct RoundedCorner: Shape {

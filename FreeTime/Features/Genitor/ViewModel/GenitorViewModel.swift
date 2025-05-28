@@ -20,7 +20,7 @@ class GenitorViewModel: ObservableObject {
     
     // MARK: - ViewModel Thales
     @Published var records: [ActivitiesRegister] = ActivitiesRegister.samples
-    @Published var rewards: [CollectedReward] = []
+    @Published var rewards: [CollectedReward] = CollectedReward.samples
     @Published var currentDate: Date = .init()
     
     // MARK: - Published Properties
@@ -28,6 +28,8 @@ class GenitorViewModel: ObservableObject {
     @Published var kids: [Kid] = []
     @Published var selectedKid: Kid?
     @Published var isLoading = false
+    @Published var isRefreshing = false
+    @Published var createNewTask = false
     @Published var feedbackMessage = ""
     @Published var sharingSheet = false
     @Published var shareView: AnyView?
@@ -38,6 +40,29 @@ class GenitorViewModel: ObservableObject {
     @Published var selectedActivity: Activity?
     @Published var scheduledDate = Date()
     @Published var duration: TimeInterval = 3600 // 1 hour default
+    
+    var uniqueDates: [Date] {
+        Array(Set(rewards.map { $0.dateCollected.startOfDay })).sorted(by: { $1 < $0})
+    }
+    
+    var groupedRewardsByDay: [RewardsByDay] {
+        var groupAux: [RewardsByDay] = []
+
+        for date in uniqueDates {
+            var rewardsAux: [CollectedReward] = []
+
+            for reward in self.rewards {
+                if reward.dateCollected.startOfDay == date {
+                    rewardsAux.append(reward)
+                }
+            }
+
+            let group = RewardsByDay(date: date, rewards: rewardsAux)
+            groupAux.append(group)
+        }
+
+        return groupAux
+    }
     
     // MARK: - Private Properties
     

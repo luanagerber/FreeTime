@@ -43,13 +43,17 @@ struct KidManagementView: View {
                     ProgressView()
                         .padding()
                 }
+                
+                if !viewModel.feedbackMessage.isEmpty {
+                    feedbackMessageView
+                }
             }
             .padding()
             .onAppear(perform: handleOnAppear)
             .sheet(isPresented: $viewModel.sharingSheet, onDismiss: handleShareSheetDismiss) {
                 shareSheetContent
             }
-            .alert("Compartilhamento Enviado!", isPresented: $showingShareConfirmation) {
+            .alert("Compartilhamento enviado!", isPresented: $showingShareConfirmation) {
                 Button("OK") { navigateToNextView() }
             } message: {
                 Text("O link foi compartilhado com sucesso. Agora você pode prosseguir.")
@@ -111,7 +115,7 @@ struct KidManagementView: View {
     }
     
     private var shareConfirmationLabel: some View {
-        Label("Link Compartilhado", systemImage: "checkmark.circle.fill")
+        Label("Link compartilhado", systemImage: "checkmark.circle.fill")
             .foregroundColor(.green)
             .font(.subheadline)
     }
@@ -124,6 +128,22 @@ struct KidManagementView: View {
                 Text("Preparando compartilhamento...")
             }
         }
+    }
+    
+    private var feedbackMessageView: some View {
+        Text(viewModel.feedbackMessage)
+            .padding()
+            .background(
+                viewModel.feedbackMessage.contains("❌") ? Color.red.opacity(0.1) :
+                viewModel.feedbackMessage.contains("✅") ? Color.green.opacity(0.1) :
+                Color.blue.opacity(0.1)
+            )
+            .cornerRadius(8)
+            .foregroundColor(
+                viewModel.feedbackMessage.contains("❌") ? .red :
+                viewModel.feedbackMessage.contains("✅") ? .green :
+                .blue
+            )
     }
     
     private var debugInfoView: some View {

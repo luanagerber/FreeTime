@@ -191,7 +191,6 @@ struct ConfirmButton: View {
         
 }
 
-
 #Preview {
     DetailView(kidViewModel: KidViewModel(), register: ActivitiesRegister.sample1)
 }

@@ -47,14 +47,18 @@ class Coordinator: ObservableObject {
         switch page {
         case .kidManagement:
             KidManagementView()
+                .navigationBarBackButtonHidden(true)
         case .kidWaitingInvite:
             KidWaitingInviteView()
+                .navigationBarBackButtonHidden(true)
         case .activityManagement:
             ActivityManagementDebugView()
         case .kidHome:
             KidHomeView()
+                .navigationBarBackButtonHidden(true)
         case .genitorHome:
-            GenitorCalendarView()
+                GenitorHomeView()
+                .navigationBarBackButtonHidden(true)
         case .rewardsStore:
             RewardsStoreView(store: self.rewardsStore)
         case .collectedRewards:

@@ -12,7 +12,7 @@ struct KidHomeView: View {
     
     @State private var currentPage: Page = .kidHome
     @StateObject private var vmKid = KidViewModel()
-    @State private var selectedRegister: ActivitiesRegister? = ActivitiesRegister.sample1
+    @State private var selectedRegister: ActivitiesRegister? = nil
     @State private var showActivityModal: Bool = false
     
     var body: some View {
@@ -27,6 +27,23 @@ struct KidHomeView: View {
         }
         .ignoresSafeArea()
         .navigationBarBackButtonHidden(true)
+        .onAppear {
+            vmKid.refreshActivities()
+        }
+        .alert("Erro", isPresented: $vmKid.showError) {
+            Button("OK") {
+                vmKid.clearError()
+            }
+        } message: {
+            Text(vmKid.errorMessage)
+        }
+        .overlay {
+            if vmKid.isLoading {
+                ProgressView("Carregando...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.black.opacity(0.3))
+            }
+        }
     }
     
     private var HeaderView: some View {
@@ -204,14 +221,14 @@ struct ActivitySection: View {
                                 CardActivity(register: register)
                             }
                         }
-                        .sheet(isPresented: $showActivityModal) {
-                            if let _ = selectedRegister {
-                                DetailView(kidViewModel: vmKid, register: ActivitiesRegister.sample1)
-                            }
-                        }
                     }
                     
                 }
+            }
+        }
+        .sheet(isPresented: $showActivityModal) {
+            if let register = selectedRegister {
+                DetailView(kidViewModel: vmKid, register: register)
             }
         }
     }

@@ -16,9 +16,10 @@ struct FreeTimeApp: App {
         WindowGroup {
             CoordinatorView()
             
-//            KidManagementDebugView()
+//            KidManagementDebugView() // essa é a que reset
 //            ActivityManagementDebugView()
 //            RewardsTestDebugView()
+//            GenitorRewardsView()
         }
     }
 }
