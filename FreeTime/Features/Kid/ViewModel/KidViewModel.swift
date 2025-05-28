@@ -421,94 +421,167 @@ extension KidViewModel {
 }
 
 // MARK: - Activity Status Management
-extension KidViewModel {
-    
-    func toggleActivityCompletion(_ activity: ActivitiesRegister) {
-        guard let activityID = activity.id else {
-            handleError("Invalid activity ID")
-            return
-        }
-        
-        guard let kidID = currentKidID else {
-            handleError("No kid ID available")
-            return
-        }
-        
-        // Alterna apenas entre .notStarted e .completed
-        let newStatus: RegisterStatus = activity.registerStatus == .completed ? .notStarted : .completed
-        let coinsToAdd = activity.activity?.rewardPoints ?? 0
-        
-        // Update locally first for immediate UI feedback
-        if let index = activities.firstIndex(where: { $0.id == activityID }) {
-            activities[index].registerStatus = newStatus
-        }
-        
-        isLoading = true
-        feedbackMessage = "Atualizando status da atividade..."
-        
-        let container = CKContainer(identifier: CloudConfig.containerIdentifier)
-        let isSharedZone = kidID.zoneID.ownerName != CKCurrentUserDefaultName
-        let isChildUser = UserManager.shared.isChild
-        let database = (isSharedZone || isChildUser) ?
-                       container.sharedCloudDatabase :
-                       container.privateCloudDatabase
-        
-        Task {
-            do {
-                // Update activity status
-                let activityRecord = try await database.record(for: activityID)
-                activityRecord["status"] = newStatus.rawValue
-                let updatedActivityRecord = try await database.save(activityRecord)
-                
-                // Update kid coins
-                let kidRecord = try await database.record(for: kidID)
-                let currentCoins = kidRecord["coins"] as? Int ?? 0
-                
-                let newCoins: Int
-                if newStatus == .completed {
-                    // Adiciona moedas quando completa
-                    newCoins = currentCoins + coinsToAdd
-                } else {
-                    // Remove moedas quando desfaz
-                    newCoins = max(0, currentCoins - coinsToAdd) // Não permite moedas negativas
-                }
-                
-                kidRecord["coins"] = newCoins
-                let updatedKidRecord = try await database.save(kidRecord)
-                
-                DispatchQueue.main.async { [weak self] in
-                    self?.isLoading = false
-                    self?.feedbackMessage = newStatus == .completed
-                        ? "✅ Atividade concluída! +\(coinsToAdd) moedas"
-                        : "↩️ Atividade desfeita! -\(coinsToAdd) moedas"
+    extension KidViewModel {
+
+        func toggleActivityCompletion(_ activity: ActivitiesRegister) {
+            // CORREÇÃO 1: Verificar se activity.id é válido
+            guard let activityID = activity.id else {
+                print("KidViewModel: ❌ activity.id é nil para atividade: \(activity.activity?.name ?? "Unknown")")
+                print("KidViewModel: Detalhes da atividade:")
+                print("  - kidID: \(activity.kidID)")
+                print("  - activityID (Int): \(activity.activityID)")
+                print("  - date: \(activity.date)")
+                print("  - status: \(activity.registerStatus)")
+                self.handleError("ID da atividade inválido")
+                return
+            }
+            
+            // CORREÇÃO 2: Verificar se currentKidID é válido
+            guard let kidID = currentKidID else {
+                print("KidViewModel: ❌ currentKidID é nil")
+                self.handleError("ID do filho não disponível")
+                return
+            }
+            
+            print("KidViewModel: Alternando status da atividade:")
+            print("  - Activity ID: \(activityID.recordName)")
+            print("  - Kid ID: \(kidID.recordName)")
+            print("  - Status atual: \(activity.registerStatus)")
+            
+            // Alterna apenas entre .notStarted e .completed
+            let newStatus: RegisterStatus = activity.registerStatus == .completed ? .notStarted : .completed
+            let coinsToAdd = activity.activity?.rewardPoints ?? 0
+            
+            print("  - Novo status: \(newStatus)")
+            print("  - Moedas a adicionar/remover: \(coinsToAdd)")
+            
+            // Update locally first for immediate UI feedback
+            if let index = activities.firstIndex(where: { $0.id == activityID }) {
+                activities[index].registerStatus = newStatus
+                print("  - ✅ Status local atualizado")
+            } else {
+                print("  - ❌ Atividade não encontrada no array local")
+                self.handleError("Atividade não encontrada")
+                return
+            }
+            
+            isLoading = true
+            feedbackMessage = "Atualizando status da atividade..."
+            
+            let container = CKContainer(identifier: CloudConfig.containerIdentifier)
+            let isSharedZone = kidID.zoneID.ownerName != CKCurrentUserDefaultName
+            let isChildUser = UserManager.shared.isChild
+            let database = (isSharedZone || isChildUser) ?
+                           container.sharedCloudDatabase :
+                           container.privateCloudDatabase
+            
+            print("  - Usando \((isSharedZone || isChildUser) ? "banco compartilhado" : "banco privado")")
+            
+            Task {
+                do {
+                    // CORREÇÃO 3: Buscar o registro da atividade primeiro
+                    print("KidViewModel: Buscando registro da atividade...")
+                    let activityRecord = try await database.record(for: activityID)
+                    print("KidViewModel: ✅ Registro da atividade encontrado")
                     
-                    // Update activity
-                    if let updatedActivity = ActivitiesRegister(record: updatedActivityRecord),
-                       let index = self?.activities.firstIndex(where: { $0.id == activityID }) {
-                        self?.activities[index] = updatedActivity
+                    // Update activity status
+                    activityRecord["status"] = newStatus.rawValue
+                    let updatedActivityRecord = try await database.save(activityRecord)
+                    print("KidViewModel: ✅ Status da atividade salvo no CloudKit")
+                    
+                    // CORREÇÃO 4: Buscar o registro do kid
+                    print("KidViewModel: Buscando registro do kid...")
+                    let kidRecord = try await database.record(for: kidID)
+                    print("KidViewModel: ✅ Registro do kid encontrado")
+                    
+                    let currentCoins = kidRecord["coins"] as? Int ?? 0
+                    print("KidViewModel: Moedas atuais do kid: \(currentCoins)")
+                    
+                    let newCoins: Int
+                    if newStatus == .completed {
+                        // Adiciona moedas quando completa
+                        newCoins = currentCoins + coinsToAdd
+                        print("KidViewModel: Adicionando \(coinsToAdd) moedas: \(currentCoins) + \(coinsToAdd) = \(newCoins)")
+                    } else {
+                        // Remove moedas quando desfaz
+                        newCoins = max(0, currentCoins - coinsToAdd) // Não permite moedas negativas
+                        print("KidViewModel: Removendo \(coinsToAdd) moedas: \(currentCoins) - \(coinsToAdd) = \(newCoins)")
                     }
                     
-                    // Update kid coins
-                    self?.kidCoins = newCoins
-                    if let kid = Kid(record: updatedKidRecord) {
-                        self?.kid = kid
-                    }
-                }
-            } catch {
-                DispatchQueue.main.async { [weak self] in
-                    self?.isLoading = false
+                    kidRecord["coins"] = newCoins
+                    let updatedKidRecord = try await database.save(kidRecord)
+                    print("KidViewModel: ✅ Moedas do kid atualizadas no CloudKit")
                     
-                    // Revert local change if CloudKit update failed
-                    if let index = self?.activities.firstIndex(where: { $0.id == activityID }) {
-                        self?.activities[index].registerStatus = activity.registerStatus
+                    DispatchQueue.main.async { [weak self] in
+                        self?.isLoading = false
+                        self?.feedbackMessage = newStatus == .completed
+                            ? "✅ Atividade concluída! +\(coinsToAdd) moedas"
+                            : "↩️ Atividade desfeita! -\(coinsToAdd) moedas"
+                        
+                        // Update activity
+                        if let updatedActivity = ActivitiesRegister(record: updatedActivityRecord),
+                           let index = self?.activities.firstIndex(where: { $0.id == activityID }) {
+                            self?.activities[index] = updatedActivity
+                            print("KidViewModel: ✅ Atividade local atualizada")
+                        }
+                        
+                        // Update kid coins
+                        self?.kidCoins = newCoins
+                        if let kid = Kid(record: updatedKidRecord) {
+                            self?.kid = kid
+                            print("KidViewModel: ✅ Kid local atualizado")
+                        }
                     }
+                } catch {
+                    print("KidViewModel: ❌ Erro durante atualização: \(error)")
+                    print("KidViewModel: Detalhes do erro: \(error.localizedDescription)")
                     
-                    self?.handleError("Failed to update activity: \(error.localizedDescription)")
+                    DispatchQueue.main.async { [weak self] in
+                        self?.isLoading = false
+                        
+                        // CORREÇÃO 5: Revert local change if CloudKit update failed
+                        if let index = self?.activities.firstIndex(where: { $0.id == activityID }) {
+                            self?.activities[index].registerStatus = activity.registerStatus
+                            print("KidViewModel: Status local revertido após erro")
+                        }
+                        
+                        self?.handleError("Falha ao atualizar atividade: \(error.localizedDescription)")
+                    }
                 }
             }
         }
-    }
-    
+        
+        // MÉTODO AUXILIAR: Para debug das atividades
+        func debugActivity(_ activity: ActivitiesRegister) {
+            print("=== DEBUG ACTIVITY ===")
+            print("Activity ID: \(activity.id?.recordName ?? "NIL")")
+            print("Activity Name: \(activity.activity?.name ?? "Unknown")")
+            print("Kid ID: \(activity.kidID)")
+            print("Kid Reference: \(activity.kidReference?.recordID.recordName ?? "nil")")
+            print("Activity ID Int: \(activity.activityID)")
+            print("Status: \(activity.registerStatus)")
+            print("Date: \(activity.date)")
+            print("========================")
+        }
+        
+        // MÉTODO AUXILIAR: Para debug de todas as atividades
+        func debugAllActivities() {
+            print("=== DEBUG ALL ACTIVITIES ===")
+            print("Total de atividades: \(activities.count)")
+            print("Atividades com ID nil: \(activities.filter { $0.id == nil }.count)")
+            print("Atividades de hoje: \(registerForToday().count)")
+            
+            for (index, activity) in activities.enumerated() {
+                print("\nAtividade \(index + 1):")
+                print("  - ID: \(activity.id?.recordName ?? "NIL")")
+                print("  - Nome: \(activity.activity?.name ?? "Unknown")")
+                print("  - Status: \(activity.registerStatus)")
+                print("  - Data: \(activity.date)")
+                print("  - É de hoje? \(Calendar.current.isDate(activity.date, inSameDayAs: Date()))")
+            }
+            print("============================")
+        }
+        
     func updateKidCoins() {
         guard let kidID = currentKidID else {
             handleError("No kid ID available")
