@@ -13,6 +13,7 @@ struct KidHomeView: View {
     @State private var currentPage: Page = .kidHome
     @StateObject private var vmKid = KidViewModel()
     @State private var selectedRegister: ActivitiesRegister? = nil
+    @EnvironmentObject var coordinator: Coordinator
     
     var body: some View {
         ZStack {
@@ -84,7 +85,7 @@ struct KidHomeView: View {
             case .kidHome:
                 ActivitiesView
             case .rewardsStore:
-                RewardsStoreView(store: .init())
+                RewardsStoreView(store: coordinator.rewardsStore)
             default:
                 EmptyView()
         }
