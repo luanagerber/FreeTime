@@ -18,7 +18,7 @@ extension Activity {
         ),
         Activity(
             name: "Desenhar e colorir",
-            imageName: "imageBook",
+            imageName: "imageDraw",
             tags: [.mentalExercise, .study],
             description: "Separe lápis de cor, giz de cera, canetinhas e papéis ou desenhos para colorir. Deixe a criança soltar a imaginação!",
             necessaryMaterials: ["Papel A4", "Lápis de cor", "Giz de cerna", "Canetinhas"],
@@ -26,7 +26,7 @@ extension Activity {
         ),
         Activity(
             name: "Montar quebra-cabeça",
-            imageName: "imageQuebraCabeca",
+            imageName: "imagePuzzle",
             tags: [.mentalExercise, .study],
             description: "Escolha um quebra-cabeça adequado à idade da criança. Se puder, monte junto com ele, incentivando a paciência e o raciocínio lógico.",
             necessaryMaterials: ["Quebra-cabeça"],

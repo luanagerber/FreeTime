@@ -50,13 +50,22 @@ struct GenitorTaskRowView: View {
             //                .foregroundColor(statusColor)
             //                .font(.title2)
             
-            Rectangle()
-                .foregroundColor(.yellow)
+            Image(record.activity?.imageName ?? "")
+                .resizable()
+                .scaledToFill()
                 .frame(
                     width: UIScreen.main.bounds.width * 0.2,
                     height: UIScreen.main.bounds.height * 0.09
                 )
                 .cornerRadius(15)
+            
+//            Rectangle()
+//                .foregroundColor(.yellow)
+//                .frame(
+//                    width: UIScreen.main.bounds.width * 0.2,
+//                    height: UIScreen.main.bounds.height * 0.09
+//                )
+//                .cornerRadius(15)
             
             VStack(alignment: .leading, spacing: 8) {
                 Text(record.activity?.name ?? "Atividade Desconhecida")
