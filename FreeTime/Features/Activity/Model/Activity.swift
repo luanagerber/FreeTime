@@ -33,6 +33,7 @@ struct Activity: Identifiable, Hashable {
         case physicalExercise
         case socialActivity
         case study
+        case creativity
     }
     
     // Helper method to get description for specific user type
