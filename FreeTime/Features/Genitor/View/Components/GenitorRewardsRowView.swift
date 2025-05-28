@@ -17,33 +17,36 @@ struct GenitorRewardsRowView: View {
                 reward.isDelivered.toggle()
             }, label: {
                 Image(systemName: reward.isDelivered ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(reward.isDelivered ? .green : .blue)
             })
             
-            VStack(alignment: .leading) {
+//            VStack(alignment: .leading) {
                 // Usar o catálogo existente de Reward
                 Text(Reward.find(by: reward.rewardID)?.name ?? "Recompensa Desconhecida")
-                    .font(.custom("SF Pro", size: 17, relativeTo: .body))
-                    .fontWeight(.medium)
+//                    .font(.custom("SF Pro", size: 17, relativeTo: .body))
+//                    .fontWeight(.medium)
                 
-                Text(reward.dateCollected, style: .time)
-                    .font(.custom("SF Pro", size: 13, relativeTo: .caption))
-                    .foregroundColor(.secondary)
-            }
+//                Text(reward.dateCollected, style: .time)
+//                    .font(.custom("SF Pro", size: 13, relativeTo: .caption))
+//                    .foregroundColor(.secondary)
+//            }
             
             Spacer()
             
             Text("- \(Reward.find(by: reward.rewardID)?.cost ?? 0)")
-                .font(.custom("SF Pro", size: 17, relativeTo: .body))
-                .fontWeight(.medium)
+//                .font(.custom("SF Pro", size: 17, relativeTo: .body))
+//                .fontWeight(.medium)
             
             Image(systemName: "dollarsign.circle.fill")
-                .foregroundColor(.orange)
         }
-        .foregroundColor(reward.isDelivered ? .secondary : .primary)
+        .font(.custom("SF Pro", size: 17, relativeTo: .body))
+        .fontWeight(.medium)
+        .foregroundColor(
+            reward.isDelivered ? Color("primaryColor").opacity(0.4) : Color("primaryColor")
+        )
+        .opacity(reward.isDelivered ? 0.5 : 1.0)
         .hSpacing(.center)
         .padding(.vertical, 8)
-        .opacity(reward.isDelivered ? 0.6 : 1.0)
+        
     }
 }
 

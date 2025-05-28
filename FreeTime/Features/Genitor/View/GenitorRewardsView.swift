@@ -56,19 +56,23 @@ struct GenitorRewardsView: View {
             }
             .font(.custom("SF Pro", size: 17, relativeTo: .body))
             .fontWeight(.medium)
-            .textScale(.secondary)
-            .foregroundStyle(.gray)
+            .foregroundStyle(Color("primaryColor").opacity(0.6))
             .padding()
             .background {
-                Rectangle()
-                    .foregroundStyle(.clear)
-                    .background(.backgroundHeaderCoins)
-                    .cornerRadius(10)
+                ZStack {
+                    // Fundo arredondado com a cor desejada
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color("BackgroundHeaderCoins"))
+                    
+                    // Borda fina arredondada por cima
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color(red: 0.87, green: 0.87, blue: 0.87), lineWidth: 2)
+                }
+                
                 
             }
+            .cornerRadius(10)
             .padding(.top, 20)
-            
-            
         }
         .hSpacing(.leading)
         .padding(.horizontal, 20)
@@ -79,33 +83,46 @@ struct GenitorRewardsView: View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 
+                // MARK: Verificação se há recompensas
+                // TODO: Verificar com design sobre imagem de presente
                 if viewModel.rewards.isEmpty && !viewModel.isLoading {
                     VStack(alignment: .center, spacing: 10) {
-                        Image(systemName: "gift")
-                            .font(.system(size: 50))
-                            .foregroundColor(.secondary)
-                            .padding(.bottom, 8)
+//                        Image(systemName: "gift")
+//                            .font(.system(size: 50))
+//                            .foregroundColor(.secondary)
+//                            .padding(.bottom, 8)
+//                            .font(.custom("SF pro", size: 50, relativeTo: .body))
+//                            .foregroundStyle(Color("primaryColor").opacity(0.5))
                         
                         Text("Nenhuma recompensa registrada")
                             .font(.custom("SF Pro", size: 17, relativeTo: .headline))
                             .fontWeight(.medium)
+                            .foregroundStyle(Color("primaryColor"))
                         
                         Text("Todas as recompensas resgatadas pela criança na lojinha serão exibidas aqui")
                             .font(.custom("SF Pro", size: 15, relativeTo: .subheadline))
                             .multilineTextAlignment(.center)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(Color("primaryColor"))
                     }
                     .padding(.horizontal)
                     .padding(.bottom, 171)
                     .padding(.top, 171)
-                } else {
+                }
+                else {
                     ForEach(viewModel.groupedRewardsByDay, id: \.self) { group in
                         VStack(alignment: .leading, spacing: 10) {
                             Text(group.date.formattedAsDayMonth())
-                                .font(.subheadline)
-                                .foregroundColor(.gray)
+                                .font(.custom("SF Pro", size: 15, relativeTo: .headline))
+                                .foregroundColor(Color("primaryColor").opacity(0.4))
                             
-                            Divider()
+//                            Divider()
+//                                .padding(.bottom, 4)
+//                                .foregroundColor(Color("primaryColor"))
+                            
+                            Rectangle()
+                                .fill(Color("primaryColor").opacity(0.4)) // cor e opacidade customizada
+                                .frame(height: UIScreen.main.bounds.height * 0.0014) // altura da linha mais visível
+                                .padding(.top, 2)
                                 .padding(.bottom, 4)
                             
                             // Atualização dos isDelivered nas rewards da ViewModel
@@ -132,10 +149,11 @@ struct GenitorRewardsView: View {
             }
             .padding(20)
             .background(
+                // Borda fina arredondada por cima
                 RoundedRectangle(cornerRadius: 10)
-                    .inset(by: 0.5)
-                    .stroke(lineWidth: 1)
+                    .stroke(Color(red: 0.87, green: 0.87, blue: 0.87), lineWidth: 2)
             )
+            .cornerRadius(10)
         }
         .padding(.horizontal, 20)
         .padding(.top, 25)
