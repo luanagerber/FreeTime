@@ -24,13 +24,13 @@ struct BuyRewardConfirmationView: View {
                     HStack {
                         Text(reward.name)
                             .font(.title)
+                            .fontDesign(.rounded)
                             .fontWeight(.medium)
                             .foregroundStyle(.black)
                         Spacer()
                         rewardCostCapsule
                     }
-                    .padding(.horizontal, 42)
-                    .background()
+                    .padding(.horizontal, 32)
                     
                     buyButton
                         .padding(.top,67)
@@ -42,7 +42,7 @@ struct BuyRewardConfirmationView: View {
     
     private var baseRectangle: some View {
         Rectangle()
-            .foregroundStyle(.defaultBackground)
+            .foregroundStyle(.white)
             .frame(width: 540, height: 620)
             .clipShape(RoundedRectangle(cornerRadius: Constants.UI.cardCornerRadius))
            
@@ -54,7 +54,8 @@ struct BuyRewardConfirmationView: View {
         } label: {
             Image(systemName: "xmark")
                 .font(.system(size: 20))
-                .padding()
+                .padding(20)
+                .padding(.trailing, 5)
                 .foregroundStyle(.black.opacity(0.8))
         }
     }
@@ -90,11 +91,13 @@ struct BuyRewardConfirmationView: View {
                     Text("$")
                         .fontWeight(.semibold)
                         .font(.title2)
+                        .fontDesign(.rounded)
                 }
                 Text("\(reward.cost)")
                     .foregroundStyle(.text)
                     .font(.title2)
                     .fontWeight(.regular)
+                    .fontDesign(.rounded)
                     
             }
             .padding()
@@ -115,7 +118,7 @@ struct BuyRewardConfirmationView: View {
                 coordinator.dismissSheet()
             } catch RewardsStoreError.notEnoughCoins{
                 
-                store.setHeaderMessage("Ops! Você ainda não tem moedinhas suficientes para comprar essa recompensa..")
+                store.setHeaderMessage("Ops! Você ainda não tem moedinhas suficientes para comprar essa recompensa..", color: .red)
                 coordinator.dismissSheet()
             } catch {
                 coordinator.dismissSheet()
@@ -124,6 +127,7 @@ struct BuyRewardConfirmationView: View {
             Text("Comprar recompensa")
                 .foregroundStyle(.black)
                 .font(.title3)
+                .fontDesign(.rounded)
                 .fontWeight(.medium)
                 .padding(15)
                 .background(.ctaButton)
