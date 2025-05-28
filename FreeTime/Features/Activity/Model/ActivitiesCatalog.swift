@@ -9,24 +9,27 @@ extension Activity {
     
     static let catalog: [Activity] = [
         Activity(
-            name: "Pintura Criativa",
+            name: "Ler um livro",
+            imageName: "imageBook",
             tags: [.mentalExercise, .study],
-            description: "Uma atividade de pintura livre para estimular a criatividade das crianças.",
-            necessaryMaterials: ["Tinta guache", "Papel A3", "Pincéis"],
+            description: "Ajude seu filho a escolher um livro que ele goste. Separe um lugar tranquilo e confortável. Se puder, leia junto com ele para tornar o momento mais especial.",
+            necessaryMaterials: ["Livro"],
             rewardPoints: 25
         ),
         Activity(
-            name: "Experimento de Vulcão",
+            name: "Desenhar e colorir",
+            imageName: "imageBook",
             tags: [.mentalExercise, .study],
-            description: "Construção de um vulcão com bicarbonato e vinagre.",
-            necessaryMaterials: ["Bicarbonato de sódio", "Vinagre", "Argila", "Corante alimentício"],
+            description: "Separe lápis de cor, giz de cera, canetinhas e papéis ou desenhos para colorir. Deixe a criança soltar a imaginação!",
+            necessaryMaterials: ["Papel A4", "Lápis de cor", "Giz de cerna", "Canetinhas"],
             rewardPoints: 50
         ),
         Activity(
-            name: "Brincar de esconde esconde ",
+            name: "Montar quebra-cabeça",
+            imageName: "imageQuebraCabeca",
             tags: [.mentalExercise, .study],
-            description: "Correr com os amigos",
-            necessaryMaterials: ["Bicarbonato de sódio", "Vinagre", "Argila", "Corante alimentício"],
+            description: "Escolha um quebra-cabeça adequado à idade da criança. Se puder, monte junto com ele, incentivando a paciência e o raciocínio lógico.",
+            necessaryMaterials: ["Quebra-cabeça"],
             rewardPoints: 15
         )
     ]

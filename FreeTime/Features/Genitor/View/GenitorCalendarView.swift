@@ -35,6 +35,7 @@ struct GenitorCalendarView: View {
             .scrollIndicators(.hidden)
             
         }
+        .background(Color("backgroundGenitor"))
         .vSpacing(.top)
         .onAppear {
             viewModel.setupCloudKit()
@@ -66,48 +67,42 @@ struct GenitorCalendarView: View {
     }
     
     @ViewBuilder
-        func HeaderView() -> some View {
-            VStack (alignment: .leading) {
-                
-                HStack {
-                    // Mês
-                    Text(viewModel.currentDate.format("MMMM"))
-                        .font(.custom("SF Pro", size: 34, relativeTo: .largeTitle))
-                        .fontWeight(.semibold)
-                    
-                    Spacer()
-                    
-                    // ❌ REMOVIDO: Botão para adicionar atividade
-                    // O botão + agora está apenas na GenitorHomeView
+    func HeaderView() -> some View {
+        VStack (alignment: .leading) {
+            
+            Text(viewModel.currentDate.format("MMMM"))
+                .font(.custom("SF Pro", size: 34, relativeTo: .largeTitle))
+                .fontWeight(.semibold)
+                .foregroundStyle(Color("primaryColor"))
+            
+            // Semana
+            TabView(selection: $currentWeekIndex) {
+                ForEach(weekSlider.indices , id: \.self) { index in
+                    let week = weekSlider[index]
+                    WeekView(week)
+                        .padding(.horizontal, 15)
+                        .tag(index)
                 }
-                
-                // Semana
-                TabView(selection: $currentWeekIndex) {
-                    ForEach(weekSlider.indices , id: \.self) { index in
-                        let week = weekSlider[index]
-                        WeekView(week)
-                            .padding(.horizontal, 15)
-                            .tag(index)
-                    }
-                }
-                .padding(.horizontal, -15)
-                .tabViewStyle(.page(indexDisplayMode: .never))
-                .frame(height: 90)
             }
-            .hSpacing(.leading)
-            .padding(15)
-            .background(
-                    Color.backgroundHeader
-                        .cornerRadius(Constants.UI.cardCornerRadius, corners: [.bottomLeft, .bottomRight])
-                        .ignoresSafeArea(edges: .top)
-                )
-            .onChange(of: currentWeekIndex, initial: false) { oldValue, newValue in
-                /// Creating when it reaches first/last page
-                if newValue == 0 || newValue == (weekSlider.count - 1) {
-                    createWeek = true
-                }
+            .padding(.horizontal, -15)
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .frame(height: UIScreen.main.bounds.height*0.08)
+        }
+        .hSpacing(.leading)
+        .padding(15)
+        .background(
+            Color("backgroundCalendarHeader")
+                .cornerRadius(Constants.UI.cardCornerRadius, corners: [.bottomLeft, .bottomRight])
+                .ignoresSafeArea(edges: .top)
+                .shadow(radius: 5)
+        )
+        .onChange(of: currentWeekIndex, initial: false) { oldValue, newValue in
+            /// Creating when it reaches first/last page
+            if newValue == 0 || newValue == (weekSlider.count - 1) {
+                createWeek = true
             }
         }
+    }
     @ViewBuilder
     func WeekView(_ week: [Date.WeekDay]) -> some View {
         
@@ -120,19 +115,19 @@ struct GenitorCalendarView: View {
                 VStack(){
                     Text(day.date.format("E"))
                         .font(.custom("SF Pro", size: 13, relativeTo: .footnote))
-                        .fontWeight(.medium)
                         .textScale(.secondary)
-                        .foregroundStyle(.gray)
+                        .foregroundStyle(Color("primaryColor"))
                     
                     Rectangle()
-                        .fill(.gray)
+                        .fill(Color("primaryColor"))
                         .cornerRadius(50)
-                        .frame(height: 2)
-                        .padding(.horizontal, 20)
+                        .frame(height: UIScreen.main.bounds.height*0.002)
+                        .padding(.horizontal, 16)
                     
                     Text(day.date.format("dd"))
                         .font(.custom("SF Pro", size: 17, relativeTo: .body))
                         .fontWeight(.semibold)
+                        .foregroundStyle(Color("primaryColor"))
                 }
                 .hSpacing(.center)
                 .contentShape(.rect)
@@ -146,7 +141,7 @@ struct GenitorCalendarView: View {
                 .background {
                     if isSameDate(day.date, viewModel.currentDate) {
                         Rectangle()
-                            .foregroundColor(.white)
+                            .foregroundColor(Color("backgroundCalendarSelectedDay"))
                             .frame(width: 46, height: 68)
                             .background(.white)
                             .cornerRadius(10)
@@ -189,16 +184,18 @@ struct GenitorCalendarView: View {
             
             // Atividade Planejadas
             Text("Atividades planejadas")
-                .font(.title3)
+                .font(.custom("SF Pro", size: 20, relativeTo: .title3))
                 .fontWeight(.medium)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal)
+                .foregroundStyle(Color("primaryColor"))
+                .hSpacing(.leading)
             
             if (tasksCompleted.isEmpty && tasksNotStarted.isEmpty) {
                 VStack(spacing: 16) {
-                    Text("Nenhuma atividade foi planejada ainda.")
+                    Text("Nenhuma atividade foi planejada ainda. Clique em \"+\" para começar!.")
                         .font(.subheadline)
-                        .multilineTextAlignment(.center)
+                        .foregroundStyle(Color("primaryColor"))
+                        .multilineTextAlignment(.leading)
+                        .hSpacing(.leading)
                     
                     if !viewModel.kids.isEmpty {
                         Button("Adicionar Atividade") {
@@ -206,22 +203,24 @@ struct GenitorCalendarView: View {
                             viewModel.showActivitySelector = true
                         }
                         .buttonStyle(.borderedProminent)
-                    } else {
-                        Text("Adicione uma criança primeiro para planejar atividades.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
                     }
+//                    else {
+//                        Text("Adicione uma criança primeiro para planejar atividades.")
+//                            .font(.caption)
+//                            .foregroundColor(.secondary)
+//                            .multilineTextAlignment(.center)
+//                    }
                 }
-                .padding(.horizontal)
+//                .padding(.horizontal)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 
                 if tasksNotStarted.isEmpty {
                     Text("Tudo concluído para esse dia! Ótimo trabalho em equipe!")
-                        .padding(.horizontal)
                         .font(.subheadline)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .foregroundStyle(Color("primaryColor"))
+                        .multilineTextAlignment(.leading)
+                        .hSpacing(.leading)
                 } else {
                     ForEach(tasksNotStarted) { record in
                         GenitorTaskRowView(record: record)
@@ -233,16 +232,17 @@ struct GenitorCalendarView: View {
                 
                 // Atividades concluídas
                 Text("Atividades concluídas")
-                    .font(.title3)
+                    .font(.custom("SF Pro", size: 20, relativeTo: .title3))
                     .fontWeight(.medium)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal)
+                    .foregroundStyle(Color("primaryColor"))
+                    .hSpacing(.leading)
                 
                 if tasksCompleted.isEmpty {
                     Text("Nada foi concluído nesse dia ainda. Que tal checar com seu filho?")
-                        .padding(.horizontal)
                         .font(.subheadline)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .foregroundStyle(Color("primaryColor"))
+                        .multilineTextAlignment(.leading)
+                        .hSpacing(.leading)
                 } else {
                     ForEach(tasksCompleted) { record in
                         GenitorTaskRowView(record: record)

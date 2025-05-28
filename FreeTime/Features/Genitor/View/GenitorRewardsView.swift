@@ -37,9 +37,11 @@ struct GenitorRewardsView: View {
                 .font(.custom("SF Pro", size: 34, relativeTo: .largeTitle))
                 .fontWeight(.semibold)
                 .padding(.bottom, 10)
+                .foregroundStyle(Color("primaryColor"))
             
             Text("Confira as recompensas da criança e marque quando forem entregues.")
                 .font(.custom("SF Pro", size: 15, relativeTo: .body))
+                .foregroundStyle(Color("primaryColor"))
             
             HStack {
                 Text("Saldo da criança")

@@ -11,14 +11,16 @@ import SwiftUI
 struct Activity: Identifiable, Hashable {
     let id: UUID
     let name: String
+    let imageName: String
     var tags: [Tag]
     var description: String
     var necessaryMaterials: [String]
     var rewardPoints: Int
     
-    init (name: String, tags: [Tag], description: String, necessaryMaterials: [String], rewardPoints: Int) {
+    init (name: String, imageName: String, tags: [Tag], description: String, necessaryMaterials: [String], rewardPoints: Int) {
         self.id = UUID()
         self.name = name
+        self.imageName = imageName
         self.tags = tags
         self.description = description
         self.necessaryMaterials = necessaryMaterials
@@ -31,5 +33,5 @@ struct Activity: Identifiable, Hashable {
         case socialActivity
         case study
     }
-    
+
 }

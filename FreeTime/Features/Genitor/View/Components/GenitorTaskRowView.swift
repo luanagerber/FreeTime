@@ -44,43 +44,58 @@ struct GenitorTaskRowView: View {
     }
     
     var body: some View {
-        HStack {
+        HStack (spacing: 20){
             // Status indicator
-            Image(systemName: statusIcon)
-                .foregroundColor(statusColor)
-                .font(.title2)
+            //            Image(systemName: statusIcon)
+            //                .foregroundColor(statusColor)
+            //                .font(.title2)
+            
+            Rectangle()
+                .foregroundColor(.yellow)
+                .frame(
+                    width: UIScreen.main.bounds.width * 0.2,
+                    height: UIScreen.main.bounds.height * 0.09
+                )
+                .cornerRadius(15)
             
             VStack(alignment: .leading, spacing: 8) {
                 Text(record.activity?.name ?? "Atividade Desconhecida")
-                    .font(.body)
+                    .font(.custom("SF Pro", size: 17, relativeTo: .body))
                     .fontWeight(.medium)
+                    .foregroundStyle(Color("primaryColor"))
                 
-                HStack {
-                    Text(record.date.timeRange(duration: record.duration))
-                        .font(.body)
-                        .fontWeight(.regular)
-                    
-                    Spacer()
-                    
-                    // Status badge
-                    Text(statusDisplayName)
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(statusColor.opacity(0.2))
-                        .foregroundColor(statusColor)
-                        .cornerRadius(4)
-                }
+                //HStack {
+                Text(record.date.formattedAsHourMinute())
+                    .font(.custom("SF Pro", size: 17, relativeTo: .body))
+                    .foregroundStyle(Color("primaryColor"))
+                
+                //                    Spacer()
+                
+                // Status badge
+                //                    Text(statusDisplayName)
+                //                        .font(.caption)
+                //                        .padding(.horizontal, 8)
+                //                        .padding(.vertical, 4)
+                //                        .background(statusColor.opacity(0.2))
+                //                        .foregroundColor(statusColor)
+                //                        .cornerRadius(4)
+                //}
             }
         }
         .padding(22)
-        .frame(maxWidth: .infinity, minHeight: 116, alignment: .leading)
-        .background(Color(.systemGray6))
+        .frame(
+            maxWidth: .infinity,
+            minHeight: UIScreen.main.bounds.height*0.13,
+            alignment: .leading
+        )
+        .background(.white)
         .cornerRadius(Constants.UI.cardCornerRadius)
         .overlay(
             RoundedRectangle(cornerRadius: Constants.UI.cardCornerRadius)
-                .stroke(statusColor.opacity(0.3), lineWidth: record.registerStatus == .completed ? 2 : 0)
+                .inset(by: 0.5)
+                .stroke(Color(red: 0.87, green: 0.87, blue: 0.87), lineWidth: 1)
         )
+        .shadow(color: .black.opacity(0.3), radius: 5, x: 5, y: 5)
     }
 }
 

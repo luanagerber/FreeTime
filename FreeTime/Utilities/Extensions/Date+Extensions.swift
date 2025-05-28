@@ -111,6 +111,13 @@ extension Date {
         return formatter.string(from: self)
     }
     
+    func formattedAsHourMinute() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        formatter.locale = Locale(identifier: "pt_BR") // opcional
+        return formatter.string(from: self)
+    }
+    
     /// Retorna a data no início do dia, útil para agrupar recompensas que ocorreram no mesmo dia.
     var startOfDay: Date {
         Calendar.current.startOfDay(for: self)

@@ -54,7 +54,7 @@ struct GenitorHomeView: View {
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(.white)
                     .padding()
-                    .background(Circle().fill(Color.mainGenitor))
+                    .background(Circle().fill(Color("primaryColor")))
             }
             .offset(y: -10)
             
@@ -70,13 +70,14 @@ struct GenitorHomeView: View {
     func TabBarItem(icon: String, tab: TabSelection) -> some View {
         VStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 20))
-                .foregroundColor(currentTab == tab ? .mainGenitor : .gray)
+                .font(.custom("SF Pro", size: 22, relativeTo: .body))
+                .foregroundColor(currentTab == tab ? Color("primaryColor") : Color("primaryColor").opacity(0.4))
             
             // barrinha inferior se estiver ativo
             Capsule()
-                .fill(currentTab == tab ? Color.mainGenitor : Color.clear)
-                .frame(width: 24, height: 3)
+                .fill(currentTab == tab ? Color("primaryColor") : Color.clear)
+                .frame(width: UIScreen.main.bounds.width*0.06, height: UIScreen.main.bounds.height*0.004)
+                
         }
         .frame(maxWidth: .infinity)
         .contentShape(Rectangle()) // permite clicar em toda a área
