@@ -131,7 +131,11 @@ struct RewardsTestDebugView: View {
                     }
                     Spacer()
                     Button("Buy") {
-                        store.buyReward(reward)
+                        do {
+                            try store.buyReward(reward)
+                        } catch {
+                            print("error: \(error)")
+                        }
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(!store.canAfford(reward) || store.isLoading)

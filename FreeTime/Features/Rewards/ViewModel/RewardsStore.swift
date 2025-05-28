@@ -19,8 +19,11 @@ class RewardsStore: ObservableObject {
     
     var currentKidID: CKRecord.ID?
     
-    // NOVA PROPRIEDADE: Referência ao UserManager
-    private let userManager = UserManager.shared
+    @Published private(set) var headerState: HeaderType = .normal {
+        didSet {
+            // Criar timer pra voltar pro normal
+        }
+    }
     
     init() {
         self.rewards = Reward.catalog
@@ -29,10 +32,22 @@ class RewardsStore: ObservableObject {
         loadFromUserManager()
     }
     
+    func setHeaderNormal() {
+        self.headerState = .normal
+    }
+    
+    func setHeaderMessage(_ message: String) {
+        
+        self.headerState = .withMessage(message)
+        
+    }
+    
+    func collectReward(reward: Reward) throws {
+       try buyReward(reward)
+    }
+    
     private func loadFromUserManager() {
-        print("RewardsStore: User role: \(userManager.userRole.rawValue)")
-        print("RewardsStore: Is child: \(userManager.isChild)")
-        print("RewardsStore: Is parent: \(userManager.isParent)")
+        let userManager = UserManager.shared
         
         // Se o UserManager tem um kid válido, use-o
         if let kidID = userManager.currentKidID {
@@ -56,6 +71,7 @@ class RewardsStore: ObservableObject {
     }
 }
 
+
 // MARK: - Kid Management
 extension RewardsStore {
     
@@ -71,38 +87,31 @@ extension RewardsStore {
         }
         
         print("RewardsStore: Carregando dados do kid: \(kidID.recordName)")
-        print("RewardsStore: User role: \(userManager.userRole.rawValue)")
         isLoading = true
         
-        // NOVA LÓGICA: Baseada no userRole
-        if userManager.isChild {
-            // Para crianças: sempre usar banco compartilhado
-            loadSharedKidData()
-        } else {
-            // Para pais: usar banco privado primeiro, fallback para compartilhado
-            CloudService.shared.fetchPrivateKid(withRecordID: kidID) { [weak self] result in
-                DispatchQueue.main.async {
-                    switch result {
-                    case .success(let kid):
-                        print("RewardsStore: Kid encontrado no banco privado - Moedas: \(kid.coins)")
-                        self?.coins = kid.coins
-                        self?.loadCollectedRewards()
-                    case .failure(let error):
-                        print("RewardsStore: Falha no banco privado: \(error), tentando banco compartilhado...")
-                        
-                        // Se falhar no privado, tenta no compartilhado
-                        CloudService.shared.fetchKid(withRecordID: kidID) { result in
-                            DispatchQueue.main.async {
-                                switch result {
-                                case .success(let kid):
-                                    print("RewardsStore: Kid encontrado no banco compartilhado - Moedas: \(kid.coins)")
-                                    self?.coins = kid.coins
-                                case .failure(let error):
-                                    print("RewardsStore: Falha ao carregar kid: \(error)")
-                                    self?.handleError("Failed to load kid data: \(error.localizedDescription)")
-                                }
-                                self?.loadCollectedRewards()
+        // Tenta primeiro no banco privado (para kids próprios)
+        CloudService.shared.fetchPrivateKid(withRecordID: kidID) { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let kid):
+                    print("RewardsStore: Kid encontrado no banco privado - Moedas: \(kid.coins)")
+                    self?.coins = kid.coins
+                    self?.loadCollectedRewards()
+                case .failure(let error):
+                    print("RewardsStore: Falha no banco privado: \(error), tentando banco compartilhado...")
+                    
+                    // Se falhar no privado, tenta no compartilhado
+                    CloudService.shared.fetchKid(withRecordID: kidID) { result in
+                        DispatchQueue.main.async {
+                            switch result {
+                            case .success(let kid):
+                                print("RewardsStore: Kid encontrado no banco compartilhado - Moedas: \(kid.coins)")
+                                self?.coins = kid.coins
+                            case .failure(let error):
+                                print("RewardsStore: Falha ao carregar kid: \(error)")
+                                self?.handleError("Failed to load kid data: \(error.localizedDescription)")
                             }
+                            self?.loadCollectedRewards()
                         }
                     }
                 }
@@ -120,6 +129,27 @@ extension RewardsStore {
         loadSharedKidData()
     }
     
+    private func loadSharedCollectedRewards() {
+        guard let kidID = currentKidID else {
+            isLoading = false
+            return
+        }
+        
+        CloudService.shared.fetchSharedCollectedRewards(forKid: kidID.recordName) { [weak self] result in
+            DispatchQueue.main.async {
+                self?.isLoading = false
+                
+                switch result {
+                case .success(let rewards):
+                    self?.collectedRewards = rewards
+                case .failure(let error):
+                    self?.handleError("Failed to load shared rewards: \(error.localizedDescription)")
+                    self?.collectedRewards = []
+                }
+            }
+        }
+    }
+    
     private func loadSharedKidData() {
         guard let kidID = currentKidID else {
             print("RewardsStore: loadSharedKidData - Nenhum kidID definido")
@@ -135,8 +165,8 @@ extension RewardsStore {
         // CORREÇÃO: Determinar qual banco usar baseado no owner da zona
         let isSharedZone = kidID.zoneID.ownerName != CKCurrentUserDefaultName
         let database = isSharedZone ?
-                       container.sharedCloudDatabase :
-                       container.privateCloudDatabase
+        container.sharedCloudDatabase :
+        container.privateCloudDatabase
         
         print("RewardsStore: Usando \(isSharedZone ? "banco compartilhado" : "banco privado")")
         
@@ -163,40 +193,13 @@ extension RewardsStore {
             }
         }
     }
-    
     private func loadCollectedRewards() {
         guard let kidID = currentKidID else {
             isLoading = false
             return
         }
         
-        // NOVA LÓGICA: Baseada no userRole
-        if userManager.isChild {
-            loadSharedCollectedRewards()
-        } else {
-            CloudService.shared.fetchAllCollectedRewards(forKid: kidID.recordName) { [weak self] result in
-                DispatchQueue.main.async {
-                    self?.isLoading = false
-                    
-                    switch result {
-                    case .success(let rewards):
-                        self?.collectedRewards = rewards
-                    case .failure(let error):
-                        self?.handleError("Failed to load collected rewards: \(error.localizedDescription)")
-                        self?.collectedRewards = []
-                    }
-                }
-            }
-        }
-    }
-    
-    private func loadSharedCollectedRewards() {
-        guard let kidID = currentKidID else {
-            isLoading = false
-            return
-        }
-        
-        CloudService.shared.fetchSharedCollectedRewards(forKid: kidID.recordName) { [weak self] result in
+        CloudService.shared.fetchAllCollectedRewards(forKid: kidID.recordName) { [weak self] result in
             DispatchQueue.main.async {
                 self?.isLoading = false
                 
@@ -204,7 +207,7 @@ extension RewardsStore {
                 case .success(let rewards):
                     self?.collectedRewards = rewards
                 case .failure(let error):
-                    self?.handleError("Failed to load shared rewards: \(error.localizedDescription)")
+                    self?.handleError("Failed to load collected rewards: \(error.localizedDescription)")
                     self?.collectedRewards = []
                 }
             }
@@ -223,7 +226,6 @@ extension RewardsStore {
         }
         
         print("RewardsStore: Adicionando \(amount) moedas. Total atual: \(coins)")
-        print("RewardsStore: User role: \(userManager.userRole.rawValue)")
         
         // Update locally immediately
         coins += amount
@@ -279,22 +281,10 @@ extension RewardsStore {
         
         let targetCoins = self.coins
         print("RewardsStore: syncCoinsToCloudKit - Objetivo: atualizar para \(targetCoins) moedas")
-        print("RewardsStore: User role: \(userManager.userRole.rawValue)")
         
         // Busca diretamente o registro mais recente do CloudKit
         let container = CKContainer(identifier: CloudConfig.containerIdentifier)
-        
-        // NOVA LÓGICA: Determinar banco baseado no userRole
-        let database: CKDatabase
-        if userManager.isChild {
-            // Para crianças: sempre usar banco compartilhado
-            database = container.sharedCloudDatabase
-            print("RewardsStore: Usando banco compartilhado para sincronizar moedas")
-        } else {
-            // Para pais: usar banco privado
-            database = container.privateCloudDatabase
-            print("RewardsStore: Usando banco privado para sincronizar moedas")
-        }
+        let database = UserManager.shared.isChild ? container.sharedCloudDatabase : container.privateCloudDatabase
         
         Task {
             do {
@@ -341,7 +331,7 @@ extension RewardsStore {
 // MARK: - Reward Purchase (Kid Operations)
 extension RewardsStore {
     
-    func buyReward(_ reward: Reward) {
+    func buyReward(_ reward: Reward) throws {
         guard let kidID = currentKidID else {
             print("RewardsStore: buyReward - Nenhum kid selecionado")
             handleError("No kid selected")
@@ -351,11 +341,8 @@ extension RewardsStore {
         // Check if kid has enough coins
         guard coins >= reward.cost else {
             handleError("Insufficient coins to buy \(reward.name)")
-            return
+            throw RewardsStoreError.notEnoughCoins
         }
-        
-        print("RewardsStore: Comprando recompensa: \(reward.name)")
-        print("RewardsStore: User role: \(userManager.userRole.rawValue)")
         
         isLoading = true
         
@@ -372,125 +359,36 @@ extension RewardsStore {
         )
         collectedReward.kidReference = CKRecord.Reference(recordID: kidID, action: .deleteSelf)
         
-        // NOVA LÓGICA: Salvar baseado no userRole
-        if userManager.isChild {
-            // Para crianças: salvar no banco compartilhado
-            saveCollectedRewardShared(collectedReward) { [weak self] rewardResult in
-                self?.handleRewardPurchaseResult(rewardResult, oldCoins: oldCoins, savedReward: nil)
-            }
-        } else {
-            // Para pais: salvar no banco privado (método original)
-            CloudService.shared.saveCollectedReward(collectedReward) { [weak self] rewardResult in
+        // Save to CloudKit
+        CloudService.shared.saveCollectedReward(collectedReward) { [weak self] rewardResult in
+            DispatchQueue.main.async {
                 switch rewardResult {
                 case .success(let savedReward):
-                    self?.handleRewardPurchaseResult(.success(savedReward), oldCoins: oldCoins, savedReward: savedReward)
-                case .failure(let error):
-                    self?.handleRewardPurchaseResult(.failure(error), oldCoins: oldCoins, savedReward: nil)
-                }
-            }
-        }
-    }
-    
-    private func saveCollectedRewardShared(_ collectedReward: CollectedReward, completion: @escaping (Result<CollectedReward, CloudError>) -> Void) {
-        guard let kidID = currentKidID else {
-            print("RewardsStore: saveCollectedRewardShared - Nenhum kidID")
-            completion(.failure(.recordNotFound))
-            return
-        }
-        
-        print("RewardsStore: Salvando recompensa no banco compartilhado")
-        print("RewardsStore: Kid Zone: \(kidID.zoneID.zoneName):\(kidID.zoneID.ownerName)")
-        
-        // CORREÇÃO: Criar o record na zona compartilhada correta
-        let sharedRecord = CKRecord(
-            recordType: RecordType.collectedReward.rawValue,
-            zoneID: kidID.zoneID  // Usar a zona do kidID compartilhado
-        )
-        
-        // Preencher os campos
-        sharedRecord["kidID"] = collectedReward.kidID
-        sharedRecord["rewardID"] = collectedReward.rewardID
-        sharedRecord["dateCollected"] = collectedReward.dateCollected
-        sharedRecord["isDelivered"] = collectedReward.isDelivered
-        
-        // Adicionar referência ao Kid se disponível
-        if let kidRef = collectedReward.kidReference {
-            sharedRecord["kidReference"] = kidRef
-            print("RewardsStore: kidReference adicionada: \(kidRef.recordID.recordName)")
-        }
-        
-        let container = CKContainer(identifier: CloudConfig.containerIdentifier)
-        let sharedDB = container.sharedCloudDatabase
-        
-        Task {
-            do {
-                // IMPORTANTE: Buscar o record do Kid primeiro para usar como parent
-                print("RewardsStore: Buscando record do Kid para configurar hierarquia...")
-                let kidRecord = try await sharedDB.record(for: kidID)
-                print("RewardsStore: Kid record encontrado, configurando como parent...")
-                
-                // Configurar como filho do Kid para compartilhamento automático
-                sharedRecord.setParent(kidRecord)
-                print("RewardsStore: Parent configurado para compartilhamento automático")
-                
-                print("RewardsStore: Tentando salvar no banco compartilhado...")
-                let savedRecord = try await sharedDB.save(sharedRecord)
-                print("RewardsStore: ✅ Recompensa salva com sucesso: \(savedRecord.recordID.recordName)")
-                
-                if let savedReward = CollectedReward(record: savedRecord) {
-                    DispatchQueue.main.async {
-                        completion(.success(savedReward))
-                    }
-                } else {
-                    print("RewardsStore: ❌ Erro na conversão do registro salvo")
-                    DispatchQueue.main.async {
-                        completion(.failure(.decodeError))
-                    }
-                }
-            } catch {
-                let errorDescription = error.localizedDescription
-                print("RewardsStore: ❌ Erro ao salvar recompensa: \(errorDescription)")
-                
-                if let ckError = error as? CKError {
-                    print("RewardsStore: CKError details: \(ckError.localizedDescription)")
-                    print("RewardsStore: CKError code: \(ckError.code.rawValue)")
-                }
-                
-                DispatchQueue.main.async {
-                    completion(.failure(.couldNotSave(error)))
-                }
-            }
-        }
-    }
-    
-    private func handleRewardPurchaseResult(_ rewardResult: Result<CollectedReward, CloudError>, oldCoins: Int, savedReward: CollectedReward?) {
-        DispatchQueue.main.async { [weak self] in
-            switch rewardResult {
-            case .success(let savedReward):
-                // Add to local list
-                self?.collectedRewards.append(savedReward)
-                
-                // Update coins in CloudKit
-                self?.syncCoinsToCloudKit { coinResult in
-                    DispatchQueue.main.async {
-                        self?.isLoading = false
-                        switch coinResult {
-                        case .success:
-                            print("RewardsStore: Compra realizada com sucesso!")
-                        case .failure(let error):
-                            // Revert local changes if coin sync failed
-                            self?.coins = oldCoins
-                            self?.collectedRewards.removeAll { $0.id == savedReward.id }
-                            self?.handleError("Failed to sync purchase: \(error.localizedDescription)")
+                    // Add to local list
+                    self?.collectedRewards.append(savedReward)
+                    
+                    // Update coins in CloudKit
+                    self?.syncCoinsToCloudKit { coinResult in
+                        DispatchQueue.main.async {
+                            self?.isLoading = false
+                            switch coinResult {
+                            case .success:
+                                break // Success
+                            case .failure(let error):
+                                // Revert local changes if coin sync failed
+                                self?.coins = oldCoins
+                                self?.collectedRewards.removeAll { $0.id == savedReward.id }
+                                self?.handleError("Failed to sync purchase: \(error.localizedDescription)")
+                            }
                         }
                     }
+                    
+                case .failure(let error):
+                    self?.isLoading = false
+                    // Revert coin change if reward save failed
+                    self?.coins = oldCoins
+                    self?.handleError("Failed to purchase reward: \(error.localizedDescription)")
                 }
-                
-            case .failure(let error):
-                self?.isLoading = false
-                // Revert coin change if reward save failed
-                self?.coins = oldCoins
-                self?.handleError("Failed to purchase reward: \(error.localizedDescription)")
             }
         }
     }
@@ -513,14 +411,7 @@ extension RewardsStore {
         }
         
         let container = CKContainer(identifier: CloudConfig.containerIdentifier)
-        
-        // NOVA LÓGICA: Determinar banco baseado no userRole
-        let database: CKDatabase
-        if userManager.isChild {
-            database = container.sharedCloudDatabase
-        } else {
-            database = container.privateCloudDatabase
-        }
+        let database = UserManager.shared.isChild ? container.sharedCloudDatabase : container.privateCloudDatabase
         
         Task {
             do {
@@ -550,8 +441,9 @@ extension RewardsStore {
         
         isLoading = true
         
-        // NOVA LÓGICA: Baseada no userRole
-        if userManager.isChild {
+        let isSharedUser = UserManager.shared.isChild
+        
+        if isSharedUser {
             CloudService.shared.fetchSharedCollectedRewards(forKid: kidID.recordName) { [weak self] result in
                 DispatchQueue.main.async {
                     self?.isLoading = false
@@ -592,14 +484,7 @@ extension RewardsStore {
         }
         
         let container = CKContainer(identifier: CloudConfig.containerIdentifier)
-        
-        // NOVA LÓGICA: Determinar banco baseado no userRole
-        let database: CKDatabase
-        if userManager.isChild {
-            database = container.sharedCloudDatabase
-        } else {
-            database = container.privateCloudDatabase
-        }
+        let database = UserManager.shared.isChild ? container.sharedCloudDatabase : container.privateCloudDatabase
         
         Task {
             do {
@@ -685,45 +570,28 @@ extension RewardsStore {
         }
         
         print("RewardsStore: Usando método alternativo para adicionar \(amount) moedas")
-        print("RewardsStore: User role: \(userManager.userRole.rawValue)")
         isLoading = true
         
         // Atualiza localmente primeiro
         let oldCoins = coins
         coins += amount
         
-        // NOVA LÓGICA: Para crianças, usar syncCoinsToCloudKit ao invés de saveKid
-        if userManager.isChild {
-            syncCoinsToCloudKit { [weak self] result in
-                DispatchQueue.main.async {
-                    self?.isLoading = false
-                    switch result {
-                    case .success:
-                        print("RewardsStore: Moedas atualizadas com sucesso via syncCoinsToCloudKit")
-                    case .failure(let error):
-                        print("RewardsStore: Erro ao atualizar moedas: \(error)")
-                        self?.coins = oldCoins
-                        self?.handleError("Failed to update coins: \(error.localizedDescription)")
-                    }
-                }
-            }
-        } else {
-            // Para pais: manter a lógica original
-            var updatedKid = Kid(name: userManager.currentKidName, coins: coins)
-            updatedKid.id = kidID
-            
-            CloudService.shared.saveKid(updatedKid) { [weak self] result in
-                DispatchQueue.main.async {
-                    self?.isLoading = false
-                    switch result {
-                    case .success(let savedKid):
-                        print("RewardsStore: Moedas atualizadas com sucesso para \(savedKid.coins)")
-                        self?.coins = savedKid.coins
-                    case .failure(let error):
-                        print("RewardsStore: Erro ao atualizar moedas: \(error)")
-                        self?.coins = oldCoins
-                        self?.handleError("Failed to update coins: \(error.localizedDescription)")
-                    }
+        // Cria um novo Kid com as moedas atualizadas
+        var updatedKid = Kid(name: UserManager.shared.currentKidName, coins: coins)
+        updatedKid.id = kidID
+        
+        // Salva diretamente
+        CloudService.shared.saveKid(updatedKid) { [weak self] result in
+            DispatchQueue.main.async {
+                self?.isLoading = false
+                switch result {
+                case .success(let savedKid):
+                    print("RewardsStore: Moedas atualizadas com sucesso para \(savedKid.coins)")
+                    self?.coins = savedKid.coins
+                case .failure(let error):
+                    print("RewardsStore: Erro ao atualizar moedas: \(error)")
+                    self?.coins = oldCoins
+                    self?.handleError("Failed to update coins: \(error.localizedDescription)")
                 }
             }
         }
@@ -754,10 +622,13 @@ extension RewardsStore {
         - Coins: \(coins)
         - Collected Rewards: \(collectedRewards.count)
         - Is Loading: \(isLoading)
-        - User Role: \(userManager.userRole.rawValue)
-        - Is Child: \(userManager.isChild)
-        - Is Parent: \(userManager.isParent)
         """
+    }
+    
+    enum HeaderType {
+        case normal
+        case withMessage(String)
+        
     }
 }
 

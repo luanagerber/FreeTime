@@ -9,70 +9,35 @@ import SwiftUI
 
 struct RewardsStoreView: View {
     
+    typealias Colors = Constants.UI.Colors
     @ObservedObject var store: RewardsStore
     @EnvironmentObject var coordinator: Coordinator
+    @State var messageOffset: HeaderMessageStateOffset = .hidden
+    @State var timerProgress = 0.0
     
-    // Duas colunas iguais
-    let columns = [
-        GridItem(.flexible()),
-        GridItem(.flexible())
-    ]
+    // grid with 4 columns
+    let rows = Array(repeating: GridItem(.flexible(), spacing: 36), count: 2)
     
     var body: some View {
-        ZStack {
-            VStack {
-                // Debug info
-                debugInfoSection
-                
-                ScrollView(.vertical) {
-                    headerSection
-                    
-                    LazyVGrid(columns: columns, spacing: 16) {
-                        ForEach(store.rewards) { reward in
-                            rewardView(reward)
-                        }
-                    }
-                    .padding()
-                }
-                
-                bottomButtonsSection
-            }
+        ZStack{
+            Color(.defaultBackground)
+                .ignoresSafeArea(.all)
             
-            // Loading overlay
-            if store.isLoading {
-                Color.black.opacity(0.3)
-                    .ignoresSafeArea()
-                ProgressView("Processing...")
-                    .padding()
-                    .background(Color(.systemBackground))
-                    .cornerRadius(12)
+            VStack {
+                upBar
+                
+                ScrollView(.vertical){
+                    VStack(alignment: .leading){
+                        
+                        header(store.headerState)
+                        //.padding(.horizontal, 132)
+                        rewardsGrid
+                    }
+                    .padding(.leading, 132)
+                    
+                }
             }
         }
-        .alert("Error", isPresented: $store.showError) {
-            Button("OK", role: .cancel) {
-                store.clearError()
-            }
-        } message: {
-            Text(store.errorMessage)
-        }
-    }
-    
-    private var debugInfoSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Debug Info:")
-                .font(.caption)
-                .fontWeight(.bold)
-            Text("Kid ID: \(store.currentKidID?.recordName ?? "None")")
-                .font(.caption2)
-            Text("Kid Name: \(UserManager.shared.currentKidName)")
-                .font(.caption2)
-            Text("User Role: \(UserManager.shared.userRole.rawValue)")
-                .font(.caption2)
-        }
-        .padding(8)
-        .background(Color.orange.opacity(0.1))
-        .cornerRadius(8)
-        .padding(.horizontal)
     }
     
     private var headerSection: some View {
@@ -83,171 +48,188 @@ struct RewardsStoreView: View {
         .padding(.horizontal)
     }
     
-    private var bottomButtonsSection: some View {
-        VStack(spacing: 16) {
-            HStack(spacing: 16) {
-                collectedRewardsButton
-                refreshButton
-            }
-            
-            HStack(spacing: 16) {
-                addCoinsButtonTest
-                addCoinsButtonAlternative
-            }
-        }
-        .padding()
+    enum HeaderMessageStateOffset: CGFloat {
+        case hidden = 900.0
+        case shown = 0.0
     }
     
-    private var addCoinsButtonTest: some View {
-        Button {
-            store.addCoins(100)
-        } label: {
-            Text("Add 100 Coins")
-                .foregroundStyle(.white)
-                .padding()
-                .background(Color.green)
-                .cornerRadius(8)
-        }
-        .disabled(store.isLoading)
-    }
-    
-    private var addCoinsButtonAlternative: some View {
-        Button {
-            store.addCoinsAlternative(50)
-        } label: {
-            Text("Add 50 (Alt)")
-                .foregroundStyle(.white)
-                .padding()
-                .background(Color.blue)
-                .cornerRadius(8)
-        }
-        .disabled(store.isLoading)
-    }
-    
-    private var refreshButton: some View {
-        Button {
-            store.loadKidData()
-        } label: {
-            HStack {
-                Image(systemName: "arrow.clockwise")
-                Text("Refresh")
-            }
-            .padding()
-            .background(Color.gray.opacity(0.2))
-            .cornerRadius(8)
-        }
-        .disabled(store.isLoading)
-    }
-    
-    private var collectedRewardsButton: some View {
-        Button {
-            coordinator.push(.collectedRewards)
-        } label: {
-            HStack {
-                Image(systemName: "gift.circle")
-                Text("My Rewards")
-                if !store.collectedRewards.isEmpty {
-                    Text("(\(store.collectedRewards.count))")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+    private var rewardsGrid: some View {
+        ScrollView(.horizontal){
+            LazyHGrid(rows: rows, spacing: 36) {
+                
+                ForEach(store.rewards) { reward in
+                    rewardView(reward)
                 }
             }
-            .padding()
-            .background(Color.blue.opacity(0.1))
-            .cornerRadius(8)
+            .scrollTargetLayout()
+            .padding(.trailing, 36)
+        }
+        .scrollTargetBehavior(.viewAligned)
+        .scrollIndicators(.hidden)
+    }
+    
+    @ViewBuilder
+    func buildHeader(message: String? = nil) -> some View {
+        HStack(alignment: .center){
+            VStack(alignment: .leading){
+                titleText
+                subtitleText
+            }
+            .padding(.trailing)
+            
+            if let message = message {
+                headerMessage(message: message)
+                    .offset(x: messageOffset.rawValue)
+                    .onAppear {
+                        withAnimation(.bouncy(duration: 1.00, extraBounce: -0.5)) {
+                            messageOffset = .shown
+                        }
+                    }
+                    .task {
+                        do {
+                            try await Task.sleep(for: .seconds(8))
+                            
+                            withAnimation(.bouncy(duration: 1.00, extraBounce: -0.5)) {
+                                
+                                messageOffset = .hidden
+                            }
+                            
+                            //TODO: se der tempo, ajeitar
+                            try await Task.sleep(for: .seconds(1))
+                            store.setHeaderNormal()
+                        } catch {
+                            
+                        }
+                    }
+            }
+        }
+        .padding(.top, 32)
+    }
+    
+    func headerMessage(message: String) -> some View {
+        ZStack(alignment: .leading){
+            CustomCornerShape(radius: 20, corners: [.topLeft, .bottomLeft])
+                .fill(.message)
+                .shadow(color: .messageShadow, radius: 0, x: 0, y: 5)
+                .frame(maxWidth: .infinity)
+                .frame(height: 75)
+            //.animation(.easeInOut, value: progress)
+            
+            Text(message)
+                .font(.title3)
+                .fontWeight(.medium)
+                .foregroundStyle(.text)
+                .padding()
+                .padding(.leading, 20)
+                .fontDesign(.rounded)
         }
     }
     
+    
+    @ViewBuilder
+    func header(_ type: RewardsStore.HeaderType) -> some View {
+        switch type {
+        case .normal:
+            buildHeader()
+        case .withMessage(let message):
+            buildHeader(message: message)
+        }
+    }
+    
+    private var upBar: some View {
+        Rectangle()
+            .clipShape(CustomCornerShape(radius: 20, corners: [.bottomLeft, .bottomRight]))
+            .frame(height: 105)
+            .ignoresSafeArea(.all)
+            .foregroundStyle(.upBar)
+        
+    }
+    
+    private var titleText: some View {
+        Text("Lojinha de Recompensas")
+            .font(.largeTitle)
+            .fontWeight(.semibold)
+            .foregroundStyle(.text)
+            .fontDesign(.rounded)
+    }
+    
+    private var subtitleText: some View {
+        Text(store.rewards.isEmpty ?
+             "Hmm... parece que ainda não tem nenhuma recompensa para comprar. Que tal pedir pra um adulto adicionar uma recompensa pra você?" : "Clique nas recompensas que deseja adquirir"
+        )
+        .font(.title2)
+        .fontDesign(.rounded)
+        .fontWeight(.regular)
+        .foregroundStyle(.text)
+    }
+    
+    @ViewBuilder
     func rewardView(_ reward: Reward) -> some View {
         Button {
-            store.buyReward(reward)
+            // reduce the
+            coordinator.present(.buyRewardConfirmation(reward))
         } label: {
-            RewardCardView(
-                reward: reward,
-                canAfford: store.canAfford(reward)
-            )
+            RewardCardView(reward: reward)
         }
-        .disabled(store.isLoading || !store.canAfford(reward))
-        .buttonStyle(.automatic)
     }
 }
 
-struct CoinsView: View {
-    let amount: Int
-    let opacity: Double
-    
-    var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "bitcoinsign.circle.fill")
-                .foregroundColor(.yellow)
-                .imageScale(.large)
-            Text("\(amount)")
-                .font(.headline)
-                .foregroundColor(.primary)
-        }
-        .padding(8)
-        .background(Color.yellow.opacity(opacity))
-        .cornerRadius(10)
-    }
-}
 
-struct RewardCardView: View {
-    let reward: Reward
-    let canAfford: Bool
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            Text(reward.image)
-                .font(.system(size: 48))
-            
-            Text(reward.name)
-                .font(.headline)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(canAfford ? .primary : .secondary)
-            
-            CoinsView(amount: reward.cost, opacity: canAfford ? 0.4 : 0.2)
-            
-            if !canAfford {
-                Text("Not enough coins")
-                    .font(.caption)
-                    .foregroundColor(.red)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .background(canAfford ? Color(.systemGray6) : Color(.systemGray5))
-        .cornerRadius(12)
-        .shadow(radius: canAfford ? 2 : 0)
-        .opacity(canAfford ? 1.0 : 0.6)
-    }
-}
+//#Preview ("loja"){
+//    struct PreviewWrapper: View {
+//        @StateObject var coordinator = Coordinator()
+//        let impossibleRewardTest = Reward(id: 1, name: "bola", cost: 999999, image: "Fortuna do Japão")
+//        
+//        var body: some View {
+//            NavigationStack(path: $coordinator.path) {
+//                RewardsStoreView(store: coordinator.rewardsStore)
+//                    .sheet(item: $coordinator.sheet) { sheet in
+//                        coordinator.build(sheet: sheet)
+//                            .presentationSizing(.fitted)
+//                            .presentationCornerRadius(20)
+//                    }
+//                
+//            }
+//            .environmentObject(coordinator)
+//            .onAppear(){
+//                //coordinator.present(.buyRewardConfirmation(impossibleRewardTest))
+//            }
+//        }
+//    }
+//    
+//    return PreviewWrapper()
+//}
 
-struct KidMiniProfileView: View {
-    let name: String
-    
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "person.circle.fill")
-                .foregroundColor(.blue)
-                .imageScale(.large)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(name)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .lineLimit(1)
-                
-                Text("Rewards Store")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-        }
-        .padding(12)
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
-}
+//#Preview ("Card não coletado") {
+//    ZStack {
+//        Constants.UI.Colors.defaultBackground
+//            .ignoresSafeArea(.all)
+//        RewardCardView(reward: Reward.sample)
+//    }
+//}
+//
+//#Preview("Tela de confirmação - Modal") {
+//    
+//    struct PreviewWrapper: View {
+//        @StateObject var coordinator = Coordinator() // Use @StateObject para coordinators em Views
+//        
+//        var body: some View {
+//            NavigationStack(path: $coordinator.path) {
+//                RewardsStoreView(store: coordinator.rewardsStore)
+//                    .sheet(item: $coordinator.sheet) { sheet in
+//                        coordinator.build(sheet: sheet)
+//                            .presentationSizing(.fitted)
+//                            .presentationCornerRadius(20)
+//                    }
+//                
+//            }
+//            .environmentObject(coordinator)
+//            .onAppear(){
+//                coordinator.present(.buyRewardConfirmation(Reward.sample))
+//            }
+//        }
+//    }
+//    return PreviewWrapper()
+//}
 
-#Preview {
-    RewardsStoreView(store: RewardsStore())
-}
+
