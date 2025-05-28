@@ -12,19 +12,19 @@ import SwiftUI
 struct ActivitiesRegister: Identifiable {
     var id: CKRecord.ID?
     let kidID: String // Stores the recordName of the Kid
-    let activityID: UUID
+    let activityID: Int // Novo formato: Int para referenciar Activity catalog
     let date: Date
     let duration: TimeInterval
     var registerStatus: RegisterStatus
     
     // CloudKit related properties
     var shareReference: CKRecord.Reference?
-    var kidReference: CKRecord.Reference? // Nova propriedade
+    var kidReference: CKRecord.Reference?
         
     // For Identifiable conformance (UUID required if id is nil)
-    private let localID = UUID()  // Luana que add
+    private let localID = UUID()
     
-    init(kidID: String, activityID: UUID, date: Date, duration: TimeInterval, registerStatus: RegisterStatus = .notStarted) {
+    init(kidID: String, activityID: Int, date: Date, duration: TimeInterval, registerStatus: RegisterStatus = .notStarted) {
         self.kidID = kidID
         self.activityID = activityID
         self.date = date
@@ -32,7 +32,7 @@ struct ActivitiesRegister: Identifiable {
         self.registerStatus = registerStatus
     }
     
-    init(kid: Kid, activityID: UUID, date: Date, duration: TimeInterval, registerStatus: RegisterStatus = .notStarted) {
+    init(kid: Kid, activityID: Int, date: Date, duration: TimeInterval, registerStatus: RegisterStatus = .notStarted) {
         self.kidID = kid.id?.recordName ?? ""
         self.activityID = activityID
         self.date = date
@@ -46,7 +46,7 @@ struct ActivitiesRegister: Identifiable {
     
     // Computed property to fetch the activity from the catalog
     var activity: Activity? {
-        Activity.catalog.first { $0.id == activityID }
+        Activity.find(by: activityID)
     }
 }
 
@@ -56,8 +56,8 @@ extension ActivitiesRegister: RecordProtocol {
         guard id == nil else { return nil }
         
         let newRecord = CKRecord(recordType: RecordType.activity.rawValue, zoneID: CloudConfig.recordZone.zoneID)
-        newRecord["kidID"] = kidID // Salva o recordName como kidID
-        newRecord["activityID"] = activityID.uuidString
+        newRecord["kidID"] = kidID
+        newRecord["activityID"] = activityID // Novos registros usam Int
         newRecord["date"] = date
         newRecord["duration"] = duration
         newRecord["status"] = registerStatus.rawValue
@@ -75,7 +75,7 @@ extension ActivitiesRegister: RecordProtocol {
         
         let record = CKRecord(recordType: RecordType.activity.rawValue, recordID: recordID)
         record["kidID"] = kidID
-        record["activityID"] = activityID.uuidString
+        record["activityID"] = activityID // Novos registros usam Int
         record["date"] = date
         record["duration"] = duration
         record["status"] = registerStatus.rawValue
@@ -89,7 +89,6 @@ extension ActivitiesRegister: RecordProtocol {
     }
     
     init?(record: CKRecord) {
-        // LOGS DE DEBUG ADICIONADOS
         print("🔧 INIT: Tentando criar ActivitiesRegister do record: \(record.recordID.recordName)")
         print("🔧 INIT: Campos disponíveis: \(record.allKeys())")
         print("🔧 INIT: Valores dos campos:")
@@ -99,42 +98,64 @@ extension ActivitiesRegister: RecordProtocol {
         
         guard
             let kidID = record["kidID"] as? String,
-            let activityIDString = record["activityID"] as? String,
-            let activityID = UUID(uuidString: activityIDString),
             let date = record["date"] as? Date,
             let duration = record["duration"] as? TimeInterval,
             let statusRawValue = record["status"] as? Int,
             let status = RegisterStatus(rawValue: statusRawValue) else {
                 
-                // LOGS DE ERRO DETALHADOS
-                print("🔧 INIT: ❌ Falha na conversão dos campos:")
+                print("🔧 INIT: ❌ Falha na conversão dos campos básicos:")
                 print("  - kidID: \(record["kidID"] ?? "nil") -> String? \(record["kidID"] as? String != nil ? "✅" : "❌")")
-                print("  - activityID: \(record["activityID"] ?? "nil") -> String? \(record["activityID"] as? String != nil ? "✅" : "❌")")
-                if let activityIDString = record["activityID"] as? String {
-                    print("    - UUID válido? \(UUID(uuidString: activityIDString) != nil ? "✅" : "❌")")
-                }
                 print("  - date: \(record["date"] ?? "nil") -> Date? \(record["date"] as? Date != nil ? "✅" : "❌")")
                 print("  - duration: \(record["duration"] ?? "nil") -> TimeInterval? \(record["duration"] as? TimeInterval != nil ? "✅" : "❌")")
                 print("  - status: \(record["status"] ?? "nil") -> Int? \(record["status"] as? Int != nil ? "✅" : "❌")")
-                if let statusRaw = record["status"] as? Int {
-                    print("    - RegisterStatus válido? \(RegisterStatus(rawValue: statusRaw) != nil ? "✅" : "❌")")
-                }
                 
                 return nil
         }
         
-        // LOG DE SUCESSO
+        // MIGRAÇÃO: Tentar Int primeiro, depois String (UUID)
+        var finalActivityID: Int
+        
+        if let activityIDInt = record["activityID"] as? Int {
+            // Novo formato: Int
+            print("🔧 INIT: ✅ ActivityID encontrado como Int: \(activityIDInt)")
+            finalActivityID = activityIDInt
+        } else if let activityIDString = record["activityID"] as? String {
+            // Formato antigo: String (UUID) - converter para Int baseado em mapeamento
+            print("🔧 INIT: ⚠️ ActivityID encontrado como String (UUID): \(activityIDString)")
+            
+            // Mapeamento de UUIDs antigos para novos IDs Int
+            let uuidToIntMapping: [String: Int] = [
+                "D118C97D-03B9-48CB-84FA-A8257980BD9A": 0, // Exemplo: mapear para Pintura Criativa
+                "5BB0D5CC-FC78-44B1-B56A-7CF00C0EBF51": 1, // Exemplo: mapear para Experimento de Vulcão
+                "DBDEEE3F-38CA-4270-A734-802D00FACD01": 2, // Exemplo: mapear para Brincar de esconde esconde
+                // Adicione mais mapeamentos conforme necessário
+            ]
+            
+            if let mappedID = uuidToIntMapping[activityIDString] {
+                print("🔧 INIT: ✅ UUID mapeado para Int: \(activityIDString) -> \(mappedID)")
+                finalActivityID = mappedID
+            } else {
+                print("🔧 INIT: ❌ UUID não encontrado no mapeamento: \(activityIDString)")
+                // Usar ID padrão (0) para UUIDs desconhecidos
+                finalActivityID = 0
+                print("🔧 INIT: ⚠️ Usando ID padrão 0 para UUID desconhecido")
+            }
+        } else {
+            print("🔧 INIT: ❌ ActivityID não é nem Int nem String")
+            return nil
+        }
+        
         print("🔧 INIT: ✅ Conversão bem-sucedida!")
         print("🔧 INIT: Dados convertidos:")
         print("  - kidID: \(kidID)")
-        print("  - activityID: \(activityID)")
+        print("  - activityID: \(finalActivityID)")
         print("  - date: \(date)")
         print("  - duration: \(duration)")
         print("  - status: \(status)")
         
         self.id = record.recordID
         self.kidID = kidID
-        self.activityID = activityID
+        self.activityID = finalActivityID
         self.date = date
         self.duration = duration
         self.registerStatus = status

@@ -13,7 +13,6 @@ struct KidHomeView: View {
     @State private var currentPage: Page = .kidHome
     @StateObject private var vmKid = KidViewModel()
     @State private var selectedRegister: ActivitiesRegister? = nil
-    @State private var showActivityModal: Bool = false
     
     var body: some View {
         ZStack {
@@ -21,6 +20,8 @@ struct KidHomeView: View {
                 HeaderView
                 contentView
             }
+            .fontDesign(.rounded)
+            .ignoresSafeArea()
             .frame(maxHeight: .infinity, alignment: .top)
         }
         .ignoresSafeArea()
@@ -46,80 +47,110 @@ struct KidHomeView: View {
     
     private var HeaderView: some View {
         Rectangle()
-            .fill(.gray)
-            .cornerRadius(18)
-            .frame(height: 126)
+            .fill(.backgroundHeaderYellowKid)
+            .cornerRadius(20)
+            .frame(height: 156)
             .overlay {
-                HStack(spacing: 20) {
-                    KidDataView(kidName: vmKid.kidName ?? "No Kid", kidCoins: vmKid.kidCoins ?? 0)
+                HStack{
+                    HStack(spacing: 24) {
+                        KidDataView(kid: vmKid.kid ?? Kid(name: "Bruno", coins: 100))
+                            .padding(.top, 46)
+                            .ignoresSafeArea()
+                            .frame(maxHeight: 156, alignment: .top)
+                    }
                     Spacer()
-                    NavButton(title: "Atividades", page: .kidHome)
-                    Divider().frame(width: 2, height: 70).background(Color.white)
-                    NavButton(title: "Lojinha", page: .rewardsStore)
+                    HStack(spacing: 39){
+                        NavButton(page: .kidHome, icon: .iActivity)
+                        
+                        NavButton(page: .rewardsStore, icon: .iStore)
+                    }
+                    .padding(.bottom, 15)
+                    .ignoresSafeArea()
+                    .frame(maxHeight: 156, alignment: .bottom)
+                    
                 }
-                .padding(.horizontal, 30)
-                .foregroundColor(.white)
+                .ignoresSafeArea()
+                .frame(maxHeight: 156)
+                .padding(.horizontal, 36)
+                .foregroundColor(.fontColorKid)
+                
+                
             }
     }
-
+    
     @ViewBuilder
     private var contentView: some View {
         switch currentPage {
-        case .kidHome:
-            ActivitiesView
-        case .rewardsStore:
-            RewardsStoreView(store: .init())
-        default:
-            EmptyView()
+            case .kidHome:
+                ActivitiesView
+            case .rewardsStore:
+                RewardsStoreView(store: .init())
+            default:
+                EmptyView()
         }
     }
 
     private var ActivitiesView: some View {
-        VStack(alignment: .leading, spacing: 32) {
+        VStack(alignment: .leading, spacing: 24) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Atividades para hoje")
-                    .font(.system(size: 34, weight: .semibold))
+                    .kerning(0.4)
+                    .font(.largeTitle)
+                    .fontWeight(.semibold)
                 Text(Date().formattedDayTitle())
-                    .font(.system(size: 22))
+                    .font(.title2)
+                    .kerning(0.3)
             }
-
-            // Atividades Para Fazer (não iniciadas + em progresso)
-            ActivitySection(
-                title: "Para fazer",
-                registers: vmKid.notStartedRegister() + vmKid.inProgressRegister(),
-                emptyMessage: "Não há atividades a serem realizadas hoje.",
-                selectedRegister: $selectedRegister,
-                showActivityModal: $showActivityModal,
-                vmKid: vmKid
-            )
+            VStack{
+                HStack{
+                    VStack(alignment: .leading ,spacing: 16){
+                        
+                        
+                        Text("Para fazer")
+                            .font(.title)
+                            .kerning(0.38)
+                            .fontWeight(.medium)
+                        
+                        ActivitySection(
+                            registers: ActivitiesRegister.samples,
+                            emptyMessage: "Não há atividades a serem realizadas hoje.",
+                            selectedRegister: $selectedRegister,
+                            vmKid: vmKid
+                        )
+                        .shadow(color: .black.opacity(0.2), radius: 4, x: 4, y: 4)
+                        
+                        Text("Feito")
+                            .font(.title)
+                            .kerning(0.38)
+                            .fontWeight(.medium)
+                        
+                        ActivitySection(
+                            registers: ActivitiesRegister.samples,
+                            emptyMessage: "Não há atividades a serem realizadas hoje.",
+                            selectedRegister: $selectedRegister,
+                            vmKid: vmKid
+                        )
+                        .shadow(color: .black.opacity(0.2), radius: 4, x: 4, y: 4)
+                    }
+                    Spacer()
+                }
+            }
             
-            // Atividades Concluídas
-            ActivitySection(
-                title: "Concluídas",
-                registers: vmKid.completedRegister(),
-                emptyMessage: "Nenhuma atividade concluída hoje.",
-                selectedRegister: $selectedRegister,
-                showActivityModal: $showActivityModal,
-                vmKid: vmKid
-            )
         }
-        .padding(.leading, 132)
-        .padding(.vertical, 32)
+        .padding(.vertical, 24)
+        .padding(.leading, 133)
+        
     }
-
-    private func NavButton(title: String, page: Page) -> some View {
+    
+    private func NavButton(page: Page, icon: ImageResource) -> some View {
         let isSelected = currentPage == page
         return Button {
             currentPage = page
         } label: {
             VStack {
-                Rectangle()
-                    .fill(isSelected ? Color.green : Color.white.opacity(0.2))
-                    .frame(width: 50, height: 50)
-                    .cornerRadius(20)
-                Text(title)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.white)
+                Image(icon)
+                    .frame(width: 137, height: 146)
+                    .opacity(isSelected ? 1 : 0.5)
             }
         }
         .disabled(isSelected)
@@ -127,37 +158,46 @@ struct KidHomeView: View {
 }
 
 struct KidDataView: View {
-    let kidName: String
-    var kidCoins: Int
-
+    let kid: Kid
+    
     var body: some View {
-        HStack(spacing: 10) {
-            Circle()
-                .frame(width: 50, height: 50)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(kidName)
-                    .font(.system(size: 20, weight: .bold))
-                Text("$ \(kidCoins)")
-                    .font(.system(size: 17))
+        HStack(spacing: 24) {
+            Image(.iPerfil)
+                .frame(width: 80, height: 80)
+            
+            VStack(alignment: .leading, spacing: 5) {
+                Text(kid.name)
+                    .font(.system(size: 28))
+                    .fontWeight(.bold)
+                
+                RoundedCorner(radius: 20)
+                    .fill(.backgroundRoundedRectangleCoins)
+                    .frame(width: 98, height: 35)
+                    .overlay(alignment:.center){
+                        HStack (spacing: 8){
+                            Image(.iCoin)
+                                .frame(width: 24, height: 24)
+                            
+                            Text("\(kid.coins)")
+                                .font(.system(size: 20))
+                                .fontWeight(.semibold)
+                        }
+                    }
             }
+            .frame(maxHeight: 80, alignment: .bottom)
+            
         }
     }
 }
 
 struct ActivitySection: View {
-    let title: String
     let registers: [ActivitiesRegister]
     let emptyMessage: String
     @Binding var selectedRegister: ActivitiesRegister?
-    @Binding var showActivityModal: Bool
     var vmKid: KidViewModel
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(title)
-                .font(.system(size: 28, weight: .medium))
-
             if registers.isEmpty {
                 Text(emptyMessage)
                     .foregroundColor(.secondary)
@@ -167,7 +207,6 @@ struct ActivitySection: View {
                         ForEach(registers) { register in
                             Button {
                                 selectedRegister = register
-                                showActivityModal = true
                             } label: {
                                 CardActivity(register: register)
                             }
@@ -176,13 +215,12 @@ struct ActivitySection: View {
                 }
             }
         }
-        .sheet(isPresented: $showActivityModal) {
-            if let register = selectedRegister {
-                DetailView(kidViewModel: vmKid, register: register)
-            }
+        .sheet(item: $selectedRegister) { register in
+            DetailView(kidViewModel: vmKid, register: register)
         }
     }
 }
+
 
 #Preview {
     KidHomeView()

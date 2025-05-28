@@ -58,7 +58,7 @@ struct NewTaskView: View {
                             Button(option.name) {
                                 selectedActivity = option
                                 titleTask = option.name
-                                descriptionTask = option.description
+                                descriptionTask = option.getDescription(for: .genitor)
                                 coinsTask = String(option.rewardPoints)
                             }
                         }

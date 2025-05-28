@@ -9,6 +9,7 @@ import Foundation
 import SwiftUI
 
 struct Activity: Identifiable, Hashable {
+    
     let id: Int
     let name: String
     let imageNameGenitor: String
@@ -37,5 +38,17 @@ struct Activity: Identifiable, Hashable {
         case socialActivity
         case study
         case creativity
+    }
+    
+    // Helper method to get description for specific user type
+    func getDescription(for userType: UserRole) -> String {
+        switch userType {
+        case .kid:
+            return kidDescription ?? description
+        case .genitor:
+            return description
+        case .undefined:
+            return description
+        }
     }
 }

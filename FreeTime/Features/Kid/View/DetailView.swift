@@ -15,53 +15,41 @@ struct DetailView: View {
     
     var body: some View {
         ZStack {
-            VStack(spacing: 24){
+            
+            VStack(spacing: 39){
                 Header(title: register.activity?.name ?? "Sem atividade",
                        coins: register.activity?.rewardPoints ?? 0)
                 
-                InfoBox(title: "Descrição",
-                        text: register.activity?.description ?? "Essa atividade não possui descrição.",
-                        height: 208,
-                        topPadding: 15)
+                VStack(spacing: 24){
+                    InfoBox(title: "Descrição",
+                            text: register.activity?.getDescription(for: .kid) ?? "Essa atividade não possui descrição.",
+                            height: 208)
+                    
+                    
+                    InfoBox(title: "Horário",
+                            text: register.date.formattedAsHourOnly(),
+                            height: 92)
+                }
                 
-                InfoBox(title: "Horário",
-                        text: register.date.timeRange(duration: register.duration),
-                        height: 92,
-                        topPadding: 0)
+                ConfirmButton(isCompleted: $showPopUp, dismiss:{
+                    dismiss()})
                 
-                ConfirmButton(title: "Concluir Atividade",
-                             showPopUp: $showPopUp,
-                             onConfirm: {
-                    kidViewModel.concludeActivity(register: register)
-                })
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            
+            //Close Button
             .overlay(alignment: .topTrailing){
                 Button(action: { dismiss() }) {
                     Image(systemName: "xmark")
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.system(size: 24, weight: .regular))
                         .foregroundColor(.black)
                 }
-                .padding(.trailing, 16)
+                .padding(.trailing, 14)
                 .padding(.top, 13)
             }
-            
-            if showPopUp {
-                PopUp(showPopUp: $showPopUp)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                    .zIndex(1)
-                    .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                            withAnimation {
-                                showPopUp = false
-                            }
-                        }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            }
         }
+        .foregroundColor(.fontColorKid)
+        .fontDesign(.rounded)
         .ignoresSafeArea()
-        .animation(.easeInOut, value: showPopUp)
     }
 }
 
@@ -71,32 +59,45 @@ struct Header: View {
     
     var body: some View {
         ZStack {
+            
             Rectangle()
-                .fill(.gray.opacity(0.4))
-                .cornerRadius(10)
+                .fill(.orangeKid)
+                .frame(height: 66)
+                .frame(maxHeight: .infinity, alignment: .top)
+            
+            Rectangle()
+                .fill(.orangeKid)
+                .cornerRadius(20)
+            
             HStack {
                 Text(title)
-                    .font(.system(size: 28, weight: .semibold))
+                    .font(.title)
+                    .fontWeight(.semibold)
+                    .padding(.leading, 8)
                 
                 Spacer()
                 
-                Rectangle()
-                    .fill(.white.opacity(0.5))
+                RoundedCorner(radius: 20)
+                    .fill(.backgroundRoundedRectangleCoins)
                     .frame(width: 98, height: 42)
-                    .overlay {
-                        HStack(spacing: 12) {
-                            Circle()
-                                .fill(.gray.opacity(0.4))
+                    .overlay(alignment:.center){
+                        HStack (spacing: 12){
+                            Image(.iCoin)
                                 .frame(width: 24, height: 24)
+                            
                             Text(coins.description)
-                                .font(.system(size: 22))
+                                .fontDesign(.rounded)
+                                .font(.title2)
+                                .fontWeight(.semibold)
                         }
+                        
                     }
-                    .cornerRadius(20)
             }
-            .padding(.horizontal, 42)
+            .padding(.horizontal, 24)
+            .padding(.top, 15)
         }
-        .frame(maxWidth: .infinity, maxHeight: 132)
+        .frame(height: 132)
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -104,64 +105,64 @@ struct InfoBox: View {
     let title: String
     let text: String
     let height: CGFloat
-    let topPadding: CGFloat
     
     var body: some View {
         ZStack {
             Rectangle()
-                .fill(.gray.opacity(0.2))
+                .fill(.backgroundRoundedRectangleCoins)
                 .cornerRadius(16)
+                .shadow(color: .black.opacity(0.2), radius: 4, x: 4, y: 4)
             
-            VStack(spacing: 0) {
+            
+            VStack(spacing: 10) {
                 Rectangle()
-                    .fill(.gray.opacity(0.4))
+                    .fill(.backgroundHeaderYellowKid)
                     .overlay {
                         Text(title)
-                            .font(.system(size: 20))
+                            .font(.title3)
                     }
                     .frame(maxWidth: .infinity, maxHeight: 42)
                     .cornerRadius(16)
                 
+                
                 Text(text)
                     .multilineTextAlignment(.leading)
                     .lineLimit(6)
-                    .font(.system(size: 17))
-                    .padding(12)
+                    .font(.title3)
+                    .padding(.horizontal,12)
+                
             }
-            .frame(maxHeight: .infinity, alignment: .top)
+            .frame(maxHeight: height, alignment: .top)
+            
         }
-        .padding(.top, topPadding)
-        .frame(maxWidth: .infinity, maxHeight: height)
-        .padding(.horizontal, 42)
+        .frame(height: height, alignment: .top)
+        .padding(.horizontal, 32)
+        
     }
+    
 }
 
 struct ConfirmButton: View {
-    let title: String
-    @Binding var showPopUp: Bool
-    let onConfirm: () -> Void
+    //@Binding var showPopUp: Bool
+    @Binding var isCompleted: Bool
+    let dismiss: () -> Void
     
     var body: some View {
         Button {
-            onConfirm()
             withAnimation {
-                showPopUp = true
+                isCompleted.toggle() // Alterna entre concluído e não
+                //showPopUp = true
             }
+            dismiss()
         } label: {
-            Rectangle()
-                .fill(.gray.opacity(0.4))
+            Image(isCompleted ? .btUndor : .btConclusion)
                 .frame(width: 228, height: 48)
-                .cornerRadius(24)
-                .overlay {
-                    Text(title)
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(.black)
-                }
         }
         .frame(maxHeight: .infinity, alignment: .bottom)
         .padding(.bottom, 22)
     }
 }
+
 
 #Preview {
     DetailView(kidViewModel: KidViewModel(), register: ActivitiesRegister.sample1)

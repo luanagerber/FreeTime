@@ -1,5 +1,5 @@
 //
-//  ActivitiesMock.swift
+//  ActivitiesCatalog.swift
 //  FreeTime
 //
 //  Created by Luana Gerber on 05/05/25.
@@ -42,4 +42,10 @@ extension Activity {
             rewardPoints: 15
         )
     ]
+    
+    // Helper method to find activity by ID
+    static func find(by id: Int) -> Activity? {
+        catalog.first { $0.id == id }
+    }
+
 }

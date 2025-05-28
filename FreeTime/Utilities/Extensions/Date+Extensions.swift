@@ -88,6 +88,22 @@ extension Date {
         let date = self.formatted(.dateTime.day().month(.wide).locale(locale))
         return "\(weekday) | \(date)"
     }
+    /// Formata a data para exibir apenas a hora no formato "16h"
+    func formattedAsHourOnly() -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "pt_BR") // Define o idioma para o português do Brasil
+        formatter.dateFormat = "HH'h'" // Exibe apenas a hora no formato 24h com 'h' no final (ex: "16h")
+        return formatter.string(from: self)
+    }
+    
+   
+    /// Arredonda a data para a hora cheia e formata como "HH:00"
+    func formattedAsRoundedHour() -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "pt_BR")
+        formatter.dateFormat = "HH:00"
+        return formatter.string(from: self)
+    }
     
     func timeRange(duration: TimeInterval, format: String = "HH:mm") -> String {
         let formatter = DateFormatter()

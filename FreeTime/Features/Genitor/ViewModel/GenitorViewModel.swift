@@ -287,7 +287,7 @@ class GenitorViewModel: ObservableObject {
         
         let activityRegister = ActivitiesRegister(
             kid: kid,
-            activityID: activity.id,
+            activityID: activity.id, // Agora activity.id é Int
             date: scheduledDate,
             duration: duration,
             registerStatus: .notStarted
