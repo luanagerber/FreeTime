@@ -22,7 +22,7 @@ struct DetailView: View {
                 
                 VStack(spacing: 24){
                     InfoBox(title: "Descrição",
-                            text: register.activity?.description ?? "Essa atividade não possui descrição.",
+                            text: register.activity?.getDescription(for: .kid) ?? "Essa atividade não possui descrição.",
                             height: 208)
                     
                     
