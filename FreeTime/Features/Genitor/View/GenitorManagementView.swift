@@ -37,12 +37,12 @@ struct GenitorManagementView: View {
                         .padding()
                 }
                 
-//                if !viewModel.feedbackMessage.isEmpty {
-//                    feedbackMessageView
-//                }
+                //                if !viewModel.feedbackMessage.isEmpty {
+                //                    feedbackMessageView
+                //                }
             }
-//            .background(Color("backgroundGenitor"))
-//            .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
+            //            .background(Color("backgroundGenitor"))
+            //            .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
             .background(
                 RoundedCorner(radius: 32, corners: [.topLeft, .topRight])
                     .fill(Color("backgroundGenitor")) // fundo branco
@@ -67,7 +67,7 @@ struct GenitorManagementView: View {
             .refreshable {
                 viewModel.refresh()
             }
-
+            
             
         }
         .ignoresSafeArea(.all)
@@ -75,70 +75,75 @@ struct GenitorManagementView: View {
     
     @ViewBuilder
     func AddChildView() -> some View {
-        VStack {
-            Image("imageAddChild")
-                .resizable()
-                .scaledToFill()
-                .frame(
-                    width: UIScreen.main.bounds.width * 0.205,
-                    height: UIScreen.main.bounds.height * 0.094
-                )
-                .padding(.bottom, 50)
-                .padding(.top, 80)
-            
-            VStack(alignment: .leading) {
-                Text("Criar perfil da criança")
-                    .font(.custom("SF Pro", size: 28, relativeTo: .title2))
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Color("primaryColor"))
-                    .padding(.bottom, 10)
-                
-                Text("Informe o nome da criança para criar o perfil e iniciar a conexão")
-                    .font(.custom("SF Pro", size: 15, relativeTo: .callout))
-                    .foregroundStyle(Color("primaryColor"))
-                    .padding(.bottom, 30)
-                
-                TextField("Nome da criança", text: $viewModel.childName)
-                    .font(.custom("SF Pro", size: 17, relativeTo: .body))
-                //                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .foregroundColor(Color("primaryColor").opacity(0.4))
-                    .hSpacing(.leading)
-                    .padding()
-                    .background(Color.white)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color(red: 0.87, green: 0.87, blue: 0.87), lineWidth: 2)
+        ScrollView {
+            VStack {
+                Image("imageAddChild")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(
+                        width: UIScreen.main.bounds.width * 0.205,
+                        height: UIScreen.main.bounds.height * 0.094
                     )
-            }
-            .padding(.horizontal, 30)
-            .padding(.bottom, 70)
-            
-            Button(action: {
-                viewModel.addChild()
-            }, label: {
-                HStack {
-                    Text("Salvar")
-                }
-                .font(.custom("SF Pro", size: 17, relativeTo: .body))
-                .fontWeight(.bold)
-                .foregroundColor(viewModel.canAddChild
-                                 ? Color("primaryColor")
-                                 : Color("primaryColor").opacity(0.4)
-                )
-                .padding(.vertical, 16)
-                .frame(maxWidth: .infinity)
-                .background(viewModel.canAddChild
-                            ? Color("backgroundTaskButtonSave")
-                            : Color("backgroundTaskButtonSave").opacity(0.4)
-                )
-                .cornerRadius(40)
+                    .padding(.bottom, 50)
+                    .padding(.top, 80)
                 
-            })
-            .disabled(!viewModel.canAddChild)
-            .padding(.bottom, 100)
-            .padding(.horizontal, 20)
+                VStack(alignment: .leading) {
+                    Text("Criar perfil da criança")
+                        .font(.custom("SF Pro", size: 28, relativeTo: .title2))
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Color("primaryColor"))
+                        .padding(.bottom, 10)
+                    
+                    Text("Informe o nome da criança para criar o perfil e iniciar a conexão")
+                        .font(.custom("SF Pro", size: 15, relativeTo: .callout))
+                        .foregroundStyle(Color("primaryColor"))
+                        .padding(.bottom, 30)
+                    
+                    TextField("Nome da criança", text: $viewModel.childName)
+                        .font(.custom("SF Pro", size: 17, relativeTo: .body))
+                    //                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .foregroundColor(Color("primaryColor").opacity(0.4))
+                        .hSpacing(.leading)
+                        .padding()
+                        .background(Color.white)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color(red: 0.87, green: 0.87, blue: 0.87), lineWidth: 2)
+                        )
+                }
+                .padding(.horizontal, 30)
+                .padding(.bottom, 70)
+                
+                Button(action: {
+                    viewModel.addChild()
+                }, label: {
+                    HStack {
+                        Text("Salvar")
+                    }
+                    .font(.custom("SF Pro", size: 17, relativeTo: .body))
+                    .fontWeight(.bold)
+                    .foregroundColor(viewModel.canAddChild
+                                     ? Color("primaryColor")
+                                     : Color("primaryColor").opacity(0.4)
+                    )
+                    .padding(.vertical, 16)
+                    .frame(maxWidth: .infinity)
+                    .background(viewModel.canAddChild
+                                ? Color("backgroundTaskButtonSave")
+                                : Color("backgroundTaskButtonSave").opacity(0.4)
+                    )
+                    .cornerRadius(40)
+                    
+                })
+                .disabled(!viewModel.canAddChild)
+                .padding(.bottom, 100)
+                .padding(.horizontal, 20)
+                
+            }
+            .padding(.top, 32)
             
         }
+        .keyboardAdaptive()
         .background(Color("backgroundGenitor"))
     }
     
@@ -170,14 +175,14 @@ struct GenitorManagementView: View {
                     .padding(.bottom, 120)
                     .padding(.horizontal, 30)
                 
-//                if viewModel.shouldShowShareButton(hasSharedSuccessfully: hasSharedSuccessfully) {
-//                    shareButton
-//                        .padding(.bottom, 60)
-//                } else if viewModel.shouldShowShareConfirmation(hasSharedSuccessfully: hasSharedSuccessfully) {
-//                    shareButton
-//                        .padding(.bottom, 60)
-//                        .disabled(true)
-//                }
+                //                if viewModel.shouldShowShareButton(hasSharedSuccessfully: hasSharedSuccessfully) {
+                //                    shareButton
+                //                        .padding(.bottom, 60)
+                //                } else if viewModel.shouldShowShareConfirmation(hasSharedSuccessfully: hasSharedSuccessfully) {
+                //                    shareButton
+                //                        .padding(.bottom, 60)
+                //                        .disabled(true)
+                //                }
                 shareButton
                     .disabled(hasSharedSuccessfully ? true : false)
                     .padding(.bottom, 60)
@@ -248,30 +253,30 @@ struct GenitorManagementView: View {
             )
     }
     
-//    private var debugInfoView: some View {
-//        VStack(alignment: .leading, spacing: 4) {
-//            Text("Debug Info:")
-//                .font(.caption2)
-//                .fontWeight(.bold)
-//            
-//            // Navigation related debug info
-//            Text("Invitation Status: \(invitationManager.currentStatus.rawValue)")
-//                .font(.caption2)
-//            Text("Initial Setup Complete: \(firstLaunchManager.hasCompletedInitialSetup ? "Yes" : "No")")
-//                .font(.caption2)
-//            Text("Has Shared Successfully: \(hasSharedSuccessfully ? "Yes" : "No")")
-//                .font(.caption2)
-//            
-//            // ViewModel debug info
-//            ForEach(viewModel.debugInfo, id: \.label) { info in
-//                Text("\(info.label): \(info.value)")
-//                    .font(.caption2)
-//            }
-//        }
-//        .padding(8)
-//        .background(Color.gray.opacity(0.1))
-//        .cornerRadius(8)
-//    }
+    //    private var debugInfoView: some View {
+    //        VStack(alignment: .leading, spacing: 4) {
+    //            Text("Debug Info:")
+    //                .font(.caption2)
+    //                .fontWeight(.bold)
+    //
+    //            // Navigation related debug info
+    //            Text("Invitation Status: \(invitationManager.currentStatus.rawValue)")
+    //                .font(.caption2)
+    //            Text("Initial Setup Complete: \(firstLaunchManager.hasCompletedInitialSetup ? "Yes" : "No")")
+    //                .font(.caption2)
+    //            Text("Has Shared Successfully: \(hasSharedSuccessfully ? "Yes" : "No")")
+    //                .font(.caption2)
+    //
+    //            // ViewModel debug info
+    //            ForEach(viewModel.debugInfo, id: \.label) { info in
+    //                Text("\(info.label): \(info.value)")
+    //                    .font(.caption2)
+    //            }
+    //        }
+    //        .padding(8)
+    //        .background(Color.gray.opacity(0.1))
+    //        .cornerRadius(8)
+    //    }
     
     
     // MARK: - Computed Properties
