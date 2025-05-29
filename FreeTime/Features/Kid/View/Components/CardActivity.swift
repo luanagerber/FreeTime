@@ -34,7 +34,7 @@ struct CardActivity: View {
                 }
                 .roundedBorder(.borderCardActivyKid, width: 1, cornerRadius: 20)
                 .cornerRadius(20)
-                .frame(width: 365, height: 200)
+                .frame(width: 380, height: 210)
                 
             }
     }

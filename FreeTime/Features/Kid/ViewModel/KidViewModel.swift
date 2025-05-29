@@ -465,7 +465,7 @@ extension KidViewModel {
                 return
             }
             
-            isLoading = true
+            //isLoading = true
             feedbackMessage = "Atualizando status da atividade..."
             
             let container = CKContainer(identifier: CloudConfig.containerIdentifier)
@@ -550,6 +550,11 @@ extension KidViewModel {
                 }
             }
         }
+        func isRegisterCompleted(_ register: ActivitiesRegister) -> Bool {
+            // Aqui você verifica se o register está com status .completed
+            return register.registerStatus == .completed
+        }
+
         
         // MÉTODO AUXILIAR: Para debug das atividades
         func debugActivity(_ activity: ActivitiesRegister) {
