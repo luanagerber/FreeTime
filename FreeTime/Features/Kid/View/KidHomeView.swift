@@ -59,7 +59,7 @@ struct KidHomeView: View {
                 HStack {
                     HStack(spacing: 24) {
                         // ✅ CORREÇÃO: Usar dados reais do vmKid
-                        KidDataView(kid: vmKid.kid ?? Kid(name: "Carregando...", coins: vmKid.kidCoins ?? 0))
+                        KidDataView(kidName: vmKid.kidName ?? "Carregando...", kidCoins: vmKid.kidCoins ?? 0)
                             .padding(.top, 46)
                             .ignoresSafeArea()
                             .frame(maxHeight: 156, alignment: .top)
@@ -159,7 +159,8 @@ struct KidHomeView: View {
 }
 
 struct KidDataView: View {
-    let kid: Kid
+    let kidName: String
+    var kidCoins: Int
     
     var body: some View {
         HStack(spacing: 24) {
@@ -167,7 +168,7 @@ struct KidDataView: View {
                 .frame(width: 80, height: 80)
             
             VStack(alignment: .leading, spacing: 5) {
-                Text(kid.name)
+                Text(kidName)
                     .font(.system(size: 28))
                     .fontWeight(.bold)
                 
@@ -179,7 +180,7 @@ struct KidDataView: View {
                             Image(.iCoin)
                                 .frame(width: 24, height: 24)
                             
-                            Text("\(kid.coins)")
+                            Text("\(kidCoins)")
                                 .font(.system(size: 20))
                                 .fontWeight(.semibold)
                         }
