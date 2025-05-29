@@ -28,7 +28,7 @@ class KidViewModel: ObservableObject {
     private let invitationManager = InvitationStatusManager.shared
     
     var currentKidID: CKRecord.ID?
-
+    
     var kidName: String? {
         return UserManager.shared.currentKidName
     }
@@ -41,27 +41,36 @@ class KidViewModel: ObservableObject {
     private func loadFromUserManager() {
         let userManager = UserManager.shared
         
+        print("🔄 LOAD: Carregando dados do UserManager")
+        print("🔄 LOAD: UserManager hasValidKid: \(userManager.hasValidKid)")
+        print("🔄 LOAD: UserManager isChild: \(userManager.isChild)")
+        print("🔄 LOAD: UserManager currentKidName: \(userManager.currentKidName)")
+        
+        // Se o UserManager tem um kid válido, use-o
         if let kidID = userManager.currentKidID {
-            print("KidViewModel: Carregando kid do UserManager - ID: \(kidID.recordName), Nome: \(userManager.currentKidName)")
-            print("KidViewModel: User role: \(userManager.userRole), isChild: \(userManager.isChild)")
+            print("🔄 LOAD: Kid encontrado - ID: \(kidID.recordName), Nome: \(userManager.currentKidName)")
+            print("🔄 LOAD: Zone: \(kidID.zoneID.zoneName):\(kidID.zoneID.ownerName)")
             self.currentKidID = kidID
             
+            // Carrega dados baseado no tipo de usuário
             if userManager.isChild {
-                // Para crianças, sempre tenta primeiro o banco compartilhado
-                loadChildData()
-                updateKidCoins()
+                print("🔄 LOAD: Carregando como criança (dados compartilhados)")
+                loadChildData() // ✅ CORREÇÃO: usar método existente
             } else {
+                print("🔄 LOAD: Carregando como pai (dados privados)")
                 loadKidData()
             }
-        } else if let rootRecordID = cloudService.getRootRecordID() {
-            print("KidViewModel: Carregando kid do rootRecordID")
+        } else if let rootRecordID = CloudService.shared.getRootRecordID() {
+            // Fallback para o método antigo se necessário
+            print("🔄 LOAD: Usando fallback rootRecordID")
             self.currentKidID = rootRecordID
-            loadChildData()
+            loadChildData() // ✅ CORREÇÃO: usar método existente
         } else {
-            print("KidViewModel: Nenhum kid encontrado no UserManager ou rootRecordID")
+            print("🔄 LOAD: ❌ Nenhum kid encontrado!")
         }
     }
 }
+    
 
 // MARK: - Kid Management
 extension KidViewModel {
