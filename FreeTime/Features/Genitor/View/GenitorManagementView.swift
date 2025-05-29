@@ -22,60 +22,62 @@ struct GenitorManagementView: View {
     @State private var showingShareConfirmation = false
     
     var body: some View {
-        ZStack {
-            Color("backgroundGenitorShared")
-            
-            VStack {
-                if viewModel.hasKids {
-                    ShareView()
-                } else {
-                    AddChildView()
+        NavigationView {
+            ZStack {
+                Color("backgroundGenitorShared")
+                
+                VStack {
+                    if viewModel.hasKids {
+                        ShareView()
+                    } else {
+                        AddChildView()
+                    }
+                    
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .padding()
+                    }
+                    
+//                    if !viewModel.feedbackMessage.isEmpty {
+//                        feedbackMessageView
+//                    }
+                }
+                //            .background(Color("backgroundGenitor"))
+                //            .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
+                .background(
+                    RoundedCorner(radius: 32, corners: [.topLeft, .topRight])
+                        .fill(Color("backgroundGenitor")) // fundo branco
+                )
+                .overlay(
+                    RoundedCorner(radius: 32, corners: [.topLeft, .topRight])
+                        .stroke(Color(red: 0.87, green: 0.87, blue: 0.87), lineWidth: 5) // borda cinza
+                )
+                .clipShape(
+                    RoundedCorner(radius: 32, corners: [.topLeft, .topRight]) // recorte final
+                )
+                .vSpacing(.bottom)
+                .onAppear(perform: handleOnAppear)
+                .sheet(isPresented: $viewModel.sharingSheet, onDismiss: handleShareSheetDismiss) {
+                    shareSheetContent
+                }
+                .alert("Link enviado!", isPresented: $showingShareConfirmation) {
+                    Button("Continuar") { navigateToNextView() }
+                } message: {
+                    Text("Assim que sua criança acessar o link no iPad, tudo ficará conectado.")
+                }
+                .refreshable {
+                    viewModel.refresh()
                 }
                 
-                if viewModel.isLoading {
-                    ProgressView()
-                        .padding()
-                }
                 
-                //                if !viewModel.feedbackMessage.isEmpty {
-                //                    feedbackMessageView
-                //                }
             }
-            //            .background(Color("backgroundGenitor"))
-            //            .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
-            .background(
-                RoundedCorner(radius: 32, corners: [.topLeft, .topRight])
-                    .fill(Color("backgroundGenitor")) // fundo branco
-            )
-            .overlay(
-                RoundedCorner(radius: 32, corners: [.topLeft, .topRight])
-                    .stroke(Color(red: 0.87, green: 0.87, blue: 0.87), lineWidth: 5) // borda cinza
-            )
-            .clipShape(
-                RoundedCorner(radius: 32, corners: [.topLeft, .topRight]) // recorte final
-            )
-            .vSpacing(.bottom)
-            .onAppear(perform: handleOnAppear)
-            .sheet(isPresented: $viewModel.sharingSheet, onDismiss: handleShareSheetDismiss) {
-                shareSheetContent
-            }
-            .alert("Link enviado!", isPresented: $showingShareConfirmation) {
-                Button("Continuar") { navigateToNextView() }
-            } message: {
-                Text("Assim que sua criança acessar o link no iPad, tudo ficará conectado.")
-            }
-            .refreshable {
-                viewModel.refresh()
-            }
-            
-            
+            .ignoresSafeArea(.all)
         }
-        .ignoresSafeArea(.all)
     }
     
     @ViewBuilder
     func AddChildView() -> some View {
-        ScrollView {
+       // ScrollView {
             VStack {
                 Image("imageAddChild")
                     .resizable()
@@ -140,11 +142,12 @@ struct GenitorManagementView: View {
                 .padding(.horizontal, 20)
                 
             }
+            .background(Color("backgroundGenitor"))
             .padding(.top, 32)
             
-        }
-        .keyboardAdaptive()
-        .background(Color("backgroundGenitor"))
+        //}
+        //.keyboardAdaptive()
+        
     }
     
     @ViewBuilder
@@ -166,13 +169,15 @@ struct GenitorManagementView: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(Color("primaryColor"))
                     .padding(.bottom, 10)
+                    .padding(.horizontal, 30)
+                    .hSpacing(.leading)
                 
                 Text("Compartilhe o link de conexão com sua criança. Ela precisará baixar o app no iPad para receber as atividades que você criar por aqui")
                     .font(.custom("SF Pro", size: 15, relativeTo: .callout))
                     .fontWeight(.semibold)
                     .foregroundStyle(Color("primaryColor"))
                     .multilineTextAlignment(.leading)
-                    .padding(.bottom, 120)
+                    .padding(.bottom, 70)
                     .padding(.horizontal, 30)
                 
                 //                if viewModel.shouldShowShareButton(hasSharedSuccessfully: hasSharedSuccessfully) {
@@ -191,8 +196,6 @@ struct GenitorManagementView: View {
         }
         .background(Color("backgroundGenitor"))
     }
-    
-    
     
     private var shareButton: some View {
         Button(action: {
