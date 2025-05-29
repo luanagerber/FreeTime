@@ -198,21 +198,7 @@ struct GenitorCalendarView: View {
                         .multilineTextAlignment(.leading)
                         .hSpacing(.leading)
                     
-                    if !viewModel.kids.isEmpty {
-                        Button("Adicionar Atividade") {
-                            viewModel.selectedKid = viewModel.firstKid
-                            viewModel.showActivitySelector = true
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-//                    else {
-//                        Text("Adicione uma criança primeiro para planejar atividades.")
-//                            .font(.caption)
-//                            .foregroundColor(.secondary)
-//                            .multilineTextAlignment(.center)
-//                    }
                 }
-//                .padding(.horizontal)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 
@@ -300,18 +286,6 @@ struct GenitorCalendarView: View {
                     }
                     .pickerStyle(SegmentedPickerStyle())
                 }
-                .padding()
-                
-                // Schedule button
-                Button("Agendar Atividade") {
-                    viewModel.scheduleActivity()
-                    loadActivitiesForCurrentDate()
-                }
-                .disabled(viewModel.selectedActivity == nil || viewModel.selectedKid == nil || viewModel.isLoading)
-                .padding()
-                .background(viewModel.selectedActivity != nil ? Color.blue : Color.gray)
-                .foregroundColor(.white)
-                .cornerRadius(8)
                 .padding()
                 
                 if viewModel.isLoading {

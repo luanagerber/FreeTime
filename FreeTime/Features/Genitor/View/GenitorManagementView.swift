@@ -96,7 +96,7 @@ struct GenitorManagementView: View {
                         .foregroundStyle(Color("primaryColor"))
                         .padding(.bottom, 10)
                     
-                    Text("Informe o nome da criança para criar o perfil e iniciar a conexão")
+                    Text("Informe o nome da criança para criar o perfil e iniciar a conexão.")
                         .font(.custom("SF Pro", size: 15, relativeTo: .callout))
                         .foregroundStyle(Color("primaryColor"))
                         .padding(.bottom, 30)
@@ -172,7 +172,7 @@ struct GenitorManagementView: View {
                     .padding(.horizontal, 30)
                     .hSpacing(.leading)
                 
-                Text("Compartilhe o link de conexão com sua criança. Ela precisará baixar o app no iPad para receber as atividades que você criar por aqui")
+                Text("Compartilhe o link de conexão com sua criança. Ela precisará baixar o app no iPad para receber as atividades que você criar por aqui.")
                     .font(.custom("SF Pro", size: 15, relativeTo: .callout))
                     .fontWeight(.semibold)
                     .foregroundStyle(Color("primaryColor"))
