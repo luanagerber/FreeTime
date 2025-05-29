@@ -32,26 +32,37 @@ struct GenitorManagementView: View {
                     AddChildView()
                 }
                 
-                Spacer()
-                
                 if viewModel.isLoading {
                     ProgressView()
                         .padding()
                 }
                 
-                if !viewModel.feedbackMessage.isEmpty {
-                    feedbackMessageView
-                }
+//                if !viewModel.feedbackMessage.isEmpty {
+//                    feedbackMessageView
+//                }
             }
+//            .background(Color("backgroundGenitor"))
+//            .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
+            .background(
+                RoundedCorner(radius: 32, corners: [.topLeft, .topRight])
+                    .fill(Color("backgroundGenitor")) // fundo branco
+            )
+            .overlay(
+                RoundedCorner(radius: 32, corners: [.topLeft, .topRight])
+                    .stroke(Color(red: 0.87, green: 0.87, blue: 0.87), lineWidth: 5) // borda cinza
+            )
+            .clipShape(
+                RoundedCorner(radius: 32, corners: [.topLeft, .topRight]) // recorte final
+            )
             .vSpacing(.bottom)
             .onAppear(perform: handleOnAppear)
             .sheet(isPresented: $viewModel.sharingSheet, onDismiss: handleShareSheetDismiss) {
                 shareSheetContent
             }
-            .alert("Compartilhamento enviado!", isPresented: $showingShareConfirmation) {
-                Button("OK") { navigateToNextView() }
+            .alert("Link enviado!", isPresented: $showingShareConfirmation) {
+                Button("Continuar") { navigateToNextView() }
             } message: {
-                Text("O link foi compartilhado com sucesso. Agora você pode prosseguir.")
+                Text("Assim que sua criança acessar o link no iPad, tudo ficará conectado.")
             }
             .refreshable {
                 viewModel.refresh()
@@ -60,43 +71,6 @@ struct GenitorManagementView: View {
             
         }
         .ignoresSafeArea(.all)
-    }
-    
-    @ViewBuilder
-    func ShareView() -> some View {
-        VStack {
-            
-            if viewModel.firstKid != nil {
-                Image("imageShareLink")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(
-                        width: UIScreen.main.bounds.width * 0.205,
-                        height: UIScreen.main.bounds.height * 0.094
-                    )
-                    .padding(.bottom, 50)
-                    .padding(.top, 80)
-                
-                Text("Enviar link de conexão")
-                    .font(.custom("SF Pro", size: 28, relativeTo: .title2))
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Color("primaryColor"))
-                    .padding(.bottom, 10)
-                
-                Text("Compartilhe o link de conexão com sua criança. Ela precisará baixar o app no iPad para receber as atividades que você criar por aqui")
-                    .font(.custom("SF Pro", size: 15, relativeTo: .callout))
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Color("primaryColor"))
-                    .multilineTextAlignment(.leading)
-                    .padding(.bottom, 10)
-                
-                if viewModel.shouldShowShareButton(hasSharedSuccessfully: hasSharedSuccessfully) {
-                    shareButton
-                } else if viewModel.shouldShowShareConfirmation(hasSharedSuccessfully: hasSharedSuccessfully) {
-                    shareConfirmationLabel
-                }
-            }
-        }
     }
     
     @ViewBuilder
@@ -168,6 +142,53 @@ struct GenitorManagementView: View {
         .background(Color("backgroundGenitor"))
     }
     
+    @ViewBuilder
+    func ShareView() -> some View {
+        VStack {
+            if viewModel.firstKid != nil {
+                Image("imageShareLink")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(
+                        width: UIScreen.main.bounds.width * 0.205,
+                        height: UIScreen.main.bounds.height * 0.094
+                    )
+                    .padding(.bottom, 50)
+                    .padding(.top, 80)
+                
+                Text("Enviar link de conexão")
+                    .font(.custom("SF Pro", size: 28, relativeTo: .title2))
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Color("primaryColor"))
+                    .padding(.bottom, 10)
+                
+                Text("Compartilhe o link de conexão com sua criança. Ela precisará baixar o app no iPad para receber as atividades que você criar por aqui")
+                    .font(.custom("SF Pro", size: 15, relativeTo: .callout))
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Color("primaryColor"))
+                    .multilineTextAlignment(.leading)
+                    .padding(.bottom, 120)
+                    .padding(.horizontal, 30)
+                
+//                if viewModel.shouldShowShareButton(hasSharedSuccessfully: hasSharedSuccessfully) {
+//                    shareButton
+//                        .padding(.bottom, 60)
+//                } else if viewModel.shouldShowShareConfirmation(hasSharedSuccessfully: hasSharedSuccessfully) {
+//                    shareButton
+//                        .padding(.bottom, 60)
+//                        .disabled(true)
+//                }
+                shareButton
+                    .disabled(hasSharedSuccessfully ? true : false)
+                    .padding(.bottom, 60)
+                
+            }
+        }
+        .background(Color("backgroundGenitor"))
+    }
+    
+    
+    
     private var shareButton: some View {
         Button(action: {
             viewModel.prepareKidSharing()
@@ -227,30 +248,30 @@ struct GenitorManagementView: View {
             )
     }
     
-    private var debugInfoView: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Debug Info:")
-                .font(.caption2)
-                .fontWeight(.bold)
-            
-            // Navigation related debug info
-            Text("Invitation Status: \(invitationManager.currentStatus.rawValue)")
-                .font(.caption2)
-            Text("Initial Setup Complete: \(firstLaunchManager.hasCompletedInitialSetup ? "Yes" : "No")")
-                .font(.caption2)
-            Text("Has Shared Successfully: \(hasSharedSuccessfully ? "Yes" : "No")")
-                .font(.caption2)
-            
-            // ViewModel debug info
-            ForEach(viewModel.debugInfo, id: \.label) { info in
-                Text("\(info.label): \(info.value)")
-                    .font(.caption2)
-            }
-        }
-        .padding(8)
-        .background(Color.gray.opacity(0.1))
-        .cornerRadius(8)
-    }
+//    private var debugInfoView: some View {
+//        VStack(alignment: .leading, spacing: 4) {
+//            Text("Debug Info:")
+//                .font(.caption2)
+//                .fontWeight(.bold)
+//            
+//            // Navigation related debug info
+//            Text("Invitation Status: \(invitationManager.currentStatus.rawValue)")
+//                .font(.caption2)
+//            Text("Initial Setup Complete: \(firstLaunchManager.hasCompletedInitialSetup ? "Yes" : "No")")
+//                .font(.caption2)
+//            Text("Has Shared Successfully: \(hasSharedSuccessfully ? "Yes" : "No")")
+//                .font(.caption2)
+//            
+//            // ViewModel debug info
+//            ForEach(viewModel.debugInfo, id: \.label) { info in
+//                Text("\(info.label): \(info.value)")
+//                    .font(.caption2)
+//            }
+//        }
+//        .padding(8)
+//        .background(Color.gray.opacity(0.1))
+//        .cornerRadius(8)
+//    }
     
     
     // MARK: - Computed Properties
@@ -300,4 +321,5 @@ struct GenitorManagementView: View {
 
 #Preview {
     GenitorManagementView()
+        .environmentObject(FirstLaunchManager())
 }

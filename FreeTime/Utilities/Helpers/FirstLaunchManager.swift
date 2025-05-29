@@ -12,7 +12,7 @@ class FirstLaunchManager: ObservableObject {
     
     @AppStorage("hasCompletedInitialSetup") var hasCompletedInitialSetup: Bool = false
     
-    private init() {}
+    init() {}
     
     func completeInitialSetup() {
         hasCompletedInitialSetup = true
