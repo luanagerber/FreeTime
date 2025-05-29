@@ -38,12 +38,7 @@ struct GenitorManagementView: View {
                             .padding()
                     }
                     
-//                    if !viewModel.feedbackMessage.isEmpty {
-//                        feedbackMessageView
-//                    }
                 }
-                //            .background(Color("backgroundGenitor"))
-                //            .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
                 .background(
                     RoundedCorner(radius: 32, corners: [.topLeft, .topRight])
                         .fill(Color("backgroundGenitor")) // fundo branco
@@ -180,14 +175,6 @@ struct GenitorManagementView: View {
                     .padding(.bottom, 70)
                     .padding(.horizontal, 30)
                 
-                //                if viewModel.shouldShowShareButton(hasSharedSuccessfully: hasSharedSuccessfully) {
-                //                    shareButton
-                //                        .padding(.bottom, 60)
-                //                } else if viewModel.shouldShowShareConfirmation(hasSharedSuccessfully: hasSharedSuccessfully) {
-                //                    shareButton
-                //                        .padding(.bottom, 60)
-                //                        .disabled(true)
-                //                }
                 shareButton
                     .disabled(hasSharedSuccessfully ? true : false)
                     .padding(.bottom, 60)

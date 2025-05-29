@@ -17,13 +17,10 @@ class GenitorViewModel: ObservableObject {
     
     @StateObject private var invitationManager = InvitationStatusManager.shared
     
-    
-    // MARK: - ViewModel Thales
-    @Published var records: [ActivitiesRegister] = ActivitiesRegister.samples
-    @Published var rewards: [CollectedReward] = CollectedReward.samples
-    @Published var currentDate: Date = .init()
-    
     // MARK: - Published Properties
+    @Published var records: [ActivitiesRegister] = []
+    @Published var rewards: [CollectedReward] = []
+    @Published var currentDate: Date = .init()
     @Published var childName = ""
     @Published var kids: [Kid] = /*[Kid.sample]*/ []
     @Published var kidCoins: Int = 0
