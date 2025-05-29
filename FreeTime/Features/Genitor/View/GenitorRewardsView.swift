@@ -23,9 +23,12 @@ struct GenitorRewardsView: View {
         .onAppear {
             viewModel.setupCloudKit()
             loadRewards()
+            viewModel.loadKidCoins()
+
         }
         .refreshable {
             loadRewards()
+            viewModel.loadKidCoins()
         }
         .background(Color("backgroundGenitor"))
     }
@@ -51,8 +54,11 @@ struct GenitorRewardsView: View {
                 Spacer()
                 
                 // Calcular saldo atual da criança
-                let currentBalance = calculateCurrentBalance()
-                Text("\(currentBalance)")
+//                let currentBalance = calculateCurrentBalance()
+//                Text("\(currentBalance)")
+                
+                Text("\(viewModel.kidCoins)")
+
                 
                 Image(systemName: "dollarsign.circle.fill")
             }

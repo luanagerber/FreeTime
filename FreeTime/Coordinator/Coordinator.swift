@@ -66,7 +66,7 @@ class Coordinator: ObservableObject {
     func build(page: Page) -> some View {
         switch page {
         case .kidManagement:
-            KidManagementView()
+            GenitorManagementView()
                 .navigationBarBackButtonHidden(true)
         case .kidWaitingInvite:
             KidWaitingInviteView()
