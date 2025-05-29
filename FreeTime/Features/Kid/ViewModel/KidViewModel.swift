@@ -474,7 +474,7 @@ extension KidViewModel {
                 return
             }
             
-            //isLoading = true
+            isLoading = true
             feedbackMessage = "Atualizando status da atividade..."
             
             let container = CKContainer(identifier: CloudConfig.containerIdentifier)

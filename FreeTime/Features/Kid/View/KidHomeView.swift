@@ -28,7 +28,6 @@ struct KidHomeView: View {
                         contentView
 
                     .frame(maxWidth: .infinity)
-                    //.padding(.top, 40)
                 }
                 .refreshable {
                     print("KidHomeView: Pull to refresh...")
@@ -120,6 +119,7 @@ struct KidHomeView: View {
         switch currentPage {
             case .kidHome:
                 ActivitiesView
+                    .padding(.top, 40)
             case .rewardsStore:
                 RewardsStoreView(store: coordinator.rewardsStore)
             default:

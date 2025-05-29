@@ -16,12 +16,6 @@ struct FreeTimeApp: App {
         WindowGroup {
             CoordinatorView()
                 .preferredColorScheme(.light)
-            
-//            KidManagementDebugView() // essa é a que reset
-//            ActivityManagementDebugView()
-//            RewardsTestDebugView()
-//            GenitorRewardsView()
-            
         }
     }
 }
