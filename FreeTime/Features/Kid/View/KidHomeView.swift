@@ -28,7 +28,7 @@ struct KidHomeView: View {
                         contentView
 
                     .frame(maxWidth: .infinity)
-                    .padding(.top, 40)
+                    //.padding(.top, 40)
                 }
                 .refreshable {
                     print("KidHomeView: Pull to refresh...")

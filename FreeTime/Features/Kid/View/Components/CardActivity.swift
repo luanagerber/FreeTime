@@ -12,6 +12,8 @@ struct CardActivity: View {
     
     var body: some View {
         ZStack{
+            Text(register.activity?.imageNameKid ?? "nada")
+            //Image(.imageBookKid)
             Image(register.activity?.imageNameKid ?? " ")
                 .resizable()
                 .aspectRatio(contentMode: .fill)
@@ -52,5 +54,5 @@ extension View {
 
 
 #Preview {
-    CardActivity(register: .sample1)
+    CardActivity(register: .sample2)
 }

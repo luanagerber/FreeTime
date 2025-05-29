@@ -149,6 +149,7 @@ class GenitorViewModel: ObservableObject {
         }
     }
     
+    @MainActor
     private func loadKids() {
         isLoading = true
         feedbackMessage = "Carregando suas crianças do CloudKit..."

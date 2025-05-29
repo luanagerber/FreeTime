@@ -34,7 +34,7 @@ extension Activity {
             id: 2,
             name: "Montar quebra-cabeça",
             imageNameGenitor: "imagePuzzleGenitor",
-            imageNameKid: "imagePuzzeKid",
+            imageNameKid: "imagePuzzleKid",
             tags: [.creativity],
             description: "Escolha um quebra-cabeça adequado à idade da criança. Se puder, monte junto com ele, incentivando a paciência e o raciocínio lógico",
             kidDescription: "Escolha um quebra-cabeça que você goste e monte com calma, prestando atenção nas cores e nas formas. Tenha concentração e paciência para encaixar cada peça no lugar certo!",
