@@ -36,9 +36,9 @@ class RewardsStore: ObservableObject {
         self.headerState = .normal
     }
     
-    func setHeaderMessage(_ message: String) {
+    func setHeaderMessage(_ message: String, color: Color = .message) {
         
-        self.headerState = .withMessage(message)
+        self.headerState = .withMessage(message, color)
         
     }
     
@@ -627,7 +627,7 @@ extension RewardsStore {
     
     enum HeaderType {
         case normal
-        case withMessage(String)
+        case withMessage(String, Color)
         
     }
 }

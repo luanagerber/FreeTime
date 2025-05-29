@@ -23,9 +23,12 @@ struct GenitorRewardsView: View {
         .onAppear {
             viewModel.setupCloudKit()
             loadRewards()
+            viewModel.loadKidCoins()
+
         }
         .refreshable {
             loadRewards()
+            viewModel.loadKidCoins()
         }
         .background(Color("backgroundGenitor"))
     }
@@ -51,8 +54,11 @@ struct GenitorRewardsView: View {
                 Spacer()
                 
                 // Calcular saldo atual da criança
-                let currentBalance = calculateCurrentBalance()
-                Text("\(currentBalance)")
+//                let currentBalance = calculateCurrentBalance()
+//                Text("\(currentBalance)")
+                
+                Text("\(viewModel.kidCoins)")
+
                 
                 Image(systemName: "dollarsign.circle.fill")
             }
@@ -198,10 +204,22 @@ struct GenitorRewardsView: View {
     }
     
     private func calculateCurrentBalance() -> Int {
-        // Implementar lógica para calcular saldo atual baseado nas atividades completadas
-        // menos as recompensas resgatadas
-        return 25 // Valor temporário
+        guard let kidID = viewModel.firstKid?.id?.recordName else { return 0 }
+        
+        // Calcular pontos das atividades completadas
+        let completedActivitiesPoints = viewModel.records
+            .filter { $0.registerStatus == .completed && $0.kidID == kidID }
+            .compactMap { $0.activity?.rewardPoints }
+            .reduce(0, +)
+        
+        // Subtrair custo das recompensas resgatadas
+        let rewardsCost = viewModel.rewards
+            .compactMap { $0.reward?.cost }
+            .reduce(0, +)
+        
+        return completedActivitiesPoints - rewardsCost
     }
+    
 }
 
 #Preview {

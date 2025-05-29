@@ -19,8 +19,12 @@ struct CardActivity: View {
                     VStack(spacing: 0) {
                         
                         //Image of the Planned Activity
-                        Rectangle()
-                            .fill(.gray.opacity(0.1))
+                        Image(register.activity?.imageNameKid ?? "Zoologico")
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                        
+//                        Rectangle()
+//                            .fill(.gray.opacity(0.1))
                         
                         Rectangle()
                             .fill(.orangeKid)

@@ -15,10 +15,14 @@ struct KidWaitingInviteView: View {
     
     var body: some View {
         ZStack{
-            Image("kidWaitingInvite")
+            
+            Color.backgroundHeaderYellowKid
+            
+            Image(.waitingInvite)
                 .resizable()
-                .aspectRatio(contentMode: .fill)
                 .ignoresSafeArea()
+            
+            Color.fontColorKid.opacity(0.4)
             
             VStack(){
                 ZStack() {
@@ -58,8 +62,8 @@ struct KidWaitingInviteView: View {
             }
             .background(Color.white.opacity(1.0))
             .cornerRadius(15)
-            //.padding(.vertical, 314)
-            //.padding(.horizontal, 420)
+            .frame(width: 508, height: 337)
+            
             .refreshable {
                 kidViewModel.checkForSharedKid()
                 if kidViewModel.hasAcceptedShareLink {
@@ -82,6 +86,7 @@ struct KidWaitingInviteView: View {
                 Text(kidViewModel.errorMessage)
             }
         }
+        .ignoresSafeArea()
     }
     
     private func goToNextView() {

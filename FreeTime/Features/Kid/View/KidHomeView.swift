@@ -9,10 +9,10 @@ import SwiftUI
 import CloudKit
 
 struct KidHomeView: View {
-    
     @State private var currentPage: Page = .kidHome
     @StateObject private var vmKid = KidViewModel()
     @State private var selectedRegister: ActivitiesRegister? = nil
+    @EnvironmentObject var coordinator: Coordinator
     
     var body: some View {
         ZStack {
@@ -27,6 +27,11 @@ struct KidHomeView: View {
         .ignoresSafeArea()
         .navigationBarBackButtonHidden(true)
         .onAppear {
+            print("KidHomeView: Carregando na inicialização...")
+            vmKid.refreshActivities()
+        }
+        .refreshable {
+            print("KidHomeView: Pull to refresh...")
             vmKid.refreshActivities()
         }
         .alert("Erro", isPresented: $vmKid.showError) {
@@ -51,30 +56,27 @@ struct KidHomeView: View {
             .cornerRadius(20)
             .frame(height: 156)
             .overlay {
-                HStack{
+                HStack {
                     HStack(spacing: 24) {
-                        KidDataView(kid: vmKid.kid ?? Kid(name: "Bruno", coins: 100))
+                        // ✅ CORREÇÃO: Usar dados reais do vmKid
+                        KidDataView(kidName: vmKid.kidName ?? "Carregando...", kidCoins: vmKid.kidCoins ?? 0)
                             .padding(.top, 46)
                             .ignoresSafeArea()
                             .frame(maxHeight: 156, alignment: .top)
                     }
                     Spacer()
-                    HStack(spacing: 39){
+                    HStack(spacing: 39) {
                         NavButton(page: .kidHome, icon: .iActivity)
-                        
                         NavButton(page: .rewardsStore, icon: .iStore)
                     }
                     .padding(.bottom, 15)
                     .ignoresSafeArea()
                     .frame(maxHeight: 156, alignment: .bottom)
-                    
                 }
                 .ignoresSafeArea()
                 .frame(maxHeight: 156)
                 .padding(.horizontal, 36)
                 .foregroundColor(.fontColorKid)
-                
-                
             }
     }
     
@@ -84,7 +86,7 @@ struct KidHomeView: View {
             case .kidHome:
                 ActivitiesView
             case .rewardsStore:
-                RewardsStoreView(store: .init())
+                RewardsStoreView(store: coordinator.rewardsStore)
             default:
                 EmptyView()
         }
@@ -101,18 +103,18 @@ struct KidHomeView: View {
                     .font(.title2)
                     .kerning(0.3)
             }
-            VStack{
-                HStack{
-                    VStack(alignment: .leading ,spacing: 16){
-                        
-                        
+            
+            VStack {
+                HStack {
+                    VStack(alignment: .leading, spacing: 16) {
                         Text("Para fazer")
                             .font(.title)
                             .kerning(0.38)
                             .fontWeight(.medium)
                         
+                        // ✅ CORREÇÃO: Usar dados reais do ViewModel
                         ActivitySection(
-                            registers: ActivitiesRegister.samples,
+                            registers: vmKid.notStartedRegister(),
                             emptyMessage: "Não há atividades a serem realizadas hoje.",
                             selectedRegister: $selectedRegister,
                             vmKid: vmKid
@@ -124,9 +126,10 @@ struct KidHomeView: View {
                             .kerning(0.38)
                             .fontWeight(.medium)
                         
+                        // ✅ CORREÇÃO: Usar dados reais do ViewModel
                         ActivitySection(
-                            registers: ActivitiesRegister.samples,
-                            emptyMessage: "Não há atividades a serem realizadas hoje.",
+                            registers: vmKid.completedRegister(),
+                            emptyMessage: "Nenhuma atividade concluída hoje.",
                             selectedRegister: $selectedRegister,
                             vmKid: vmKid
                         )
@@ -135,11 +138,9 @@ struct KidHomeView: View {
                     Spacer()
                 }
             }
-            
         }
         .padding(.vertical, 24)
         .padding(.leading, 133)
-        
     }
     
     private func NavButton(page: Page, icon: ImageResource) -> some View {
@@ -158,7 +159,8 @@ struct KidHomeView: View {
 }
 
 struct KidDataView: View {
-    let kid: Kid
+    let kidName: String
+    var kidCoins: Int
     
     var body: some View {
         HStack(spacing: 24) {
@@ -166,7 +168,7 @@ struct KidDataView: View {
                 .frame(width: 80, height: 80)
             
             VStack(alignment: .leading, spacing: 5) {
-                Text(kid.name)
+                Text(kidName)
                     .font(.system(size: 28))
                     .fontWeight(.bold)
                 
@@ -178,7 +180,7 @@ struct KidDataView: View {
                             Image(.iCoin)
                                 .frame(width: 24, height: 24)
                             
-                            Text("\(kid.coins)")
+                            Text("\(kidCoins)")
                                 .font(.system(size: 20))
                                 .fontWeight(.semibold)
                         }
