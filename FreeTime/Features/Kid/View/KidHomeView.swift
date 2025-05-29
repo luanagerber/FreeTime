@@ -284,9 +284,8 @@ struct ActivitySection: View {
         }
         .sheet(item: $selectedRegister) { register in
             DetailView(kidViewModel: vmKid, register: register,  onCompletion: {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+               
                     showPopUp = true
-                }
             })
         }
     }
