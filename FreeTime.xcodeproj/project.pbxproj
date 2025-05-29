@@ -10,22 +10,9 @@
 		4F7AA3242DC9321100C91898 /* FreeTime.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FreeTime.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		3BDC01E52DD5227A00314258 /* Exceptions for "FreeTime" folder in "FreeTime" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 4F7AA3232DC9321100C91898 /* FreeTime */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		4F7AA3262DC9321100C91898 /* FreeTime */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				3BDC01E52DD5227A00314258 /* Exceptions for "FreeTime" folder in "FreeTime" target */,
-			);
 			path = FreeTime;
 			sourceTree = "<group>";
 		};
