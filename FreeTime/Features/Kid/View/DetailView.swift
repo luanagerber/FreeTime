@@ -11,6 +11,8 @@ struct DetailView: View {
     @ObservedObject var kidViewModel: KidViewModel
     var register: ActivitiesRegister
     @Environment(\.dismiss) private var dismiss
+    var onCompletion: (() -> Void)? = nil
+
     
     var body: some View {
         ZStack {
@@ -33,7 +35,7 @@ struct DetailView: View {
                 ConfirmButton(
                     kidViewModel: kidViewModel,
                     register: register,
-                    dismiss: { dismiss() }
+                    dismiss: { dismiss() }, onCompletion: onCompletion
                 )
                 
             }
@@ -148,7 +150,7 @@ struct ConfirmButton: View {
     @ObservedObject var kidViewModel: KidViewModel
     var register: ActivitiesRegister
     let dismiss: () -> Void
-    
+    var onCompletion: (() -> Void)?
     private var isCompleted: Bool {
         register.registerStatus == .completed
     }
@@ -156,9 +158,16 @@ struct ConfirmButton: View {
     var body: some View {
         Button {
             withAnimation {
-                kidViewModel.toggleActivityCompletion(register)
+                dismiss()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    kidViewModel.isLoading = true
+                    kidViewModel.toggleActivityCompletion(register)
+                }
             }
-            dismiss()
+            if !isCompleted {
+                onCompletion?()
+            }
+          
         } label: {
             Image(isCompleted ? .btUndor : .btConclusion)
                 .frame(width: 228, height: 48)
@@ -167,6 +176,7 @@ struct ConfirmButton: View {
         .padding(.bottom, 22)
     }
 }
+
 
 
 #Preview {

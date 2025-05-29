@@ -10,6 +10,7 @@ import SwiftUI
 struct GenitorRewardsView: View {
     
     @StateObject var viewModel = GenitorViewModel.shared
+    @State private var hasLoadedInitialData = false
     
     var body: some View {
         VStack() {
@@ -21,11 +22,16 @@ struct GenitorRewardsView: View {
         }
         .vSpacing(.top)
         .onAppear {
-            viewModel.setupCloudKit()
-            loadRewards()
+            // Carrega dados apenas uma vez quando a view aparece
+            if !hasLoadedInitialData {
+                viewModel.setupCloudKit()
+                loadRewards()
+                viewModel.loadKidCoins()
+                hasLoadedInitialData = true
+            }
         }
         .refreshable {
-            loadRewards()
+            await refreshData()
         }
         .background(Color("backgroundGenitor"))
     }
@@ -50,9 +56,12 @@ struct GenitorRewardsView: View {
                 
                 Spacer()
                 
-                // Calcular saldo atual da criança
-                let currentBalance = calculateCurrentBalance()
-                Text("\(currentBalance)")
+                if viewModel.isLoading && viewModel.kidCoins == 0 {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                } else {
+                    Text("\(viewModel.kidCoins)")
+                }
                 
                 Image(systemName: "dollarsign.circle.fill")
             }
@@ -70,8 +79,6 @@ struct GenitorRewardsView: View {
                     RoundedRectangle(cornerRadius: 10)
                         .stroke(Color(red: 0.87, green: 0.87, blue: 0.87), lineWidth: 2)
                 }
-                
-                
             }
             .cornerRadius(10)
             .padding(.top, 20)
@@ -85,16 +92,20 @@ struct GenitorRewardsView: View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 
-                // MARK: Verificação se há recompensas
-                // TODO: Verificar com design sobre imagem de presente
-                if viewModel.rewards.isEmpty && !viewModel.isLoading {
+                // Mostrar loading inicial
+                if viewModel.isLoading && viewModel.rewards.isEmpty {
+                    VStack {
+                        ProgressView()
+                        Text("Carregando recompensas...")
+                            .font(.custom("SF Pro", size: 15, relativeTo: .subheadline))
+                            .foregroundStyle(Color("primaryColor").opacity(0.6))
+                            .padding(.top, 10)
+                    }
+                    .padding(.vertical, 100)
+                }
+                // Mostrar conteúdo vazio quando não há recompensas
+                else if viewModel.rewards.isEmpty && !viewModel.isLoading {
                     VStack(alignment: .center, spacing: 10) {
-//                        Image(systemName: "gift")
-//                            .font(.system(size: 50))
-//                            .foregroundColor(.secondary)
-//                            .padding(.bottom, 8)
-//                            .font(.custom("SF pro", size: 50, relativeTo: .body))
-//                            .foregroundStyle(Color("primaryColor").opacity(0.5))
                         
                         Text("Nenhuma recompensa registrada")
                             .font(.custom("SF Pro", size: 17, relativeTo: .headline))
@@ -110,6 +121,7 @@ struct GenitorRewardsView: View {
                     .padding(.bottom, 171)
                     .padding(.top, 171)
                 }
+                // Mostrar lista de recompensas
                 else {
                     ForEach(viewModel.groupedRewardsByDay, id: \.self) { group in
                         VStack(alignment: .leading, spacing: 10) {
@@ -117,50 +129,32 @@ struct GenitorRewardsView: View {
                                 .font(.custom("SF Pro", size: 15, relativeTo: .headline))
                                 .foregroundColor(Color("primaryColor").opacity(0.4))
                             
-//                            Divider()
-//                                .padding(.bottom, 4)
-//                                .foregroundColor(Color("primaryColor"))
-                            
                             Rectangle()
-                                .fill(Color("primaryColor").opacity(0.4)) // cor e opacidade customizada
-                                .frame(height: UIScreen.main.bounds.height * 0.0014) // altura da linha mais visível
+                                .fill(Color("primaryColor").opacity(0.4))
+                                .frame(height: UIScreen.main.bounds.height * 0.0014)
                                 .padding(.top, 2)
                                 .padding(.bottom, 4)
                             
-                            // Atualização dos isDelivered nas rewards da ViewModel
                             ForEach(viewModel.rewards.indices, id: \.self) { index in
                                 let reward = viewModel.rewards[index]
                                 if Calendar.current.isDate(reward.dateCollected, inSameDayAs: group.date) {
                                     GenitorRewardsRowView(reward: $viewModel.rewards[index])
                                         .onTapGesture {
-                                            // Salvar alterações no CloudKit quando o status muda
                                             saveRewardUpdate(reward)
                                         }
                                 }
                             }
-                            
                         }
                         .padding(.bottom, 20)
                     }
                 }
-                
-                if viewModel.isLoading {
-                    ProgressView()
-                        .padding()
-                }
             }
             .padding(20)
-            .background(Color.white) // ✅ Aqui define o fundo branco do bloco
-//            .background(
-//                // Borda fina arredondada por cima
-//                RoundedRectangle(cornerRadius: 10)
-//                    .stroke(Color(red: 0.87, green: 0.87, blue: 0.87), lineWidth: 2)
-//                
-//            )
-            .overlay( // Borda ao redor do bloco branco
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color(red: 0.87, green: 0.87, blue: 0.87), lineWidth: 2)
-                    )
+            .background(Color.white)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color(red: 0.87, green: 0.87, blue: 0.87), lineWidth: 2)
+            )
             .cornerRadius(10)
         }
         .padding(.horizontal, 20)
@@ -168,7 +162,11 @@ struct GenitorRewardsView: View {
     }
     
     private func loadRewards() {
-        guard let kidID = viewModel.firstKid?.id?.recordName else { return }
+        guard let kidID = viewModel.firstKid?.id?.recordName else {
+            // Se não há criança, limpar rewards
+            viewModel.rewards = []
+            return
+        }
         
         viewModel.isLoading = true
         
@@ -186,34 +184,32 @@ struct GenitorRewardsView: View {
         }
     }
     
+    @MainActor
+    private func refreshData() async {
+        // Usar Task para executar de forma assíncrona
+        await withCheckedContinuation { continuation in
+            loadRewards()
+            viewModel.loadKidCoins()
+            
+            // Aguardar um pouco para garantir que as operações foram iniciadas
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                continuation.resume()
+            }
+        }
+    }
+    
     private func saveRewardUpdate(_ reward: CollectedReward) {
         CloudService.shared.updateCollectedReward(reward, isShared: false) { result in
             switch result {
             case .success:
                 print("Recompensa atualizada com sucesso")
+                // Recarregar as moedas após atualizar o status de entrega
+                viewModel.loadKidCoins()
             case .failure(let error):
                 print("Erro ao atualizar recompensa: \(error)")
             }
         }
     }
-    
-    private func calculateCurrentBalance() -> Int {
-        guard let kidID = viewModel.firstKid?.id?.recordName else { return 0 }
-        
-        // Calcular pontos das atividades completadas
-        let completedActivitiesPoints = viewModel.records
-            .filter { $0.registerStatus == .completed && $0.kidID == kidID }
-            .compactMap { $0.activity?.rewardPoints }
-            .reduce(0, +)
-        
-        // Subtrair custo das recompensas resgatadas
-        let rewardsCost = viewModel.rewards
-            .compactMap { $0.reward?.cost }
-            .reduce(0, +)
-        
-        return completedActivitiesPoints - rewardsCost
-    }
-    
 }
 
 #Preview {

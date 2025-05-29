@@ -4,7 +4,7 @@
 //
 //  Created by Thales Araújo on 27/05/25.
 //
-
+//
 import SwiftUI
 
 struct NewTaskView: View {

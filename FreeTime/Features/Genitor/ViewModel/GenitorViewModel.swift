@@ -17,15 +17,13 @@ class GenitorViewModel: ObservableObject {
     
     @StateObject private var invitationManager = InvitationStatusManager.shared
     
-    
-    // MARK: - ViewModel Thales
-    @Published var records: [ActivitiesRegister] = ActivitiesRegister.samples
-    @Published var rewards: [CollectedReward] = CollectedReward.samples
-    @Published var currentDate: Date = .init()
-    
     // MARK: - Published Properties
+    @Published var records: [ActivitiesRegister] = []
+    @Published var rewards: [CollectedReward] = []
+    @Published var currentDate: Date = .init()
     @Published var childName = ""
     @Published var kids: [Kid] = /*[Kid.sample]*/ []
+    @Published var kidCoins: Int = 0
     @Published var selectedKid: Kid?
     @Published var isLoading = false
     @Published var isRefreshing = false
@@ -183,6 +181,7 @@ class GenitorViewModel: ObservableObject {
         
         if !zoneReady {
             setupCloudKit()
+            loadKidCoins()
             return
         }
         
@@ -210,6 +209,54 @@ class GenitorViewModel: ObservableObject {
             }
         }
     }
+    
+    func loadKidCoins() {
+        guard let kidID = firstKid?.id?.recordName else {
+            kidCoins = 0
+            return
+        }
+        
+        // Carregar atividades completadas e recompensas simultaneamente
+        let dispatchGroup = DispatchGroup()
+        var completedActivitiesPoints = 0
+        var rewardsCost = 0
+        
+        // Carregar atividades completadas
+        dispatchGroup.enter()
+        CloudService.shared.fetchAllActivities(forKid: kidID) { result in
+            switch result {
+            case .success(let activities):
+                completedActivitiesPoints = activities
+                    .filter { $0.registerStatus == .completed }
+                    .compactMap { $0.activity?.rewardPoints }
+                    .reduce(0, +)
+            case .failure(let error):
+                print("Erro ao carregar atividades para cálculo de moedas: \(error)")
+            }
+            dispatchGroup.leave()
+        }
+        
+        // Carregar recompensas resgatadas
+        dispatchGroup.enter()
+        CloudService.shared.fetchAllCollectedRewards(forKid: kidID) { result in
+            switch result {
+            case .success(let rewards):
+                rewardsCost = rewards
+                    .compactMap { $0.reward?.cost }
+                    .reduce(0, +)
+            case .failure(let error):
+                print("Erro ao carregar recompensas para cálculo de moedas: \(error)")
+            }
+            dispatchGroup.leave()
+        }
+        
+        // Calcular saldo quando ambos terminarem
+        dispatchGroup.notify(queue: .main) { [weak self] in
+            self?.kidCoins = completedActivitiesPoints - rewardsCost
+            print("🪙 Moedas da criança atualizadas: \(self?.kidCoins ?? 0) (Atividades: \(completedActivitiesPoints), Recompensas: \(rewardsCost))")
+        }
+    }
+
     
     // MARK: - Sharing Operations
     

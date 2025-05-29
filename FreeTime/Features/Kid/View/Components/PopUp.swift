@@ -9,31 +9,58 @@ import SwiftUI
 
 struct PopUp: View {
     @Binding var showPopUp: Bool
-    @State private var text: String = "Parabéns! Você concluiu a atividade com sucesso!"
+    var text: String = "Parabéns! Você concluiu a atividade com sucesso!"
+    var color: Color = .message
+    
+    // Offset da animação
+    @State private var offsetX: CGFloat = UIScreen.main.bounds.width
     
     var body: some View {
-        RoundedRectangle(cornerRadius: 20)
-            .fill(.green.opacity(0.7))
-            .shadow(color: Color.black.opacity(0.4), radius: 4, x: 0, y: 4)
-            .frame(maxWidth: .infinity, maxHeight: 86)
-            .overlay {
-                notificationContent
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        ZStack(alignment: .leading) {
+            CustomCornerShape(radius: 20, corners: [.topLeft, .bottomLeft])
+                .fill(color)
+                .shadow(color: .messageShadow, radius: 0, x: -7, y: 7)
+                
+                .frame(width: 578)
+                .frame(height: 80)
+            
+            Text(text)
+                .font(.title3)
+                .fontWeight(.medium)
+                .fontDesign(.rounded)
+                .foregroundStyle(.text)
+                .padding()
+                .padding(.leading, 20)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+        .padding(.top, 180) 
+        .padding(.trailing, 0)
+        .ignoresSafeArea()
+        .offset(x: offsetX)
+        .onAppear {
+            withAnimation(.bouncy(duration: 1.0, extraBounce: -0.5)) {
+                offsetX = 0
             }
-    }
-    
-    var notificationContent: some View {
-        Text(text)
-            .font(.title2)
-            .foregroundStyle(.white)
-            .multilineTextAlignment(.center)
+            
+            Task {
+                try? await Task.sleep(for: .seconds(8))
+                withAnimation(.bouncy(duration: 1.0, extraBounce: -0.5)) {
+                    offsetX = UIScreen.main.bounds.width
+                }
+                try? await Task.sleep(for: .seconds(1))
+                showPopUp = false
+            }
+        }
     }
 }
 
 #Preview {
     @Previewable @State var showPopup = true
-    return PopUp(
-        showPopUp: $showPopup,
-    )
+    return ZStack {
+        Color.gray.ignoresSafeArea()
+        if showPopup {
+            PopUp(showPopUp: $showPopup)
+        }
+    }
 }
 

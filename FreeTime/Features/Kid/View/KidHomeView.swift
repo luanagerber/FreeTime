@@ -9,25 +9,41 @@ import SwiftUI
 import CloudKit
 
 struct KidHomeView: View {
-    
     @State private var currentPage: Page = .kidHome
     @StateObject private var vmKid = KidViewModel()
     @State private var selectedRegister: ActivitiesRegister? = nil
     @EnvironmentObject var coordinator: Coordinator
+    @State private var showPopUp = false
+    
     
     var body: some View {
         ZStack {
+            Color(.defaultBackground)
+                .ignoresSafeArea(.all)
+            
             VStack(spacing: 0) {
                 HeaderView
-                contentView
+                
+                ScrollView(.vertical, showsIndicators: false) {
+                        contentView
+
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 40)
+                }
+                .refreshable {
+                    print("KidHomeView: Pull to refresh...")
+                    vmKid.refreshActivities()
+                    
+                }
             }
+            .foregroundColor(.fontColorKid)
             .fontDesign(.rounded)
             .ignoresSafeArea()
             .frame(maxHeight: .infinity, alignment: .top)
         }
-        .ignoresSafeArea()
         .navigationBarBackButtonHidden(true)
         .onAppear {
+            print("KidHomeView: Carregando na inicialização...")
             vmKid.refreshActivities()
         }
         .alert("Erro", isPresented: $vmKid.showError) {
@@ -39,11 +55,34 @@ struct KidHomeView: View {
         }
         .overlay {
             if vmKid.isLoading {
-                ProgressView("Carregando...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.black.opacity(0.3))
+                ZStack {
+                    Color(.backgroundHeaderYellowKid)
+                        .ignoresSafeArea()
+                    VStack(spacing: 16) {
+                        ProgressView("Carregando...")
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .foregroundColor(.white)
+                            .font(.title)
+                            .fontWeight(.bold)
+                    }
+                }
+                .transition(.opacity)
+                .zIndex(2)
             }
         }
+        .overlay{
+            if showPopUp {
+                VStack {
+                    Spacer()
+                    PopUp(showPopUp: $showPopUp)
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+                .zIndex(1)
+            }
+        }
+        
+        
     }
     
     private var HeaderView: some View {
@@ -52,30 +91,27 @@ struct KidHomeView: View {
             .cornerRadius(20)
             .frame(height: 156)
             .overlay {
-                HStack{
+                HStack {
                     HStack(spacing: 24) {
-                        KidDataView(kid: vmKid.kid ?? Kid(name: "Bruno", coins: 100))
+                        // ✅ CORREÇÃO: Usar dados reais do vmKid
+                        KidDataView(kidName: vmKid.kidName ?? "Carregando...", kidCoins: vmKid.kidCoins ?? 0)
                             .padding(.top, 46)
                             .ignoresSafeArea()
                             .frame(maxHeight: 156, alignment: .top)
                     }
                     Spacer()
-                    HStack(spacing: 39){
+                    HStack(spacing: 39) {
                         NavButton(page: .kidHome, icon: .iActivity)
-                        
                         NavButton(page: .rewardsStore, icon: .iStore)
                     }
                     .padding(.bottom, 15)
                     .ignoresSafeArea()
                     .frame(maxHeight: 156, alignment: .bottom)
-                    
                 }
                 .ignoresSafeArea()
                 .frame(maxHeight: 156)
                 .padding(.horizontal, 36)
                 .foregroundColor(.fontColorKid)
-                
-                
             }
     }
     
@@ -90,58 +126,86 @@ struct KidHomeView: View {
                 EmptyView()
         }
     }
-
+    
     private var ActivitiesView: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        let notStarted = vmKid.notStartedRegister()
+        let completed = vmKid.completedRegister()
+        let allActivities = notStarted + completed
+        
+        return VStack(alignment: .leading, spacing: 24) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Atividades para hoje")
                     .kerning(0.4)
                     .font(.largeTitle)
                     .fontWeight(.semibold)
+                
+                
                 Text(Date().formattedDayTitle())
                     .font(.title2)
                     .kerning(0.3)
             }
-            VStack{
-                HStack{
-                    VStack(alignment: .leading ,spacing: 16){
-                        
-                        
-                        Text("Para fazer")
-                            .font(.title)
-                            .kerning(0.38)
-                            .fontWeight(.medium)
-                        
-                        ActivitySection(
-                            registers: ActivitiesRegister.samples,
-                            emptyMessage: "Não há atividades a serem realizadas hoje.",
-                            selectedRegister: $selectedRegister,
-                            vmKid: vmKid
-                        )
-                        .shadow(color: .black.opacity(0.2), radius: 4, x: 4, y: 4)
-                        
-                        Text("Feito")
-                            .font(.title)
-                            .kerning(0.38)
-                            .fontWeight(.medium)
-                        
-                        ActivitySection(
-                            registers: ActivitiesRegister.samples,
-                            emptyMessage: "Não há atividades a serem realizadas hoje.",
-                            selectedRegister: $selectedRegister,
-                            vmKid: vmKid
-                        )
-                        .shadow(color: .black.opacity(0.2), radius: 4, x: 4, y: 4)
+            
+            if allActivities.isEmpty {
+                Text("Hmm... parece que ainda não tem nada pra fazer agora. Que tal pedir pra um adulto adicionar uma atividade bem legal pra você?")
+                    .padding(.trailing, 133)
+                    .font(.title2)
+                
+            } else {
+                VStack {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Para fazer")
+                                .font(.title)
+                                .kerning(0.38)
+                                .fontWeight(.medium)
+                            
+                            if notStarted.isEmpty && !completed.isEmpty {
+                                Text("Uhul! Você mandou super bem e completou tudo por hoje! Parabéns, você arrasou demais!")
+                                    .padding(.trailing, 133)
+                                    .font(.title2)
+                                    .padding(.bottom, 62)
+                            } else {
+                                ActivitySection(
+                                    registers: notStarted,
+                                    emptyMessage: "",
+                                    selectedRegister: $selectedRegister,
+                                    vmKid: vmKid,
+                                    showPopUp: $showPopUp
+                                    
+                                )
+                                .shadow(color: .black.opacity(0.2), radius: 4, x: 4, y: 4)
+                            }
+                            
+                            Text("Feito")
+                                .font(.title)
+                                .kerning(0.38)
+                                .fontWeight(.medium)
+                            
+                            if completed.isEmpty {
+                                Text("Eita! Ainda não começamos nenhuma atividade hoje... Vamos entrar em ação?")
+                                    .padding(.trailing, 133)
+                                    .font(.title2)
+                                
+                            } else {
+                                ActivitySection(
+                                    registers: completed,
+                                    emptyMessage: "",
+                                    selectedRegister: $selectedRegister,
+                                    vmKid: vmKid,
+                                    showPopUp: $showPopUp
+                                )
+                                .shadow(color: .black.opacity(0.2), radius: 4, x: 4, y: 4)
+                            }
+                        }
+                        Spacer()
                     }
-                    Spacer()
                 }
             }
-            
         }
-        .padding(.vertical, 24)
+        .padding(.vertical, 26)
         .padding(.leading, 133)
-        
     }
+    
     
     private func NavButton(page: Page, icon: ImageResource) -> some View {
         let isSelected = currentPage == page
@@ -159,7 +223,8 @@ struct KidHomeView: View {
 }
 
 struct KidDataView: View {
-    let kid: Kid
+    let kidName: String
+    var kidCoins: Int
     
     var body: some View {
         HStack(spacing: 24) {
@@ -167,7 +232,7 @@ struct KidDataView: View {
                 .frame(width: 80, height: 80)
             
             VStack(alignment: .leading, spacing: 5) {
-                Text(kid.name)
+                Text(kidName)
                     .font(.system(size: 28))
                     .fontWeight(.bold)
                 
@@ -179,7 +244,7 @@ struct KidDataView: View {
                             Image(.iCoin)
                                 .frame(width: 24, height: 24)
                             
-                            Text("\(kid.coins)")
+                            Text("\(kidCoins)")
                                 .font(.system(size: 20))
                                 .fontWeight(.semibold)
                         }
@@ -196,6 +261,7 @@ struct ActivitySection: View {
     let emptyMessage: String
     @Binding var selectedRegister: ActivitiesRegister?
     var vmKid: KidViewModel
+    @Binding var showPopUp: Bool
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -217,7 +283,11 @@ struct ActivitySection: View {
             }
         }
         .sheet(item: $selectedRegister) { register in
-            DetailView(kidViewModel: vmKid, register: register)
+            DetailView(kidViewModel: vmKid, register: register,  onCompletion: {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                    showPopUp = true
+                }
+            })
         }
     }
 }

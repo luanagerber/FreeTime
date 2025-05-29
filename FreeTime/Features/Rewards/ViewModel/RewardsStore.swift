@@ -4,6 +4,7 @@
 //
 //  Created by Pedro Larry Rodrigues Lopes on 13/05/25.
 //
+//EU QUERO QUE DE TUDO CERTOOOOOOOOOO
 
 import SwiftUI
 import Foundation
