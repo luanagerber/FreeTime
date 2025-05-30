@@ -322,6 +322,9 @@ class GenitorViewModel: ObservableObject {
         feedbackMessage = "✅ Atividade '\(activity.name)' agendada para \(kid.name)"
         showActivitySelector = false
         
+        // ✅ SOLUÇÃO: Adicionar imediatamente aos records
+        records.append(savedActivity)
+        
         Task {
             if let shareReference = kid.shareReference {
                 await updateSharing(for: kid)
@@ -329,12 +332,12 @@ class GenitorViewModel: ObservableObject {
                 await createNewSharing(for: kid)
             }
             
-            // ✅ SOLUÇÃO: Forçar refresh após salvar
+            // Opcional: refresh completo depois
             await MainActor.run {
-                //TODO: ajeitar isso aqui
-                self.refresh()
+                if let kidID = kid.id?.recordName {
+                    refreshActivitiesAfterSave(for: kidID)
+                }
             }
-            
         }
     }
     
@@ -403,6 +406,17 @@ class GenitorViewModel: ObservableObject {
         
         dispatchGroup.notify(queue: .main) { [weak self] in
             self?.feedbackMessage = "✅ Dados atualizados - \(updatedCount) atividades sincronizadas"
+        }
+    }
+    
+    func refreshActivitiesAfterSave(for kidID: String) {
+        Task {
+            // Small delay to ensure CloudKit sync
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+            
+            await MainActor.run {
+                loadSharedActivities(for: kidID)
+            }
         }
     }
     

@@ -39,6 +39,7 @@ struct GenitorHomeView: View {
             }
         }
         .ignoresSafeArea(edges: .bottom)
+        .onAppear(viewModel.loadSharedActivities(for: UserManager))
     }
     
     @ViewBuilder
