@@ -324,16 +324,17 @@ class GenitorViewModel: ObservableObject {
         
         Task {
             if let shareReference = kid.shareReference {
-                print("🔄 Forçando re-compartilhamento para incluir nova atividade...")
                 await updateSharing(for: kid)
             } else {
-                print("Criança não tem compartilhamento ainda, criando...")
                 await createNewSharing(for: kid)
             }
             
-            // Debug verification after delay
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
-            await verifyActivityInSharedDatabase(savedActivity, kid: kid)
+            // ✅ SOLUÇÃO: Forçar refresh após salvar
+            await MainActor.run {
+                //TODO: ajeitar isso aqui
+                self.refresh()
+            }
+            
         }
     }
     
