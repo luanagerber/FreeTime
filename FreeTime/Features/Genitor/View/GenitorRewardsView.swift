@@ -9,7 +9,7 @@ import SwiftUI
 
 struct GenitorRewardsView: View {
     
-    @StateObject var viewModel = GenitorViewModel.shared
+    @ObservedObject var viewModel = GenitorViewModel.shared
     @State private var hasLoadedInitialData = false
     
     var body: some View {
@@ -26,7 +26,7 @@ struct GenitorRewardsView: View {
             if !hasLoadedInitialData {
                 viewModel.setupCloudKit()
                 loadRewards()
-                viewModel.loadKidCoins()
+                viewModel.setupCoinManager()
                 hasLoadedInitialData = true
             }
         }
@@ -189,7 +189,7 @@ struct GenitorRewardsView: View {
         // Usar Task para executar de forma assíncrona
         await withCheckedContinuation { continuation in
             loadRewards()
-            viewModel.loadKidCoins()
+            viewModel.setupCoinManager()
             
             // Aguardar um pouco para garantir que as operações foram iniciadas
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -204,7 +204,7 @@ struct GenitorRewardsView: View {
             case .success:
                 print("Recompensa atualizada com sucesso")
                 // Recarregar as moedas após atualizar o status de entrega
-                viewModel.loadKidCoins()
+                viewModel.setupCoinManager()
             case .failure(let error):
                 print("Erro ao atualizar recompensa: \(error)")
             }

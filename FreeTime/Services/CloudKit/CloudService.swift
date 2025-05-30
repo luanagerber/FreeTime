@@ -967,7 +967,7 @@ extension CloudService {
     func updateKidCoins(_ kidID: CKRecord.ID, coins: Int) async throws {
         let container = CKContainer(identifier: CloudConfig.containerIdentifier)
         let isSharedZone = kidID.zoneID.ownerName != CKCurrentUserDefaultName
-        let isChildUser = UserManager.shared.isChild
+        let isChildUser = await UserManager.shared.isChild
         let database = (isSharedZone || isChildUser) ?
                        container.sharedCloudDatabase :
                        container.privateCloudDatabase
