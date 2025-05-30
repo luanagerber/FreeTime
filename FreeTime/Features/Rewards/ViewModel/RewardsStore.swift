@@ -50,7 +50,7 @@ class RewardsStore: ObservableObject {
         try buyReward(reward)
     }
     
-    private func loadFromUserManager() {
+    @MainActor private func loadFromUserManager() {
         let userManager = UserManager.shared
         
         if let kidID = userManager.currentKidID {

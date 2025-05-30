@@ -48,20 +48,20 @@ class GenitorViewModel: ObservableObject {
     
     var groupedRewardsByDay: [RewardsByDay] {
         var groupAux: [RewardsByDay] = []
-
+        
         for date in uniqueDates {
             var rewardsAux: [CollectedReward] = []
-
+            
             for reward in self.rewards {
                 if reward.dateCollected.startOfDay == date {
                     rewardsAux.append(reward)
                 }
             }
-
+            
             let group = RewardsByDay(date: date, rewards: rewardsAux)
             groupAux.append(group)
         }
-
+        
         return groupAux
     }
     
@@ -186,7 +186,7 @@ class GenitorViewModel: ObservableObject {
         
         if !zoneReady {
             setupCloudKit()
-            loadKidCoins()
+            setupCoinManager()
             return
         }
         
@@ -215,15 +215,12 @@ class GenitorViewModel: ObservableObject {
         }
     }
     
-    func loadKidCoins() {
-            guard let kidID = firstKid?.id else {
-                return
-            }
-            
+    func setupCoinManager() {
+        if let kidID = firstKid?.id {
             CoinManager.shared.setCurrentKid(kidID)
-            CoinManager.shared.reloadCoins()
         }
-
+    }
+    
     
     // MARK: - Sharing Operations
     
