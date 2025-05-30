@@ -16,6 +16,7 @@ struct FreeTimeApp: App {
         WindowGroup {
             CoordinatorView()
                 .preferredColorScheme(.light)
+//            KidManagementDebugView()
         }
     }
 }

@@ -20,7 +20,6 @@ enum Page: Hashable {
     // store
     case rewardsStore
     case collectedRewards
-    case rewardsStoreDebug /*View de Teste*/
 }
 
 enum Sheet: Identifiable {
@@ -34,13 +33,14 @@ enum Sheet: Identifiable {
     }
 }
 
+@MainActor
 class Coordinator: ObservableObject {
     
     @Published var path = NavigationPath()
     @Published var sheet: Sheet?
     
     let rewardsStore = RewardsStore()
-    var kid = Kid.sample
+//    var kid = Kid.sample
     
     func push(_ page: Page){
         path.append(page)
@@ -83,8 +83,6 @@ class Coordinator: ObservableObject {
             RewardsStoreView(store: self.rewardsStore)
         case .collectedRewards:
             CollectedRewardsView(store: self.rewardsStore)
-        case .rewardsStoreDebug:
-            RewardsTestDebugView()
         }
     }
     

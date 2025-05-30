@@ -304,10 +304,8 @@ struct ActivityRowView: View {
     
     private var statusIcon: String {
         switch activityRegister.registerStatus {
-        case .notStarted:
+        case .notCompleted:
             return "clock"
-        case .inProgress:
-            return "play.circle"
         case .completed:
             return "checkmark.circle.fill"
         }
@@ -315,10 +313,8 @@ struct ActivityRowView: View {
     
     private var statusColor: Color {
         switch activityRegister.registerStatus {
-        case .notStarted:
+        case .notCompleted:
             return .green
-        case .inProgress:
-            return .yellow
         case .completed:
             return .gray
         }
@@ -380,10 +376,8 @@ struct ActivityRowView: View {
 extension RegisterStatus {
     var displayName: String {
         switch self {
-        case .notStarted:
+        case .notCompleted:
             return "Agendada"
-        case .inProgress:
-            return "Em Progresso"
         case .completed:
             return "Concluída"
         }
