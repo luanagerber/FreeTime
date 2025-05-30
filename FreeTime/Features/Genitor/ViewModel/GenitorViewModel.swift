@@ -301,7 +301,7 @@ class GenitorViewModel: ObservableObject {
             activityID: activity.id, // Agora activity.id é Int
             date: scheduledDate,
             duration: duration,
-            registerStatus: .notStarted
+            registerStatus: .notCompleted
         )
         
         cloudService.saveActivity(activityRegister) { [weak self] result in

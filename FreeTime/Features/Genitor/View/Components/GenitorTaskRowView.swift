@@ -12,7 +12,7 @@ struct GenitorTaskRowView: View {
     
     private var statusColor: Color {
         switch record.registerStatus {
-        case .notStarted:
+        case .notCompleted:
             return .blue
         case .inProgress:
             return .orange
@@ -23,7 +23,7 @@ struct GenitorTaskRowView: View {
     
     private var statusIcon: String {
         switch record.registerStatus {
-        case .notStarted:
+        case .notCompleted:
             return "clock"
         case .inProgress:
             return "play.circle"
@@ -34,7 +34,7 @@ struct GenitorTaskRowView: View {
     
     private var statusDisplayName: String {
         switch record.registerStatus {
-        case .notStarted:
+        case .notCompleted:
             return "Agendada"
         case .inProgress:
             return "Em Progresso"

@@ -15,14 +15,14 @@ extension ActivitiesRegister {
             activityID: Activity.catalog[0].id,
             date: Date(), // agora
             duration: 3600, // 1 hora
-            registerStatus: .notStarted
+            registerStatus: .notCompleted
         ),
         ActivitiesRegister(
             kid: Kid.sample,
             activityID: Activity.catalog[1].id,
             date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(), //ontem
             duration: 5400, // 1h30min
-            registerStatus: .notStarted
+            registerStatus: .notCompleted
         ),
         ActivitiesRegister(
             kid: Kid.sample,

@@ -447,7 +447,7 @@ extension KidViewModel {
                     return
                 }
                 
-                let newStatus: RegisterStatus = activity.registerStatus == .completed ? .notStarted : .completed
+                let newStatus: RegisterStatus = activity.registerStatus == .completed ? .notCompleted : .completed
                 let coinsToAdd = activity.activity?.rewardPoints ?? 0
                 
                 // Update locally first
@@ -585,7 +585,7 @@ extension KidViewModel {
     }
     
     func notStartedRegister() -> [ActivitiesRegister] {
-        let result = registerForToday().filter { $0.registerStatus == .notStarted }
+        let result = registerForToday().filter { $0.registerStatus == .notCompleted }
         print("🔍 DEBUG: notStartedRegister retornando \(result.count) atividades")
         return result
     }

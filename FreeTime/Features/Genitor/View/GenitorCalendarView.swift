@@ -175,7 +175,7 @@ struct GenitorCalendarView: View {
             // CORREÇÃO: Filtrar atividades do dia selecionado, não apenas "hoje"
             let tasksNotStarted = viewModel.records.filter { register in
                 Calendar.current.isDate(register.date, inSameDayAs: viewModel.currentDate) &&
-                register.registerStatus == .notStarted
+                register.registerStatus == .notCompleted
             }.sorted(by: { $0.date < $1.date})
             
             let tasksCompleted = viewModel.records.filter{ register in

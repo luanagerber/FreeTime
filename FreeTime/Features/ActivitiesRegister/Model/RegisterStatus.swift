@@ -10,14 +10,12 @@ import SwiftUI
 
 // @ Alterado para integrar o CloudKit
 enum RegisterStatus: Int {
-    case notStarted = 0
-    case inProgress = 1
+    case notCompleted = 0
     case completed = 2
     
     var color: Color {
         switch self {
-            case .notStarted: return .green.opacity(0.3)
-            case .inProgress: return .yellow
+            case .notCompleted: return .green.opacity(0.3)
             case .completed: return .gray.opacity(0.3)
         }
     }
