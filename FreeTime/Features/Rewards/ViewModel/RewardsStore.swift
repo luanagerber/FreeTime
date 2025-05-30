@@ -9,6 +9,7 @@ import SwiftUI
 import Foundation
 import CloudKit
 
+@MainActor
 class RewardsStore: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String = ""
@@ -50,7 +51,7 @@ class RewardsStore: ObservableObject {
         try buyReward(reward)
     }
     
-    @MainActor private func loadFromUserManager() {
+    func loadFromUserManager() {
         let userManager = UserManager.shared
         
         if let kidID = userManager.currentKidID {
@@ -100,20 +101,20 @@ extension RewardsStore {
     }
     
     func loadKidData() {
-        guard let kidID = currentKidID else {
-            print("RewardsStore: loadKidData - Nenhum kidID definido")
-            return
+            guard let kidID = currentKidID else {
+                print("RewardsStore: loadKidData - Nenhum kidID definido")
+                return
+            }
+            
+            print("RewardsStore: Carregando dados do kid: \(kidID.recordName)")
+            isLoading = true
+            
+            // Atualiza o CoinManager com o kid atual
+            CoinManager.shared.setCurrentKid(kidID)
+            
+            // Carrega apenas as recompensas coletadas
+            loadCollectedRewards()
         }
-        
-        print("RewardsStore: Carregando dados do kid: \(kidID.recordName)")
-        isLoading = true
-        
-        // Atualiza o CoinManager com o kid atual
-        CoinManager.shared.setCurrentKid(kidID)
-        
-        // Carrega apenas as recompensas coletadas
-        loadCollectedRewards()
-    }
     
     private func loadSharedKidData() {
         guard let kidID = currentKidID else {

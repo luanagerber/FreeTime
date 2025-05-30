@@ -14,6 +14,7 @@ enum UserRole: String {
     case undefined = "undefined"
 }
 
+@MainActor
 class UserManager: ObservableObject {
     static let shared = UserManager()
     
@@ -131,7 +132,7 @@ class UserManager: ObservableObject {
         self.currentKidName = name
         
         // Notifica o CoinManager sobre a mudança
-        if let kidID = kid.id {
+        if let kidID = currentKidID {
             CoinManager.shared.setCurrentKid(kidID)
         }
         

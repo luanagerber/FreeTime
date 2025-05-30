@@ -33,6 +33,7 @@ enum Sheet: Identifiable {
     }
 }
 
+@MainActor
 class Coordinator: ObservableObject {
     
     @Published var path = NavigationPath()
