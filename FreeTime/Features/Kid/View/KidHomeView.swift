@@ -128,7 +128,7 @@ struct KidHomeView: View {
     }
     
     private var ActivitiesView: some View {
-        let notStarted = vmKid.notStartedRegister()
+        let notStarted = vmKid.notCompletedRegister()
         let completed = vmKid.completedRegister()
         let allActivities = notStarted + completed
         

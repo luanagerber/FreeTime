@@ -14,8 +14,6 @@ struct GenitorTaskRowView: View {
         switch record.registerStatus {
         case .notCompleted:
             return .blue
-        case .inProgress:
-            return .orange
         case .completed:
             return .green
         }
@@ -25,8 +23,6 @@ struct GenitorTaskRowView: View {
         switch record.registerStatus {
         case .notCompleted:
             return "clock"
-        case .inProgress:
-            return "play.circle"
         case .completed:
             return "checkmark.circle.fill"
         }
@@ -36,8 +32,6 @@ struct GenitorTaskRowView: View {
         switch record.registerStatus {
         case .notCompleted:
             return "Agendada"
-        case .inProgress:
-            return "Em Progresso"
         case .completed:
             return "Concluída"
         }

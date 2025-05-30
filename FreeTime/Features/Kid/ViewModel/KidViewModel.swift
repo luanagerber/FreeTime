@@ -415,8 +415,7 @@ extension KidViewModel {
         
         print("📊 Total de atividades carregadas: \(activities.count)")
         print("📊 Atividades de hoje: \(todayActivities.count)")
-        print("📊 Atividades não iniciadas hoje: \(notStartedRegister().count)")
-        print("📊 Atividades em progresso hoje: \(inProgressRegister().count)")
+        print("📊 Atividades não iniciadas hoje: \(notCompletedRegister().count)")
         print("📊 Atividades concluídas hoje: \(completedRegister().count)")
     }
     
@@ -584,9 +583,9 @@ extension KidViewModel {
         return result
     }
     
-    func notStartedRegister() -> [ActivitiesRegister] {
+    func notCompletedRegister() -> [ActivitiesRegister] {
         let result = registerForToday().filter { $0.registerStatus == .notCompleted }
-        print("🔍 DEBUG: notStartedRegister retornando \(result.count) atividades")
+        print("🔍 DEBUG: notCompletedRegister retornando \(result.count) atividades")
         return result
     }
     
@@ -595,12 +594,7 @@ extension KidViewModel {
         print("🔍 DEBUG: completedRegister retornando \(result.count) atividades")
         return result
     }
-    
-    func inProgressRegister() -> [ActivitiesRegister] {
-        let result = registerForToday().filter { $0.registerStatus == .inProgress }
-        print("🔍 DEBUG: inProgressRegister retornando \(result.count) atividades")
-        return result
-    }
+
 }
 
 // MARK: - Invitation Management

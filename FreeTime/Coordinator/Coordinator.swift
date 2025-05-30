@@ -40,7 +40,7 @@ class Coordinator: ObservableObject {
     @Published var sheet: Sheet?
     
     let rewardsStore = RewardsStore()
-    var kid = Kid.sample
+//    var kid = Kid.sample
     
     func push(_ page: Page){
         path.append(page)
