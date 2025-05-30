@@ -26,7 +26,7 @@ extension Activity {
             imageNameKid: "imageBookKid",
             tags: [.mentalExercise, .study],
             description: "Ajude seu filho a escolher um livro que ele goste. Separe um lugar tranquilo e confortável. Se puder, leia junto com ele para tornar o momento mais especial.",
-            kidDescription: "Vamos fazer um vulcão que explode! Prepare-se para a diversão científica!",
+            kidDescription: "Escolha um livro que você goste ou tenha curiosidade de conhecer. Para isso encontre um cantinho tranquilo e leia com calma, prestando atenção na história e nos personagens.",
             necessaryMaterials: ["Livro"],
             rewardPoints: 20
         ),
