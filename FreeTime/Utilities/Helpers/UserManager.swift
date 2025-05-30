@@ -110,6 +110,15 @@ class UserManager: ObservableObject {
         self.userRole = .genitor
         self.currentKidID = kidID
         self.currentKidName = kid.name
+        
+        // Notifica o CoinManager sobre a mudança
+        if let kidID = kid.id {
+            CoinManager.shared.setCurrentKid(kidID)
+        }
+        
+        // Notifica outros observadores
+        NotificationCenter.default.post(name: .kidChanged, object: nil)
+        
     }
     
     func setAsParent(withKidID kidID: CKRecord.ID, name: String) {
@@ -120,6 +129,15 @@ class UserManager: ObservableObject {
         self.userRole = .genitor
         self.currentKidID = kidID
         self.currentKidName = name
+        
+        // Notifica o CoinManager sobre a mudança
+        if let kidID = kid.id {
+            CoinManager.shared.setCurrentKid(kidID)
+        }
+        
+        // Notifica outros observadores
+        NotificationCenter.default.post(name: .kidChanged, object: nil)
+        
     }
     
     // MARK: - Child Methods
@@ -136,6 +154,13 @@ class UserManager: ObservableObject {
         
         // Também salva no CloudService para compatibilidade
         CloudService.shared.saveRootRecordID(kidID)
+        
+        // Notifica o CoinManager
+        CoinManager.shared.setCurrentKid(kidID)
+        
+        // Notifica outros observadores
+        NotificationCenter.default.post(name: .kidChanged, object: nil)
+        
     }
     
     func setAsChild(withKid kid: Kid) {
@@ -154,6 +179,13 @@ class UserManager: ObservableObject {
         self.currentKidName = kid.name
         
         CloudService.shared.saveRootRecordID(kidID)
+        
+        // Notifica o CoinManager
+        CoinManager.shared.setCurrentKid(kidID)
+        
+        // Notifica outros observadores
+        NotificationCenter.default.post(name: .kidChanged, object: nil)
+        
     }
     
     // MARK: - Helper Methods

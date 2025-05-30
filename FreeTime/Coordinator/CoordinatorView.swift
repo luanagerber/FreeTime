@@ -12,6 +12,9 @@ struct CoordinatorView: View {
     @StateObject var coordinator = Coordinator()
     @StateObject private var invitationManager = InvitationStatusManager.shared
     @StateObject private var launchManager = FirstLaunchManager.shared
+
+    @StateObject private var coinManager = CoinManager.shared
+
     
     var body: some View {
         NavigationStack(path: $coordinator.path) {
@@ -29,6 +32,7 @@ struct CoordinatorView: View {
         .environmentObject(coordinator)
         .environmentObject(invitationManager)
         .environmentObject(launchManager)
+        .environmentObject(coinManager)
     }
     
     private var initialPage: Page {

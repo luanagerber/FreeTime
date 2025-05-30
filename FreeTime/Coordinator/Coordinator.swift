@@ -20,7 +20,6 @@ enum Page: Hashable {
     // store
     case rewardsStore
     case collectedRewards
-    case rewardsStoreDebug /*View de Teste*/
 }
 
 enum Sheet: Identifiable {
@@ -83,8 +82,6 @@ class Coordinator: ObservableObject {
             RewardsStoreView(store: self.rewardsStore)
         case .collectedRewards:
             CollectedRewardsView(store: self.rewardsStore)
-        case .rewardsStoreDebug:
-            RewardsTestDebugView()
         }
     }
     
