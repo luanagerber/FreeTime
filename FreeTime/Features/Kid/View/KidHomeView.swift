@@ -53,21 +53,21 @@ struct KidHomeView: View {
             Text(vmKid.errorMessage)
         }
         .overlay {
-            if vmKid.isLoading {
-                ZStack {
-                    Color(.backgroundHeaderYellowKid)
-                        .ignoresSafeArea()
-                    VStack(spacing: 16) {
-                        ProgressView("Carregando...")
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            .foregroundColor(.white)
-                            .font(.title)
-                            .fontWeight(.bold)
-                    }
-                }
-                .transition(.opacity)
-                .zIndex(2)
-            }
+//            if vmKid.isLoading {
+//                ZStack {
+//                    Color(.backgroundHeaderYellowKid)
+//                        .ignoresSafeArea()
+//                    VStack(spacing: 16) {
+//                        ProgressView("Carregando...")
+//                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+//                            .foregroundColor(.white)
+//                            .font(.title)
+//                            .fontWeight(.bold)
+//                    }
+//                }
+//                .transition(.opacity)
+//                .zIndex(2)
+//            }
         }
         .overlay{
             if showPopUp {
