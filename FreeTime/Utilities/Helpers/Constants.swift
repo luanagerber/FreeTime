@@ -11,6 +11,7 @@ struct Constants {
     struct UI{
         static let cardCornerRadius: CGFloat = 20
         static let circleSize: CGFloat = 40
+        static let tabBarHeight: CGFloat = 90
         
         struct Colors{
             // colors

@@ -19,8 +19,15 @@ struct GenitorHomeView: View {
                 switch currentTab {
                 case .activities:
                     GenitorCalendarView()
+                        .safeAreaInset(edge: .bottom, spacing: 0) {
+                            Color.clear.frame(height: Constants.UI.tabBarHeight)
+                        }
+                    
                 case .rewards:
                     GenitorRewardsView()
+                        .safeAreaInset(edge: .bottom, spacing: 0) {
+                            Color.clear.frame(height: Constants.UI.tabBarHeight)
+                        }
                 }
                 
                 VStack {
@@ -61,7 +68,7 @@ struct GenitorHomeView: View {
             
             TabBarItem(icon: "cart", tab: .rewards)
         }
-        .padding(.vertical, 19)
+        .padding(.vertical, 20)
         .padding(.horizontal, 24)
         .background(Color.white)
         .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: -2)
@@ -78,7 +85,7 @@ struct GenitorHomeView: View {
             Capsule()
                 .fill(currentTab == tab ? Color("primaryColor") : Color.clear)
                 .frame(width: UIScreen.main.bounds.width*0.06, height: UIScreen.main.bounds.height*0.004)
-                
+            
         }
         .frame(maxWidth: .infinity)
         .contentShape(Rectangle()) // permite clicar em toda a área

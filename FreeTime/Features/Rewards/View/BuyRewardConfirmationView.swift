@@ -118,7 +118,7 @@ struct BuyRewardConfirmationView: View {
                 coordinator.dismissSheet()
             } catch RewardsStoreError.notEnoughCoins{
                 
-                store.setHeaderMessage("Ops! Você ainda não tem moedinhas suficientes para comprar essa recompensa..", color: .red)
+                store.setHeaderMessage("Ops! Você ainda não tem moedinhas suficientes para comprar essa recompensa..", color: .errorMessage)
                 coordinator.dismissSheet()
             } catch {
                 coordinator.dismissSheet()

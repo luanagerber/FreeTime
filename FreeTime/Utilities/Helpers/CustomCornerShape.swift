@@ -10,6 +10,7 @@ import SwiftUI
 struct CustomCornerShape: Shape {
     var radius: CGFloat // O raio do arredondamento
     var corners: UIRectCorner // Os cantos a serem arredondados
+    var border: Bool?
 
     // Esta função define o caminho da forma dentro de um retângulo específico.
     func path(in rect: CGRect) -> Path {
