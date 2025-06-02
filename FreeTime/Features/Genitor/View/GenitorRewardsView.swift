@@ -5,6 +5,7 @@
 //  Created by Thales Araújo on 22/05/25.
 //
 
+
 import SwiftUI
 
 struct GenitorRewardsView: View {
@@ -14,18 +15,19 @@ struct GenitorRewardsView: View {
     
     var body: some View {
         VStack() {
+            // Debug
+            let _ = print("🎁 GenitorRewardsView - Rewards count: \(viewModel.rewards.count)")
+            let _ = print("🎁 GenitorRewardsView - Is loading: \(viewModel.isLoading)")
+            let _ = print("🎁 GenitorRewardsView - First kid: \(viewModel.firstKid?.name ?? "nil")")
             
             HeaderView()
-            
             RewardsView()
-            
         }
         .vSpacing(.top)
         .onAppear {
-            // Carrega dados apenas uma vez quando a view aparece
             if !hasLoadedInitialData {
                 viewModel.setupCloudKit()
-                loadRewards()
+                viewModel.loadRewardsFromKid()
                 viewModel.setupCoinManager()
                 hasLoadedInitialData = true
             }
@@ -36,6 +38,21 @@ struct GenitorRewardsView: View {
         .background(Color("backgroundGenitor"))
     }
     
+    private func saveRewardUpdate(_ reward: CollectedReward) {
+        viewModel.toggleRewardDeliveryStatus(reward)
+    }
+    
+    @MainActor
+    private func refreshData() async {
+        await withCheckedContinuation { continuation in
+            viewModel.loadRewardsFromKid()
+            viewModel.setupCoinManager()
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                continuation.resume()
+            }
+        }
+    }
     
     @ViewBuilder
     func HeaderView() -> some View {
@@ -135,10 +152,16 @@ struct GenitorRewardsView: View {
                                 .padding(.top, 2)
                                 .padding(.bottom, 4)
                             
-                            ForEach(viewModel.rewards.indices, id: \.self) { index in
-                                let reward = viewModel.rewards[index]
-                                if Calendar.current.isDate(reward.dateCollected, inSameDayAs: group.date) {
-                                    GenitorRewardsRowView(reward: $viewModel.rewards[index])
+                            // ✅ CORREÇÃO: Usar as recompensas do grupo diretamente
+                            ForEach(group.rewards.indices, id: \.self) { index in
+                                let reward = group.rewards[index]
+                                
+                                // Encontrar o índice no array principal para binding
+                                if let mainIndex = viewModel.rewards.firstIndex(where: {
+                                    $0.rewardID == reward.rewardID &&
+                                    $0.dateCollected == reward.dateCollected
+                                }) {
+                                    GenitorRewardsRowView(reward: $viewModel.rewards[mainIndex])
                                         .onTapGesture {
                                             saveRewardUpdate(reward)
                                         }
@@ -180,33 +203,6 @@ struct GenitorRewardsView: View {
                     print("Erro ao carregar recompensas: \(error)")
                     viewModel.rewards = []
                 }
-            }
-        }
-    }
-    
-    @MainActor
-    private func refreshData() async {
-        // Usar Task para executar de forma assíncrona
-        await withCheckedContinuation { continuation in
-            loadRewards()
-            viewModel.setupCoinManager()
-            
-            // Aguardar um pouco para garantir que as operações foram iniciadas
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                continuation.resume()
-            }
-        }
-    }
-    
-    private func saveRewardUpdate(_ reward: CollectedReward) {
-        CloudService.shared.updateCollectedReward(reward, isShared: false) { result in
-            switch result {
-            case .success:
-                print("Recompensa atualizada com sucesso")
-                // Recarregar as moedas após atualizar o status de entrega
-                viewModel.setupCoinManager()
-            case .failure(let error):
-                print("Erro ao atualizar recompensa: \(error)")
             }
         }
     }
