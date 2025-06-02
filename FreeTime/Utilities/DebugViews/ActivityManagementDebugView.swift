@@ -80,7 +80,7 @@ struct ActivityManagementDebugView: View {
             .foregroundColor(.red)
             
             Button("🔍 Debug Banco Compartilhado") {
-                viewModel.debugSharedDatabase()
+//                viewModel.debugSharedDatabase()
             }
             .padding()
             .background(Color.blue.opacity(0.1))
