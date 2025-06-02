@@ -29,6 +29,7 @@ class GenitorViewModel: ObservableObject {
     @Published var sharingSheet = false
     @Published var shareView: AnyView?
     @Published var zoneReady = false
+    @Published var refreshFailed = false
     
     // MARK: - Kid Properties
     
@@ -196,6 +197,7 @@ class GenitorViewModel: ObservableObject {
             switch result {
             case .success(let fetchedKids):
                 self.kids = fetchedKids
+                self.refreshFailed = false
                 
                 if let selectedKid = self.selectedKid,
                    let kidID = selectedKid.id?.recordName,
@@ -211,6 +213,7 @@ class GenitorViewModel: ObservableObject {
             case .failure(let error):
                 self.isLoading = false
                 self.feedbackMessage = "❌ Erro ao carregar crianças: \(error)"
+                self.refreshFailed = true
             }
         }
     }
