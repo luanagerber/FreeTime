@@ -62,6 +62,7 @@ struct RewardsStoreView: View {
             }
             .scrollTargetLayout()
             .padding(.trailing, 36)
+            .padding(.bottom, 20)
         }
         .scrollTargetBehavior(.viewAligned)
         .scrollIndicators(.hidden)
