@@ -488,7 +488,9 @@ extension KidViewModel {
                                let index = self?.activities.firstIndex(where: { $0.id == activityID }) {
                                 self?.activities[index] = updatedActivity
                             }
+                        
                         }
+                        
                     } catch {
                         DispatchQueue.main.async { [weak self] in
                             self?.isLoading = false

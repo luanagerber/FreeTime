@@ -53,21 +53,21 @@ struct KidHomeView: View {
             Text(vmKid.errorMessage)
         }
         .overlay {
-            if vmKid.isLoading {
-                ZStack {
-                    Color(.backgroundHeaderYellowKid)
-                        .ignoresSafeArea()
-                    VStack(spacing: 16) {
-                        ProgressView("Carregando...")
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            .foregroundColor(.white)
-                            .font(.title)
-                            .fontWeight(.bold)
-                    }
-                }
-                .transition(.opacity)
-                .zIndex(2)
-            }
+//            if vmKid.isLoading {
+//                ZStack {
+//                    Color(.backgroundHeaderYellowKid)
+//                        .ignoresSafeArea()
+//                    VStack(spacing: 16) {
+//                        ProgressView("Carregando...")
+//                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+//                            .foregroundColor(.white)
+//                            .font(.title)
+//                            .fontWeight(.bold)
+//                    }
+//                }
+//                .transition(.opacity)
+//                .zIndex(2)
+//            }
         }
         .overlay{
             if showPopUp {
@@ -100,8 +100,8 @@ struct KidHomeView: View {
                     }
                     Spacer()
                     HStack(spacing: 39) {
-                        NavButton(page: .kidHome, icon: .iActivity)
-                        NavButton(page: .rewardsStore, icon: .iStore)
+                        NavButton(page: .kidHome)
+                        NavButton(page: .rewardsStore)
                     }
                     .padding(.bottom, 15)
                     .ignoresSafeArea()
@@ -207,15 +207,18 @@ struct KidHomeView: View {
     }
     
     
-    private func NavButton(page: Page, icon: ImageResource) -> some View {
+    private func NavButton(page: Page) -> some View {
         let isSelected = currentPage == page
         return Button {
             currentPage = page
         } label: {
             VStack {
-                Image(icon)
-                    .frame(width: 137, height: 146)
+                NavBarView(isSelected: isSelected, page: page)
+                    //.frame(width: 137, height: 146)
+                    .frame(width: 137, height: 136)
+                    .frame(maxHeight: .infinity)
                     .opacity(isSelected ? 1 : 0.5)
+                    .padding(.top, 9)
             }
         }
         .disabled(isSelected)

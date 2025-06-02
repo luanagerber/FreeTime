@@ -73,13 +73,7 @@ struct KidManagementDebugView: View {
             .background(Color.red.opacity(0.2))
             .cornerRadius(8)
             .foregroundColor(.red)
-            
-            Button("🔍 Debug Banco Compartilhado") {
-                viewModel.debugSharedDatabase()
-            }
-            .padding()
-            .background(Color.blue.opacity(0.1))
-            .cornerRadius(8)
+        
         }
     }
     
