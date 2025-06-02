@@ -12,8 +12,6 @@ struct GenitorHomeView: View {
     @State private var currentTab: TabSelection = .activities
     @StateObject var viewModel = GenitorViewModel.shared
     
-    let tabBarHeight: CGFloat = 90
-    
     var body: some View {
         ZStack {
             // Conteúdo principal
@@ -22,13 +20,13 @@ struct GenitorHomeView: View {
                 case .activities:
                     GenitorCalendarView()
                         .safeAreaInset(edge: .bottom, spacing: 0) {
-                            Color.clear.frame(height: tabBarHeight)
+                            Color.clear.frame(height: Constants.UI.tabBarHeight)
                         }
                     
                 case .rewards:
                     GenitorRewardsView()
                         .safeAreaInset(edge: .bottom, spacing: 0) {
-                            Color.clear.frame(height: tabBarHeight)
+                            Color.clear.frame(height: Constants.UI.tabBarHeight)
                         }
                 }
                 
