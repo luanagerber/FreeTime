@@ -28,6 +28,7 @@ class GenitorViewModel: ObservableObject {
     @Published var sharingSheet = false
     @Published var shareView: AnyView?
     @Published var zoneReady = false
+    @Published var refreshFailed: Bool = false
     
     // MARK: - Activity scheduling properties
     @Published var showActivitySelector = false
@@ -66,14 +67,14 @@ class GenitorViewModel: ObservableObject {
     // MARK: - Private Properties
     private let cloudService = CloudService.shared
     private let container = CKContainer(identifier: CloudConfig.containerIdentifier)
+
     
     // MARK: - CloudKit Setup & Initialization
-    
     func setupCloudKit() {
         feedbackMessage = "Configurando CloudKit..."
         isLoading = true
         
-        Task {
+              Task {
             do {
                 try await cloudService.createZoneIfNeeded()
                 print("✅ Zona Kids criada ou verificada")
@@ -83,7 +84,6 @@ class GenitorViewModel: ObservableObject {
                 loadKids()
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    self.debugKidRecord()
                     self.loadRewardsFromKid()
                     }
                 } catch {
@@ -190,11 +190,13 @@ class GenitorViewModel: ObservableObject {
             
             switch result {
             case .success(let fetchedKids):
+                self.refreshFailed = false
                 self.kids = fetchedKids
                 self.isLoading = false
                 self.feedbackMessage = "✅ Dados atualizados"
                 
             case .failure(let error):
+                self.refreshFailed = true
                 self.isLoading = false
                 self.feedbackMessage = "❌ Erro ao carregar crianças: \(error)"
             }
@@ -208,7 +210,6 @@ class GenitorViewModel: ObservableObject {
     }
     
     // MARK: - Sharing Operations
-    
     func shareKid(_ kid: Kid) {
         isLoading = true
         feedbackMessage = "Gerando link de compartilhamento para \(kid.name)..."
@@ -340,132 +341,9 @@ class GenitorViewModel: ObservableObject {
         UserManager.shared.reset()
         feedbackMessage = "✅ App resetado completamente!"
     }
-    
-    // MARK: - Debug Operations
-    
-    func debugKidRecord() {
-        guard let kid = firstKid,
-              let record = kid.associatedRecord else {
-            print("❌ Debug: Sem kid ou registro")
-            return
-        }
-        
-        print("🔍 Debug Kid Record:")
-        print("  - Nome: \(kid.name)")
-        print("  - ID: \(record.recordID.recordName)")
-        print("  - Pending Rewards: \(record["pendingRewards"] ?? "nil")")
-        print("  - Delivered Rewards: \(record["deliveredRewards"] ?? "nil")")
-        print("  - Todos os campos: \(record.allKeys())")
-    }
-    
-    func debugSharedDatabase() {
-        Task {
-            await performDebugSharedDatabase()
-            await performDebugSharedFromParent()
-        }
-    }
-    
-    private func performDebugSharedDatabase() async {
-        print("🔍 PAI: Verificando banco compartilhado...")
-        
-        do {
-            let zones = try await sharedDB.allRecordZones()
-            print("🔍 PAI: Zonas no banco compartilhado: \(zones.map { $0.zoneID.zoneName })")
-            
-            for zone in zones {
-                let query = CKQuery(recordType: RecordType.activity.rawValue, predicate: NSPredicate(value: true))
-                let (results, _) = try await sharedDB.records(matching: query, inZoneWith: zone.zoneID)
-                print("🔍 PAI: ScheduledActivity na zona \(zone.zoneID.zoneName): \(results.count)")
-                
-                for (id, result) in results {
-                    switch result {
-                    case .success(let record):
-                        print("🔍 PAI: Atividade encontrada: \(id.recordName)")
-                        print("  - kidID: \(record["kidID"] ?? "nil")")
-                        print("  - activityID: \(record["activityID"] ?? "nil")")
-                        print("  - status: \(record["status"] ?? "nil")")
-                    case .failure(let error):
-                        print("🔍 PAI: Erro: \(error)")
-                    }
-                }
-            }
-        } catch {
-            print("🔍 PAI: Erro ao verificar: \(error)")
-        }
-    }
-    
-    private func performDebugSharedFromParent() async {
-        print("🔍 PAI: Verificando banco compartilhado do lado do pai...")
-        
-        do {
-            let zones = try await sharedDB.allRecordZones()
-            print("🔍 PAI: Zonas compartilhadas: \(zones.map { $0.zoneID.zoneName })")
-            
-            for zone in zones {
-                for recordType in ["Kid", "ScheduledActivity"] {
-                    let query = CKQuery(recordType: recordType, predicate: NSPredicate(value: true))
-                    let (results, _) = try await sharedDB.records(matching: query, inZoneWith: zone.zoneID)
-                    print("🔍 PAI: \(recordType) na zona \(zone.zoneID.zoneName): \(results.count)")
-                }
-            }
-        } catch {
-            print("🔍 PAI: Erro: \(error)")
-        }
-    }
-    
-    private func verifyActivityInSharedDatabase(_ activity: ActivitiesRegister, kid: Kid) async {
-        print("🔍 VERIFICAÇÃO: Atividade deveria estar no banco compartilhado agora...")
-        
-        do {
-            let query = CKQuery(recordType: RecordType.activity.rawValue, predicate: NSPredicate(value: true))
-            let zones = try await sharedDB.allRecordZones()
-            
-            for zone in zones {
-                let (results, _) = try await sharedDB.records(matching: query, inZoneWith: zone.zoneID)
-                print("🔍 VERIFICAÇÃO: Zona \(zone.zoneID.zoneName): \(results.count) atividades")
-            }
-        } catch {
-            print("🔍 VERIFICAÇÃO: Erro: \(error)")
-        }
-    }
 }
 
-// MARK: - Computed Properties Extension
-extension GenitorViewModel {
-    
-    var hasKids: Bool {
-        !kids.isEmpty
-    }
-    
-    var firstKid: Kid? {
-        kids.first
-    }
-    
-    var canAddChild: Bool {
-        !childName.isEmpty && !isLoading && zoneReady
-    }
-    
-    var canShareKid: Bool {
-        !isLoading && firstKid != nil
-    }
-    
-    func clearChildName() {
-        childName = ""
-    }
-    
-    func checkShareState(for invitationStatus: InvitationStatus) -> Bool {
-        return invitationStatus == .sent
-    }
-    
-    func shouldShowShareButton(hasSharedSuccessfully: Bool) -> Bool {
-        return hasKids && !hasSharedSuccessfully
-    }
-    
-    func shouldShowShareConfirmation(hasSharedSuccessfully: Bool) -> Bool {
-        return hasKids && hasSharedSuccessfully
-    }
-}
-
+// MARK: REWARDS FUNCTIONS
 extension GenitorViewModel {
         
         func loadRewardsFromKid() {
@@ -610,5 +488,42 @@ extension GenitorViewModel {
                 print("❌ Erro ao atualizar status da recompensa: \(error)")
             }
         }
+    }
+}
+
+
+// MARK: - Computed Properties Extension
+extension GenitorViewModel {
+    
+    var hasKids: Bool {
+        !kids.isEmpty
+    }
+    
+    var firstKid: Kid? {
+        kids.first
+    }
+    
+    var canAddChild: Bool {
+        !childName.isEmpty && !isLoading && zoneReady
+    }
+    
+    var canShareKid: Bool {
+        !isLoading && firstKid != nil
+    }
+    
+    func clearChildName() {
+        childName = ""
+    }
+    
+    func checkShareState(for invitationStatus: InvitationStatus) -> Bool {
+        return invitationStatus == .sent
+    }
+    
+    func shouldShowShareButton(hasSharedSuccessfully: Bool) -> Bool {
+        return hasKids && !hasSharedSuccessfully
+    }
+    
+    func shouldShowShareConfirmation(hasSharedSuccessfully: Bool) -> Bool {
+        return hasKids && hasSharedSuccessfully
     }
 }
