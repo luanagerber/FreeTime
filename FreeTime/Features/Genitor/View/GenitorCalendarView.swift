@@ -53,9 +53,13 @@ struct GenitorCalendarView: View {
                     weekSlider.append(lastDate.createNextWeek())
                 }
             }
-            
-            // Carrega atividades inicialmente
-            loadActivitiesForCurrentDate()
+        }
+        // ✅ CORREÇÃO: Observar mudanças nos kids e carregar atividades automaticamente
+        .onReceive(viewModel.$kids) { kids in
+            if !kids.isEmpty && viewModel.records.isEmpty {
+                print("🔄 Kids carregados, agora carregando atividades...")
+                viewModel.loadAllActivitiesOnce()
+            }
         }
         .refreshable {
             viewModel.refresh()

@@ -9,7 +9,6 @@ import SwiftUI
 import CloudKit
 import Combine
 
-
 @MainActor
 class GenitorViewModel: ObservableObject {
     
@@ -20,7 +19,7 @@ class GenitorViewModel: ObservableObject {
     @Published var rewards: [CollectedReward] = []
     @Published var currentDate: Date = .init()
     @Published var childName = ""
-    @Published var kids: [Kid] = /*[Kid.sample]*/ []
+    @Published var kids: [Kid] = []
     @Published var selectedKid: Kid?
     @Published var isLoading = false
     @Published var isRefreshing = false
@@ -29,19 +28,17 @@ class GenitorViewModel: ObservableObject {
     @Published var sharingSheet = false
     @Published var shareView: AnyView?
     @Published var zoneReady = false
-    @Published var refreshFailed = false
-    
-    // MARK: - Kid Properties
-    
-    var kidCoins: Int {
-        CoinManager.shared.kidCoins
-    }
     
     // MARK: - Activity scheduling properties
     @Published var showActivitySelector = false
     @Published var selectedActivity: Activity?
     @Published var scheduledDate = Date()
     @Published var duration: TimeInterval = 3600 // 1 hour default
+    
+    // MARK: - Kid Properties
+    var kidCoins: Int {
+        CoinManager.shared.kidCoins
+    }
     
     var uniqueDates: [Date] {
         Array(Set(rewards.map { $0.dateCollected.startOfDay })).sorted(by: { $1 < $0})
@@ -67,16 +64,8 @@ class GenitorViewModel: ObservableObject {
     }
     
     // MARK: - Private Properties
-    
     private let cloudService = CloudService.shared
-    private let invitationManager = InvitationStatusManager.shared
     private let container = CKContainer(identifier: CloudConfig.containerIdentifier)
-    private var privateDB: CKDatabase {
-        container.privateCloudDatabase
-    }
-    private var sharedDB: CKDatabase {
-        container.sharedCloudDatabase
-    }
     
     // MARK: - CloudKit Setup & Initialization
     
@@ -202,23 +191,12 @@ class GenitorViewModel: ObservableObject {
             switch result {
             case .success(let fetchedKids):
                 self.kids = fetchedKids
-                self.refreshFailed = false
-                
-                if let selectedKid = self.selectedKid,
-                   let kidID = selectedKid.id?.recordName,
-                   !fetchedKids.isEmpty {
-                    self.loadSharedActivities(for: kidID)
-                } else {
-                    self.isLoading = false
-                    self.feedbackMessage = fetchedKids.isEmpty
-                    ? "Nenhuma criança encontrada no CloudKit"
-                    : "✅ Carregadas \(fetchedKids.count) crianças"
-                }
+                self.isLoading = false
+                self.feedbackMessage = "✅ Dados atualizados"
                 
             case .failure(let error):
                 self.isLoading = false
                 self.feedbackMessage = "❌ Erro ao carregar crianças: \(error)"
-                self.refreshFailed = true
             }
         }
     }
@@ -228,7 +206,6 @@ class GenitorViewModel: ObservableObject {
             CoinManager.shared.setCurrentKid(kidID)
         }
     }
-    
     
     // MARK: - Sharing Operations
     
@@ -260,35 +237,10 @@ class GenitorViewModel: ObservableObject {
         }
     }
     
-    private func updateSharing(for kid: Kid) async {
-        do {
-            try await cloudService.shareKid(kid) { result in
-                switch result {
-                case .success:
-                    print("✅ Re-compartilhamento bem-sucedido!")
-                case .failure(let error):
-                    print("❌ Erro no re-compartilhamento: \(error)")
-                }
-            }
-        } catch {
-            print("❌ Erro ao re-compartilhar: \(error)")
-        }
-    }
-    
-    private func createNewSharing(for kid: Kid) async {
-        do {
-            try await cloudService.shareKid(kid) { [weak self] result in
-                switch result {
-                case .success:
-                    print("✅ Compartilhamento criado após nova atividade")
-                    self?.refresh()
-                case .failure(let error):
-                    print("❌ Erro ao criar compartilhamento: \(error)")
-                }
-            }
-        } catch {
-            print("❌ Erro ao criar compartilhamento: \(error)")
-        }
+    func prepareKidSharing() {
+        guard let kid = firstKid else { return }
+        selectedKid = kid
+        shareKid(kid)
     }
     
     // MARK: - Activity Management Operations
@@ -306,7 +258,7 @@ class GenitorViewModel: ObservableObject {
         
         let activityRegister = ActivitiesRegister(
             kid: kid,
-            activityID: activity.id, // Agora activity.id é Int
+            activityID: activity.id,
             date: scheduledDate,
             duration: duration,
             registerStatus: .notCompleted
@@ -319,101 +271,54 @@ class GenitorViewModel: ObservableObject {
             
             switch result {
             case .success(let savedActivity):
-                self.handleActivitySaveSuccess(savedActivity, for: kid, activity: activity)
+                self.feedbackMessage = "✅ Atividade '\(activity.name)' agendada para \(kid.name)"
+                self.showActivitySelector = false
+                
+                // Adicionar imediatamente aos records
+                self.records.append(savedActivity)
+                
             case .failure(let error):
                 self.feedbackMessage = "❌ Erro ao agendar atividade: \(error)"
             }
         }
     }
     
-    private func handleActivitySaveSuccess(_ savedActivity: ActivitiesRegister, for kid: Kid, activity: Activity) {
-        feedbackMessage = "✅ Atividade '\(activity.name)' agendada para \(kid.name)"
-        showActivitySelector = false
-        
-        Task {
-            if let shareReference = kid.shareReference {
-                print("🔄 Forçando re-compartilhamento para incluir nova atividade...")
-                await updateSharing(for: kid)
-            } else {
-                print("Criança não tem compartilhamento ainda, criando...")
-                await createNewSharing(for: kid)
-            }
-            
-            // Debug verification after delay
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
-            await verifyActivityInSharedDatabase(savedActivity, kid: kid)
-        }
-    }
-    
-    private func loadSharedActivities(for kidID: String) {
-        cloudService.fetchSharedActivities(forKid: kidID) { [weak self] (result: Result<[ActivitiesRegister], CloudError>) in
-            guard let self = self else { return }
-            
-            self.isLoading = false
-            
-            switch result {
-            case .success(let sharedActivities):
-                if !sharedActivities.isEmpty {
-                    self.syncActivitiesWithPrivateDB(sharedActivities, kidID: kidID)
-                } else {
-                    self.feedbackMessage = "✅ Dados atualizados"
-                }
-            case .failure:
-                self.feedbackMessage = "✅ Dados atualizados"
-            }
-        }
-    }
-    
-    private func syncActivitiesWithPrivateDB(_ sharedActivities: [ActivitiesRegister], kidID: String) {
-        cloudService.fetchAllActivities(forKid: kidID) { [weak self] (result: Result<[ActivitiesRegister], CloudError>) in
-            guard let self = self else { return }
-            
-            switch result {
-            case .success(let privateActivities):
-                var activitiesToUpdate: [ActivitiesRegister] = []
-                
-                for sharedActivity in sharedActivities {
-                    if let privateVersion = privateActivities.first(where: { $0.activityID == sharedActivity.activityID }),
-                       privateVersion.registerStatus != sharedActivity.registerStatus {
-                        var updatedActivity = privateVersion
-                        updatedActivity.registerStatus = sharedActivity.registerStatus
-                        activitiesToUpdate.append(updatedActivity)
-                    }
-                }
-                
-                if !activitiesToUpdate.isEmpty {
-                    self.updatePrivateActivities(activitiesToUpdate)
-                } else {
-                    self.feedbackMessage = "✅ Dados atualizados - Tudo sincronizado"
-                }
-                
-            case .failure:
-                self.feedbackMessage = "✅ Dados atualizados, mas falha ao sincronizar atividades"
-            }
-        }
-    }
-    
-    private func updatePrivateActivities(_ activities: [ActivitiesRegister]) {
-        let dispatchGroup = DispatchGroup()
-        var updatedCount = 0
-        
-        for activity in activities {
-            dispatchGroup.enter()
-            
-            cloudService.updateActivity(activity, isShared: false) { result in
-                if case .success = result {
-                    updatedCount += 1
-                }
-                dispatchGroup.leave()
-            }
+    func loadAllActivitiesOnce() {
+        guard let kidID = firstKid?.id?.recordName else {
+            print("⚠️ Nenhum kid disponível para carregar atividades")
+            return
         }
         
-        dispatchGroup.notify(queue: .main) { [weak self] in
-            self?.feedbackMessage = "✅ Dados atualizados - \(updatedCount) atividades sincronizadas"
+        // Evita carregar múltiplas vezes
+        guard records.isEmpty || isRefreshing else {
+            print("🔄 Atividades já carregadas, pulando...")
+            return
+        }
+        
+        isLoading = true
+        feedbackMessage = "Carregando atividades..."
+        
+        CloudService.shared.fetchAllActivities(forKid: kidID) { [weak self] result in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                
+                self.isLoading = false
+                
+                switch result {
+                case .success(let activities):
+                    self.records = activities
+                    self.feedbackMessage = "✅ \(activities.count) atividades carregadas"
+                    print("🔍 LoadAllActivitiesOnce: Carregadas \(activities.count) atividades")
+                    
+                case .failure(let error):
+                    self.feedbackMessage = "❌ Erro ao carregar atividades: \(error)"
+                    print("❌ LoadAllActivitiesOnce: Erro - \(error)")
+                }
+            }
         }
     }
     
-    // MARK: - Utility & Reset Operations
+    // MARK: - Utility Operations
     
     func resetAllData() {
         // Clear UserDefaults
@@ -423,7 +328,7 @@ class GenitorViewModel: ObservableObject {
         UserDefaults.standard.removeObject(forKey: "invitationStatus")
         UserDefaults.standard.removeObject(forKey: "currentKidRecordName")
         UserDefaults.standard.removeObject(forKey: "currentKidName")
-        UserDefaults.standard.removeObject(forKey: "hasCompletedInitialSetup") // Nova linha
+        UserDefaults.standard.removeObject(forKey: "hasCompletedInitialSetup")
         UserDefaults.standard.synchronize()
         
         // Clear local data
@@ -431,7 +336,7 @@ class GenitorViewModel: ObservableObject {
         selectedKid = nil
         childName = ""
         InvitationStatusManager.shared.updateStatus(to: .pending)
-        FirstLaunchManager.shared.reset() // Nova linha
+        FirstLaunchManager.shared.reset()
         UserManager.shared.reset()
         feedbackMessage = "✅ App resetado completamente!"
     }
@@ -523,13 +428,10 @@ class GenitorViewModel: ObservableObject {
             print("🔍 VERIFICAÇÃO: Erro: \(error)")
         }
     }
-    
 }
 
-// MARK: - Kid Management Extension
+// MARK: - Computed Properties Extension
 extension GenitorViewModel {
-    
-    // MARK: - Computed Properties
     
     var hasKids: Bool {
         !kids.isEmpty
@@ -547,22 +449,11 @@ extension GenitorViewModel {
         !isLoading && firstKid != nil
     }
     
-    // MARK: - Kid Management Methods
-    
-    func prepareKidSharing() {
-        guard let kid = firstKid else { return }
-        selectedKid = kid
-        shareKid(kid)
-    }
-    
     func clearChildName() {
         childName = ""
     }
     
-    // MARK: - State Check Methods
-    
     func checkShareState(for invitationStatus: InvitationStatus) -> Bool {
-        // Verifica se já existe um compartilhamento com base no status do convite
         return invitationStatus == .sent
     }
     
@@ -572,17 +463,6 @@ extension GenitorViewModel {
     
     func shouldShowShareConfirmation(hasSharedSuccessfully: Bool) -> Bool {
         return hasKids && hasSharedSuccessfully
-    }
-    
-    // MARK: - Debug Info
-    
-    var debugInfo: [(label: String, value: String)] {
-        [
-            ("Zone Ready", zoneReady ? "Yes" : "No"),
-            ("Kids Count", "\(kids.count)"),
-            ("Is Loading", isLoading ? "Yes" : "No"),
-            ("Has Share View", shareView != nil ? "Yes" : "No")
-        ]
     }
 }
 
