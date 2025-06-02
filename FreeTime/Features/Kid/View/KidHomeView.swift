@@ -214,7 +214,6 @@ struct KidHomeView: View {
         } label: {
             VStack {
                 NavBarView(isSelected: isSelected, page: page)
-                    //.frame(width: 137, height: 146)
                     .frame(width: 137, height: 136)
                     .frame(maxHeight: .infinity)
                     .opacity(isSelected ? 1 : 0.5)
