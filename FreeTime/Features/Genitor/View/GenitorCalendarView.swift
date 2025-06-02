@@ -197,8 +197,10 @@ struct GenitorCalendarView: View {
             if viewModel.refreshFailed {
                 VStack (spacing: 5) {
                     Text("Algo deu errado")
-                        .font(.custom("SF Pro", size: 17, relativeTo: .headline))
-                        .fontWeight(.medium)
+                        //.font(.custom("SF Pro", size: 17, relativeTo: .headline))
+                        //.fontWeight(.medium)
+                        .font(.system(size: 17, weight: .medium))
+
                         .foregroundStyle(.text)
                     
                     Text("Não foi possível carregar os dados. \nTente novamente mais tarde")

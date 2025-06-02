@@ -29,6 +29,9 @@ class GenitorViewModel: ObservableObject {
     @Published var shareView: AnyView?
     @Published var zoneReady = false
     
+    /// MARK: caso dê erro na hora de recarregar
+    @Published var refreshFailed: Bool = false
+    
     // MARK: - Activity scheduling properties
     @Published var showActivitySelector = false
     @Published var selectedActivity: Activity?

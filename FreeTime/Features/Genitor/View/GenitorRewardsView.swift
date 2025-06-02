@@ -146,8 +146,9 @@ struct GenitorRewardsView: View {
                         VStack(alignment: .center, spacing: 10) {
                             
                             Text("Nenhuma recompensa registrada")
-                                .font(.custom("SF Pro", size: 17, relativeTo: .headline))
-                                .fontWeight(.medium)
+                                //.font(.custom("SF Pro", size: 17, relativeTo: .headline))
+                                //.fontWeight(.medium)
+                                .font(.system(size: 17, weight: .medium))
                                 .foregroundStyle(Color("primaryColor"))
                             
                             Text("Todas as recompensas resgatadas pela criança na lojinha serão exibidas aqui")

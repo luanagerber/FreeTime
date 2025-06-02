@@ -86,8 +86,9 @@ struct GenitorManagementView: View {
                 
                 VStack(alignment: .leading) {
                     Text("Criar perfil da criança")
-                        .font(.custom("SF Pro", size: 28, relativeTo: .title2))
-                        .fontWeight(.semibold)
+//                        .font(.custom("SF Pro", size: 28, relativeTo: .title2))
+//                        .fontWeight(.semibold)
+                        .font(.system(size: 28, weight: .semibold))
                         .foregroundStyle(Color("primaryColor"))
                         .padding(.bottom, 10)
                     
@@ -97,7 +98,8 @@ struct GenitorManagementView: View {
                         .padding(.bottom, 30)
                     
                     TextField("Nome da criança", text: $viewModel.childName)
-                        .font(.custom("SF Pro", size: 17, relativeTo: .body))
+                        //.font(.custom("SF Pro", size: 17, relativeTo: .body))
+                        .font(.system(size: 17, weight: .medium))
                     //                    .textFieldStyle(RoundedBorderTextFieldStyle())
                         .foregroundColor(Color("primaryColor").opacity(0.4))
                         .hSpacing(.leading)
@@ -117,8 +119,9 @@ struct GenitorManagementView: View {
                     HStack {
                         Text("Salvar")
                     }
-                    .font(.custom("SF Pro", size: 17, relativeTo: .body))
-                    .fontWeight(.bold)
+//                    .font(.custom("SF Pro", size: 17, relativeTo: .body))
+//                    .fontWeight(.bold)
+                    .font(.system(size: 17, weight: .bold))
                     .foregroundColor(viewModel.canAddChild
                                      ? Color("primaryColor")
                                      : Color("primaryColor").opacity(0.4)
@@ -160,8 +163,9 @@ struct GenitorManagementView: View {
                     .padding(.top, 80)
                 
                 Text("Enviar link de conexão")
-                    .font(.custom("SF Pro", size: 28, relativeTo: .title2))
-                    .fontWeight(.semibold)
+//                    .font(.custom("SF Pro", size: 28, relativeTo: .title2))
+//                    .fontWeight(.semibold)
+                    .font(.system(size: 28, weight: .semibold))
                     .foregroundStyle(Color("primaryColor"))
                     .padding(.bottom, 10)
                     .padding(.horizontal, 30)
@@ -191,8 +195,9 @@ struct GenitorManagementView: View {
             HStack {
                 Text("Compartilhar link")
             }
-            .font(.custom("SF Pro", size: 17, relativeTo: .body))
-            .fontWeight(.bold)
+//            .font(.custom("SF Pro", size: 17, relativeTo: .body))
+//            .fontWeight(.bold)
+            .font(.system(size: 17, weight: .bold))
             .foregroundColor(viewModel.canShareKid
                              ? Color("primaryColor")
                              : Color("primaryColor").opacity(0.4)
