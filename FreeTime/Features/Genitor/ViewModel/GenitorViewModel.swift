@@ -91,7 +91,12 @@ class GenitorViewModel: ObservableObject {
                 zoneReady = true
                 feedbackMessage = "✅ CloudKit configurado com sucesso"
                 loadKids()
-            } catch {
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    self.debugKidRecord()
+                    self.loadRewardsFromKid()
+                    }
+                } catch {
                 await handleZoneCreationError(error)
             }
         }
@@ -430,6 +435,21 @@ class GenitorViewModel: ObservableObject {
     
     // MARK: - Debug Operations
     
+    func debugKidRecord() {
+        guard let kid = firstKid,
+              let record = kid.associatedRecord else {
+            print("❌ Debug: Sem kid ou registro")
+            return
+        }
+        
+        print("🔍 Debug Kid Record:")
+        print("  - Nome: \(kid.name)")
+        print("  - ID: \(record.recordID.recordName)")
+        print("  - Pending Rewards: \(record["pendingRewards"] ?? "nil")")
+        print("  - Delivered Rewards: \(record["deliveredRewards"] ?? "nil")")
+        print("  - Todos os campos: \(record.allKeys())")
+    }
+    
     func debugSharedDatabase() {
         Task {
             await performDebugSharedDatabase()
@@ -560,5 +580,152 @@ extension GenitorViewModel {
             ("Is Loading", isLoading ? "Yes" : "No"),
             ("Has Share View", shareView != nil ? "Yes" : "No")
         ]
+    }
+}
+
+extension GenitorViewModel {
+        
+        func loadRewardsFromKid() {
+            guard let kid = firstKid else {
+                print("❌ loadRewardsFromKid: Nenhuma criança encontrada")
+                rewards = []
+                return
+            }
+            
+            // Primeiro, garantir que temos o registro mais atualizado
+            guard let kidID = kid.id else {
+                rewards = []
+                return
+            }
+            
+            isLoading = true
+            
+            Task {
+                do {
+                    let container = CKContainer(identifier: CloudConfig.containerIdentifier)
+                    let database = container.privateCloudDatabase
+                    
+                    // Buscar registro atualizado do Kid
+                    let record = try await database.record(for: kidID)
+                    
+                    let pendingRewardIDs = record["pendingRewards"] as? [Int] ?? []
+                    let pendingDates = record["pendingRewardDates"] as? [Date] ?? []
+                    let deliveredRewardIDs = record["deliveredRewards"] as? [Int] ?? []
+                    let deliveredDates = record["deliveredRewardDates"] as? [Date] ?? []
+                    
+                    print("📦 Recompensas pendentes: \(pendingRewardIDs.count)")
+                    print("📦 Recompensas entregues: \(deliveredRewardIDs.count)")
+                    
+                    var allRewards: [CollectedReward] = []
+                    
+                    // Criar CollectedRewards temporários para pendentes
+                    for (index, rewardID) in pendingRewardIDs.enumerated() {
+                        let date = index < pendingDates.count ? pendingDates[index] : Date()
+                        var reward = CollectedReward(
+                            kidID: kidID.recordName,
+                            rewardID: rewardID,
+                            dateCollected: date,
+                            isDelivered: false
+                        )
+                        // Criar um ID temporário para a view
+                        reward.id = CKRecord.ID(recordName: "pending-\(rewardID)-\(index)")
+                        allRewards.append(reward)
+                    }
+                    
+                    // Criar CollectedRewards temporários para entregues
+                    for (index, rewardID) in deliveredRewardIDs.enumerated() {
+                        let date = index < deliveredDates.count ? deliveredDates[index] : Date()
+                        var reward = CollectedReward(
+                            kidID: kidID.recordName,
+                            rewardID: rewardID,
+                            dateCollected: date,
+                            isDelivered: true
+                        )
+                        // Criar um ID temporário para a view
+                        reward.id = CKRecord.ID(recordName: "delivered-\(rewardID)-\(index)")
+                        allRewards.append(reward)
+                    }
+                    
+                    // Atualizar no main thread
+                    await MainActor.run {
+                        self.rewards = allRewards.sorted { $0.dateCollected > $1.dateCollected }
+                        self.isLoading = false
+                        print("✅ Total de recompensas carregadas: \(self.rewards.count)")
+                    }
+                    
+                } catch {
+                    await MainActor.run {
+                        print("❌ Erro ao carregar recompensas: \(error)")
+                        self.rewards = []
+                        self.isLoading = false
+                    }
+                }
+            }
+        }
+    
+    // GenitorViewModel.swift
+    func toggleRewardDeliveryStatus(_ reward: CollectedReward) {
+        Task {
+            do {
+                guard let kid = firstKid,
+                      let kidRecordID = kid.id else {
+                    print("❌ Nenhuma criança selecionada")
+                    return
+                }
+                
+                let container = CKContainer(identifier: CloudConfig.containerIdentifier)
+                let database = container.privateCloudDatabase
+                
+                // Buscar registro atualizado
+                let record = try await database.record(for: kidRecordID)
+                
+                var pendingRewards = record["pendingRewards"] as? [Int] ?? []
+                var pendingDates = record["pendingRewardDates"] as? [Date] ?? []
+                var deliveredRewards = record["deliveredRewards"] as? [Int] ?? []
+                var deliveredDates = record["deliveredRewardDates"] as? [Date] ?? []
+                
+                if !reward.isDelivered {
+                    // Mover de pendente para entregue
+                    if let index = pendingRewards.firstIndex(of: reward.rewardID) {
+                        pendingRewards.remove(at: index)
+                        let date = index < pendingDates.count ? pendingDates[index] : Date()
+                        if index < pendingDates.count {
+                            pendingDates.remove(at: index)
+                        }
+                        
+                        deliveredRewards.append(reward.rewardID)
+                        deliveredDates.append(date)
+                    }
+                } else {
+                    // Mover de entregue para pendente (desfazer entrega)
+                    if let index = deliveredRewards.firstIndex(of: reward.rewardID) {
+                        deliveredRewards.remove(at: index)
+                        let date = index < deliveredDates.count ? deliveredDates[index] : Date()
+                        if index < deliveredDates.count {
+                            deliveredDates.remove(at: index)
+                        }
+                        
+                        pendingRewards.append(reward.rewardID)
+                        pendingDates.append(date)
+                    }
+                }
+                
+                // Atualizar registro
+                record["pendingRewards"] = pendingRewards
+                record["pendingRewardDates"] = pendingDates
+                record["deliveredRewards"] = deliveredRewards
+                record["deliveredRewardDates"] = deliveredDates
+                
+                _ = try await database.save(record)
+                
+                // Recarregar dados
+                await MainActor.run {
+                    loadRewardsFromKid()
+                }
+                
+            } catch {
+                print("❌ Erro ao atualizar status da recompensa: \(error)")
+            }
+        }
     }
 }

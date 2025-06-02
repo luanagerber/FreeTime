@@ -79,12 +79,15 @@ struct GenitorHomeView: View {
             Capsule()
                 .fill(currentTab == tab ? Color("primaryColor") : Color.clear)
                 .frame(width: UIScreen.main.bounds.width*0.06, height: UIScreen.main.bounds.height*0.004)
-                
         }
         .frame(maxWidth: .infinity)
         .contentShape(Rectangle()) // permite clicar em toda a área
         .onTapGesture {
-            currentTab = tab
+            print("🔘 TabBarItem clicado: \(tab)")
+            withAnimation(.easeInOut(duration: 0.2)) {
+                currentTab = tab
+            }
+            print("✅ currentTab agora é: \(currentTab)")
         }
     }
 }
