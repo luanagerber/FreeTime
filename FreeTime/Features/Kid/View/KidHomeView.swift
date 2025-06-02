@@ -28,7 +28,6 @@ struct KidHomeView: View {
                         contentView
 
                     .frame(maxWidth: .infinity)
-                    .padding(.top, 40)
                 }
                 .refreshable {
                     print("KidHomeView: Pull to refresh...")
@@ -120,6 +119,7 @@ struct KidHomeView: View {
         switch currentPage {
             case .kidHome:
                 ActivitiesView
+                    .padding(.top, 40)
             case .rewardsStore:
                 RewardsStoreView(store: coordinator.rewardsStore)
             default:
@@ -128,7 +128,7 @@ struct KidHomeView: View {
     }
     
     private var ActivitiesView: some View {
-        let notStarted = vmKid.notStartedRegister()
+        let notStarted = vmKid.notCompletedRegister()
         let completed = vmKid.completedRegister()
         let allActivities = notStarted + completed
         
@@ -284,9 +284,8 @@ struct ActivitySection: View {
         }
         .sheet(item: $selectedRegister) { register in
             DetailView(kidViewModel: vmKid, register: register,  onCompletion: {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+               
                     showPopUp = true
-                }
             })
         }
     }

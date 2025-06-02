@@ -15,15 +15,12 @@ class GenitorViewModel: ObservableObject {
     
     static let shared = GenitorViewModel()
     
-    @StateObject private var invitationManager = InvitationStatusManager.shared
-    
     // MARK: - Published Properties
     @Published var records: [ActivitiesRegister] = []
     @Published var rewards: [CollectedReward] = []
     @Published var currentDate: Date = .init()
     @Published var childName = ""
     @Published var kids: [Kid] = /*[Kid.sample]*/ []
-    @Published var kidCoins: Int = 0
     @Published var selectedKid: Kid?
     @Published var isLoading = false
     @Published var isRefreshing = false
@@ -33,7 +30,13 @@ class GenitorViewModel: ObservableObject {
     @Published var shareView: AnyView?
     @Published var zoneReady = false
     
-    // Activity scheduling properties
+    // MARK: - Kid Properties
+    
+    var kidCoins: Int {
+        CoinManager.shared.kidCoins
+    }
+    
+    // MARK: - Activity scheduling properties
     @Published var showActivitySelector = false
     @Published var selectedActivity: Activity?
     @Published var scheduledDate = Date()
@@ -45,26 +48,27 @@ class GenitorViewModel: ObservableObject {
     
     var groupedRewardsByDay: [RewardsByDay] {
         var groupAux: [RewardsByDay] = []
-
+        
         for date in uniqueDates {
             var rewardsAux: [CollectedReward] = []
-
+            
             for reward in self.rewards {
                 if reward.dateCollected.startOfDay == date {
                     rewardsAux.append(reward)
                 }
             }
-
+            
             let group = RewardsByDay(date: date, rewards: rewardsAux)
             groupAux.append(group)
         }
-
+        
         return groupAux
     }
     
     // MARK: - Private Properties
     
     private let cloudService = CloudService.shared
+    private let invitationManager = InvitationStatusManager.shared
     private let container = CKContainer(identifier: CloudConfig.containerIdentifier)
     private var privateDB: CKDatabase {
         container.privateCloudDatabase
@@ -149,6 +153,7 @@ class GenitorViewModel: ObservableObject {
         }
     }
     
+    @MainActor
     private func loadKids() {
         isLoading = true
         feedbackMessage = "Carregando suas crianças do CloudKit..."
@@ -181,7 +186,7 @@ class GenitorViewModel: ObservableObject {
         
         if !zoneReady {
             setupCloudKit()
-            loadKidCoins()
+            setupCoinManager()
             return
         }
         
@@ -210,53 +215,12 @@ class GenitorViewModel: ObservableObject {
         }
     }
     
-    func loadKidCoins() {
-        guard let kidID = firstKid?.id?.recordName else {
-            kidCoins = 0
-            return
-        }
-        
-        // Carregar atividades completadas e recompensas simultaneamente
-        let dispatchGroup = DispatchGroup()
-        var completedActivitiesPoints = 0
-        var rewardsCost = 0
-        
-        // Carregar atividades completadas
-        dispatchGroup.enter()
-        CloudService.shared.fetchAllActivities(forKid: kidID) { result in
-            switch result {
-            case .success(let activities):
-                completedActivitiesPoints = activities
-                    .filter { $0.registerStatus == .completed }
-                    .compactMap { $0.activity?.rewardPoints }
-                    .reduce(0, +)
-            case .failure(let error):
-                print("Erro ao carregar atividades para cálculo de moedas: \(error)")
-            }
-            dispatchGroup.leave()
-        }
-        
-        // Carregar recompensas resgatadas
-        dispatchGroup.enter()
-        CloudService.shared.fetchAllCollectedRewards(forKid: kidID) { result in
-            switch result {
-            case .success(let rewards):
-                rewardsCost = rewards
-                    .compactMap { $0.reward?.cost }
-                    .reduce(0, +)
-            case .failure(let error):
-                print("Erro ao carregar recompensas para cálculo de moedas: \(error)")
-            }
-            dispatchGroup.leave()
-        }
-        
-        // Calcular saldo quando ambos terminarem
-        dispatchGroup.notify(queue: .main) { [weak self] in
-            self?.kidCoins = completedActivitiesPoints - rewardsCost
-            print("🪙 Moedas da criança atualizadas: \(self?.kidCoins ?? 0) (Atividades: \(completedActivitiesPoints), Recompensas: \(rewardsCost))")
+    func setupCoinManager() {
+        if let kidID = firstKid?.id {
+            CoinManager.shared.setCurrentKid(kidID)
         }
     }
-
+    
     
     // MARK: - Sharing Operations
     
@@ -337,7 +301,7 @@ class GenitorViewModel: ObservableObject {
             activityID: activity.id, // Agora activity.id é Int
             date: scheduledDate,
             duration: duration,
-            registerStatus: .notStarted
+            registerStatus: .notCompleted
         )
         
         cloudService.saveActivity(activityRegister) { [weak self] result in

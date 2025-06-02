@@ -24,7 +24,7 @@ struct ActivitiesRegister: Identifiable {
     // For Identifiable conformance (UUID required if id is nil)
     private let localID = UUID()
     
-    init(kidID: String, activityID: Int, date: Date, duration: TimeInterval, registerStatus: RegisterStatus = .notStarted) {
+    init(kidID: String, activityID: Int, date: Date, duration: TimeInterval, registerStatus: RegisterStatus = .notCompleted) {
         self.kidID = kidID
         self.activityID = activityID
         self.date = date
@@ -32,7 +32,7 @@ struct ActivitiesRegister: Identifiable {
         self.registerStatus = registerStatus
     }
     
-    init(kid: Kid, activityID: Int, date: Date, duration: TimeInterval, registerStatus: RegisterStatus = .notStarted) {
+    init(kid: Kid, activityID: Int, date: Date, duration: TimeInterval, registerStatus: RegisterStatus = .notCompleted) {
         self.kidID = kid.id?.recordName ?? ""
         self.activityID = activityID
         self.date = date

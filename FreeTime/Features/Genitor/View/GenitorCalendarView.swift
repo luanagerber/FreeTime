@@ -70,7 +70,7 @@ struct GenitorCalendarView: View {
     func HeaderView() -> some View {
         VStack (alignment: .leading) {
             
-            Text(viewModel.currentDate.format("MMMM"))
+            Text(viewModel.currentDate.formattedMonthUppercase())
                 .font(.custom("SF Pro", size: 34, relativeTo: .largeTitle))
                 .fontWeight(.semibold)
                 .foregroundStyle(Color("primaryColor"))
@@ -175,7 +175,7 @@ struct GenitorCalendarView: View {
             // CORREÇÃO: Filtrar atividades do dia selecionado, não apenas "hoje"
             let tasksNotStarted = viewModel.records.filter { register in
                 Calendar.current.isDate(register.date, inSameDayAs: viewModel.currentDate) &&
-                register.registerStatus == .notStarted
+                register.registerStatus == .notCompleted
             }.sorted(by: { $0.date < $1.date})
             
             let tasksCompleted = viewModel.records.filter{ register in

@@ -90,8 +90,6 @@ struct RewardCardView: View {
 
 #Preview ("Card não coletado") {
     ZStack {
-        //        Color(.pink)
-        //            .ignoresSafeArea(.all)
         HStack {
             RewardCardView(reward: Reward.sample)
             RewardCardView(reward: Reward.sample)
