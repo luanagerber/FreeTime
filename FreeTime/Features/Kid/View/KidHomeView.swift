@@ -15,6 +15,7 @@ struct KidHomeView: View {
     @EnvironmentObject var coordinator: Coordinator
     @State private var showPopUp = false
     
+    @State var testNumber = 0
     
     var body: some View {
         ZStack {
@@ -93,10 +94,15 @@ struct KidHomeView: View {
                 HStack {
                     HStack(spacing: 24) {
                         // ✅ CORREÇÃO: Usar dados reais do vmKid
-                        KidDataView(kidName: vmKid.kidName ?? "Carregando...", kidCoins: vmKid.kidCoins ?? 0)
+                        KidDataView(kidName: vmKid.kidName ?? "Carregando...", kidCoins: vmKid.kidCoins ?? testNumber)
                             .padding(.top, 46)
                             .ignoresSafeArea()
                             .frame(maxHeight: 156, alignment: .top)
+                            .onTapGesture {
+                                withAnimation {
+                                    testNumber += 5
+                                }
+                            }
                     }
                     Spacer()
                     HStack(spacing: 39) {
@@ -249,6 +255,7 @@ struct KidDataView: View {
                             Text("\(kidCoins)")
                                 .font(.system(size: 20))
                                 .fontWeight(.semibold)
+                                .contentTransition(.numericText())
                         }
                     }
             }
