@@ -63,13 +63,15 @@ struct GenitorTaskRowView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 Text(record.activity?.name ?? "Atividade Desconhecida")
-                    .font(.custom("SF Pro", size: 17, relativeTo: .body))
-                    .fontWeight(.medium)
+                    //.font(.custom("SF Pro", size: 17, relativeTo: .body))
+                    .font(.system(size: 17, weight: .medium))
+                   // .fontWeight(.medium)
                     .foregroundStyle(Color("primaryColor"))
                 
                 //HStack {
                 Text(record.date.formattedAsHourMinute())
-                    .font(.custom("SF Pro", size: 17, relativeTo: .body))
+                    //.font(.custom("SF Pro", size: 17, relativeTo: .body))
+                    .font(.system(size: 17, weight: .regular))
                     .foregroundStyle(Color("primaryColor"))
                 
                 //                    Spacer()
@@ -98,7 +100,7 @@ struct GenitorTaskRowView: View {
                 .inset(by: 0.5)
                 .stroke(Color(red: 0.87, green: 0.87, blue: 0.87), lineWidth: 1)
         )
-        .shadow(color: .black.opacity(0.3), radius: 5, x: 5, y: 5)
+//        .shadow(color: .black.opacity(0.3), radius: 5, x: 5, y: 5)
     }
 }
 

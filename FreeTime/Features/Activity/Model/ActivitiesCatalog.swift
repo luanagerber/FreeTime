@@ -10,7 +10,7 @@ extension Activity {
     static let catalog: [Activity] = [
         Activity(
             id: 0,
-            name: "Desenhar e colorir desenho",
+            name: "Desenhar e colorir",
             imageNameGenitor: "imageDrawGenitor",
             imageNameKid: "imageDrawKid",
             tags: [.creativity],

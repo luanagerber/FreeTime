@@ -37,8 +37,9 @@ struct NewTaskView: View {
             
             // Título
             Text("Nova atividade")
-                .font(.custom("SF Pro", size: 20, relativeTo: .title3))
-                .fontWeight(.semibold)
+               // .font(.custom("SF Pro", size: 20, relativeTo: .title3))
+                .font(.system(size: 20, weight: .semibold))
+               // .fontWeight(.semibold)
                 .foregroundStyle(Color("primaryColor"))
                 .hSpacing(.leading)
             
@@ -47,8 +48,9 @@ struct NewTaskView: View {
                 // nome da atividade
                 HStack {
                     Text("Atividade")
-                        .font(.custom("SF Pro", size: 17, relativeTo: .title3))
-                        .fontWeight(.medium)
+                        //.font(.custom("SF Pro", size: 17, relativeTo: .title3))
+                        .font(.system(size: 17, weight: .medium))
+                       // .fontWeight(.medium)
                         .foregroundStyle(Color("primaryColor"))
                     
                     Spacer()
@@ -87,8 +89,8 @@ struct NewTaskView: View {
                 // descrição da atividade
                 HStack {
                     Text(descriptionTask)
+                        .font(.system(size: 17, weight: descriptionTask=="Descrição" ? .medium : .regular))
                         .foregroundColor(Color("primaryColor").opacity(0.4))
-                        
                         .hSpacing(.leading)
                         .padding()
                 }
@@ -112,7 +114,7 @@ struct NewTaskView: View {
                         Image(systemName: "dollarsign.circle.fill")
                     }
                 }
-                
+                .font(.system(size: 17, weight: .medium))
                 .foregroundColor(Color("primaryColor").opacity(0.4))
                 .hSpacing(.leading)
                 .padding()
@@ -128,8 +130,9 @@ struct NewTaskView: View {
                     // seleção da data
                     HStack {
                         Text("Data")
-                            .font(.custom("SF Pro", size: 17, relativeTo: .title3))
-                            .fontWeight(.medium)
+                            //.font(.custom("SF Pro", size: 17, relativeTo: .title3))
+                            //.fontWeight(.medium)
+                            .font(.system(size: 17, weight: .medium))
                             .foregroundStyle(Color("primaryColor"))
                         
                         Spacer()
@@ -189,8 +192,9 @@ struct NewTaskView: View {
                         Text("Salvar")
                     }
                 }
-                .font(.custom("SF Pro", size: 17, relativeTo: .body))
-                .fontWeight(.bold)
+                //.font(.custom("SF Pro", size: 17, relativeTo: .body))
+                .font(.system(size: 17, weight: .bold))
+                //.fontWeight(.bold)
                 .foregroundColor(canSave
                                  ? Color("primaryColor")
                                  : Color("primaryColor").opacity(0.4)

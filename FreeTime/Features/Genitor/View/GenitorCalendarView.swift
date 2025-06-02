@@ -75,8 +75,9 @@ struct GenitorCalendarView: View {
         VStack (alignment: .leading) {
             
             Text(viewModel.currentDate.formattedMonthUppercase())
-                .font(.custom("SF Pro", size: 34, relativeTo: .largeTitle))
-                .fontWeight(.semibold)
+//                .font(.custom("SF Pro", size: 34, relativeTo: .largeTitle).bold())
+//                .fontWeight(.bold)
+                .font(.system(size: 34, weight: .semibold))
                 .foregroundStyle(Color("primaryColor"))
             
             // Semana
@@ -130,8 +131,9 @@ struct GenitorCalendarView: View {
                         .padding(.horizontal, 16)
                     
                     Text(day.date.format("dd"))
-                        .font(.custom("SF Pro", size: 17, relativeTo: .body))
-                        .fontWeight(.semibold)
+                        //.font(.custom("SF Pro", size: 17, relativeTo: .body))
+                        .font(.system(size: 17, weight: .semibold))
+                        //.fontWeight(.semibold)
                         .foregroundStyle(Color("primaryColor"))
                 }
                 .hSpacing(.center)
@@ -214,8 +216,9 @@ struct GenitorCalendarView: View {
                 
                 // Atividade Planejadas
                 Text("Atividades planejadas")
-                    .font(.custom("SF Pro", size: 20, relativeTo: .title3))
-                    .fontWeight(.medium)
+                    //.font(.custom("SF Pro", size: 20, relativeTo: .title3))
+                    .font(.system(size: 20, weight: .medium))
+                    //.fontWeight(.medium)
                     .foregroundStyle(Color("primaryColor"))
                     .hSpacing(.leading)
                 
@@ -248,8 +251,9 @@ struct GenitorCalendarView: View {
                     
                     // Atividades concluídas
                     Text("Atividades concluídas")
-                        .font(.custom("SF Pro", size: 20, relativeTo: .title3))
-                        .fontWeight(.medium)
+                     //   .font(.custom("SF Pro", size: 20, relativeTo: .title3))
+                        .font(.system(size: 20, weight: .medium))
+                      //  .fontWeight(.medium)
                         .foregroundStyle(Color("primaryColor"))
                         .hSpacing(.leading)
                     

@@ -59,9 +59,11 @@ struct GenitorRewardsView: View {
         VStack(alignment: .leading) {
             
             Text("Histórico")
-                .font(.custom("SF Pro", size: 34, relativeTo: .largeTitle))
-                .fontWeight(.semibold)
+                //.font(.custom("SF Pro", size: 34, relativeTo: .largeTitle))
+                .font(.system(size: 34, weight: .semibold))
+//                .fontWeight(.bold)
                 .padding(.bottom, 10)
+                .padding(.top, 15)
                 .foregroundStyle(Color("primaryColor"))
             
             Text("Confira as recompensas da criança e marque quando forem entregues.")
@@ -82,8 +84,9 @@ struct GenitorRewardsView: View {
                 
                 Image(systemName: "dollarsign.circle.fill")
             }
-            .font(.custom("SF Pro", size: 17, relativeTo: .body))
-            .fontWeight(.medium)
+            //.font(.custom("SF Pro", size: 17, relativeTo: .body))
+           // .fontWeight(.medium)
+            .font(.system(size: 17, weight: .medium))
             .foregroundStyle(Color("primaryColor").opacity(0.6))
             .padding()
             .background {
@@ -113,8 +116,9 @@ struct GenitorRewardsView: View {
                     
                     VStack (spacing: 5) {
                         Text("Algo deu errado")
-                            .font(.custom("SF Pro", size: 17, relativeTo: .headline))
-                            .fontWeight(.medium)
+                            //.font(.custom("SF Pro", size: 17, relativeTo: .headline))
+                            //.fontWeight(.medium)
+                            .font(.system(size: 17, weight: .medium))
                             .foregroundStyle(.text)
                         
                         Text("Não foi possível carregar os dados. \nTente novamente mais tarde")
