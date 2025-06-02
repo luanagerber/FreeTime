@@ -109,67 +109,81 @@ struct GenitorRewardsView: View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 
-                // Mostrar loading inicial
-                if viewModel.isLoading && viewModel.rewards.isEmpty {
-                    VStack {
-                        ProgressView()
-                        Text("Carregando recompensas...")
-                            .font(.custom("SF Pro", size: 15, relativeTo: .subheadline))
-                            .foregroundStyle(Color("primaryColor").opacity(0.6))
-                            .padding(.top, 10)
-                    }
-                    .padding(.vertical, 100)
-                }
-                // Mostrar conteúdo vazio quando não há recompensas
-                else if viewModel.rewards.isEmpty && !viewModel.isLoading {
-                    VStack(alignment: .center, spacing: 10) {
-                        
-                        Text("Nenhuma recompensa registrada")
+                if viewModel.refreshFailed {
+                    
+                    VStack (spacing: 5) {
+                        Text("Algo deu errado")
                             .font(.custom("SF Pro", size: 17, relativeTo: .headline))
                             .fontWeight(.medium)
-                            .foregroundStyle(Color("primaryColor"))
+                            .foregroundStyle(.text)
                         
-                        Text("Todas as recompensas resgatadas pela criança na lojinha serão exibidas aqui")
+                        Text("Não foi possível carregar os dados. \nTente novamente mais tarde")
                             .font(.custom("SF Pro", size: 15, relativeTo: .subheadline))
+                            .fontWeight(.medium)
                             .multilineTextAlignment(.center)
-                            .foregroundStyle(Color("primaryColor"))
+                            .foregroundStyle(.text)
                     }
-                    .padding(.horizontal)
-                    .padding(.bottom, 171)
-                    .padding(.top, 171)
-                }
-                // Mostrar lista de recompensas
-                else {
-                    ForEach(viewModel.groupedRewardsByDay, id: \.self) { group in
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text(group.date.formattedAsDayMonth())
-                                .font(.custom("SF Pro", size: 15, relativeTo: .headline))
-                                .foregroundColor(Color("primaryColor").opacity(0.4))
+                    .padding(.vertical, 171)
+                    
+                } else {
+                    // Mostrar loading inicial
+                    if viewModel.isLoading && viewModel.rewards.isEmpty {
+                        VStack {
+                            ProgressView()
+                            Text("Carregando recompensas...")
+                                .font(.custom("SF Pro", size: 15, relativeTo: .subheadline))
+                                .foregroundStyle(Color("primaryColor").opacity(0.6))
+                                .padding(.top, 10)
+                        }
+                        .padding(.vertical, 100)
+                    }
+                    // Mostrar conteúdo vazio quando não há recompensas
+                    else if viewModel.rewards.isEmpty && !viewModel.isLoading {
+                        VStack(alignment: .center, spacing: 10) {
                             
-                            Rectangle()
-                                .fill(Color("primaryColor").opacity(0.4))
-                                .frame(height: UIScreen.main.bounds.height * 0.0014)
-                                .padding(.top, 2)
-                                .padding(.bottom, 4)
+                            Text("Nenhuma recompensa registrada")
+                                .font(.custom("SF Pro", size: 17, relativeTo: .headline))
+                                .fontWeight(.medium)
+                                .foregroundStyle(Color("primaryColor"))
                             
-                            // ✅ CORREÇÃO: Usar as recompensas do grupo diretamente
-                            ForEach(group.rewards.indices, id: \.self) { index in
-                                let reward = group.rewards[index]
+                            Text("Todas as recompensas resgatadas pela criança na lojinha serão exibidas aqui")
+                                .font(.custom("SF Pro", size: 15, relativeTo: .subheadline))
+                                .multilineTextAlignment(.center)
+                                .foregroundStyle(Color("primaryColor"))
+                        }
+                        .padding(.horizontal)
+                        .padding(.bottom, 171)
+                        .padding(.top, 171)
+                    }
+                    
+                    // Mostrar lista de recompensas
+                    else {
+                        ForEach(viewModel.groupedRewardsByDay, id: \.self) { group in
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text(group.date.formattedAsDayMonth())
+                                    .font(.custom("SF Pro", size: 15, relativeTo: .headline))
+                                    .foregroundColor(Color("primaryColor").opacity(0.4))
                                 
-                                // Encontrar o índice no array principal para binding
-                                if let mainIndex = viewModel.rewards.firstIndex(where: {
-                                    $0.rewardID == reward.rewardID &&
-                                    $0.dateCollected == reward.dateCollected
-                                }) {
-                                    GenitorRewardsRowView(reward: $viewModel.rewards[mainIndex])
-                                        .onTapGesture {
-                                            saveRewardUpdate(reward)
-                                        }
+                                Rectangle()
+                                    .fill(Color("primaryColor").opacity(0.4))
+                                    .frame(height: UIScreen.main.bounds.height * 0.0014)
+                                    .padding(.top, 2)
+                                    .padding(.bottom, 4)
+                                
+                                ForEach(viewModel.rewards.indices, id: \.self) { index in
+                                    let reward = viewModel.rewards[index]
+                                    if Calendar.current.isDate(reward.dateCollected, inSameDayAs: group.date) {
+                                        GenitorRewardsRowView(reward: $viewModel.rewards[index])
+                                            .onTapGesture {
+                                                saveRewardUpdate(reward)
+                                            }
+                                    }
                                 }
                             }
+                            .padding(.bottom, 20)
                         }
-                        .padding(.bottom, 20)
                     }
+
                 }
             }
             .padding(20)
@@ -198,10 +212,14 @@ struct GenitorRewardsView: View {
                 viewModel.isLoading = false
                 switch result {
                 case .success(let rewards):
+                    viewModel.refreshFailed = false
                     viewModel.rewards = rewards
+                   
                 case .failure(let error):
                     print("Erro ao carregar recompensas: \(error)")
+                    viewModel.refreshFailed = true
                     viewModel.rewards = []
+                    
                 }
             }
         }

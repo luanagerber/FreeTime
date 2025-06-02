@@ -111,10 +111,9 @@ struct RewardsStoreView: View {
         ZStack(alignment: .leading){
             CustomCornerShape(radius: 20, corners: [.topLeft, .bottomLeft])
                 .fill(color)
-                .shadow(color: color == .red ? .errorMessageShadow : .messageShadow, radius: 0, x: 0, y: 5)
+                .shadow(color: color == .errorMessage ? .errorMessageShadow : .messageShadow, radius: 0, x: -8, y: 8)
                 .frame(maxWidth: .infinity)
                 .frame(height: 75)
-            //.animation(.easeInOut, value: progress)
             
             Text(message)
                 .font(.title3)
