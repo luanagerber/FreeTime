@@ -40,6 +40,7 @@ class Coordinator: ObservableObject {
     @Published var sheet: Sheet?
     
     let rewardsStore = RewardsStore()
+    let vmKid = KidViewModel()
 //    var kid = Kid.sample
     
     func push(_ page: Page){
@@ -74,7 +75,7 @@ class Coordinator: ObservableObject {
         case .activityManagement:
             ActivityManagementDebugView()
         case .kidHome:
-            KidHomeView()
+                KidHomeView(vmKid: self.vmKid)
                 .navigationBarBackButtonHidden(true)
         case .genitorHome:
             GenitorHomeView()

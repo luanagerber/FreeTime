@@ -25,10 +25,10 @@ struct CardActivity: View {
                             VStack(spacing: 5){
                                 Text(register.activity?.name ?? "Sem atividade")
                                     .font(.title2)
-                                    .fontWeight(.medium)
+                                    .fontWeight(.semibold)
                                 
                                 Text(register.date.formattedAsRoundedHour())
-                                    .font(.headline)
+                                    .font(.title3)
                                 
                             }
                             .foregroundColor(.fontColorKid)
@@ -36,9 +36,11 @@ struct CardActivity: View {
                 }
                 .roundedBorder(.borderCardActivyKid, width: 1, cornerRadius: 20)
                 .cornerRadius(20)
-                .frame(width: 380, height: 210)
+                .frame(width: 360, height: 210)
                 
             }
+        .fontDesign(.rounded)
+        
     }
 }
 

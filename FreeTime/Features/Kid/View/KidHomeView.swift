@@ -10,10 +10,10 @@ import CloudKit
 
 struct KidHomeView: View {
     @State private var currentPage: Page = .kidHome
-    @StateObject private var vmKid = KidViewModel()
+    @StateObject var vmKid : KidViewModel
     @State private var selectedRegister: ActivitiesRegister? = nil
     @EnvironmentObject var coordinator: Coordinator
-    @State private var showPopUp = false
+    @State private var messageCompletedActivy : Bool = false
     
     
     var body: some View {
@@ -54,34 +54,21 @@ struct KidHomeView: View {
         }
         .overlay {
             if vmKid.isLoading {
-                ZStack {
-                    Color(.backgroundHeaderYellowKid)
-                        .ignoresSafeArea()
-                    VStack(spacing: 16) {
-                        ProgressView("Carregando...")
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            .foregroundColor(.white)
-                            .font(.title)
-                            .fontWeight(.bold)
-                    }
-                }
-                .transition(.opacity)
-                .zIndex(2)
+//                ZStack {
+//                    Color(.backgroundHeaderYellowKid)
+//                        .ignoresSafeArea()
+//                    VStack(spacing: 16) {
+//                        ProgressView("Carregando...")
+//                            .progressViewStyle(CircularProgressViewStyle(tint: .fontColorKid))
+//                            .foregroundColor(.fontColorKid)
+//                            .font(.title)
+//                            .fontWeight(.bold)
+//                    }
+//                }
+//                .transition(.opacity)
+//                .zIndex(2)
             }
         }
-        .overlay{
-            if showPopUp {
-                VStack {
-                    Spacer()
-                    PopUp(showPopUp: $showPopUp)
-                }
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .transition(.move(edge: .trailing).combined(with: .opacity))
-                .zIndex(1)
-            }
-        }
-        
-        
     }
     
     private var HeaderView: some View {
@@ -93,7 +80,7 @@ struct KidHomeView: View {
                 HStack {
                     HStack(spacing: 24) {
                         // ✅ CORREÇÃO: Usar dados reais do vmKid
-                        KidDataView(kidName: vmKid.kidName ?? "Carregando...", kidCoins: vmKid.kidCoins ?? 0)
+                        KidDataView(kidName: vmKid.kidName ?? "Carregando...", kidCoins: vmKid.kidCoins)
                             .padding(.top, 46)
                             .ignoresSafeArea()
                             .frame(maxHeight: 156, alignment: .top)
@@ -119,7 +106,7 @@ struct KidHomeView: View {
         switch currentPage {
             case .kidHome:
                 ActivitiesView
-                    .padding(.top, 40)
+                    //.padding(.top, 40)
             case .rewardsStore:
                 RewardsStoreView(store: coordinator.rewardsStore)
             default:
@@ -133,7 +120,9 @@ struct KidHomeView: View {
         let allActivities = notStarted + completed
         
         return VStack(alignment: .leading, spacing: 24) {
+            HStack{
             VStack(alignment: .leading, spacing: 4) {
+                
                 Text("Atividades para hoje")
                     .kerning(0.4)
                     .font(.largeTitle)
@@ -144,6 +133,12 @@ struct KidHomeView: View {
                     .font(.title2)
                     .kerning(0.3)
             }
+                if messageCompletedActivy{
+                    HeaderMessage(message: "Parabéns!! Você concluiu a atividade com sucesso!", color: .message)
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+        }
             
             if allActivities.isEmpty {
                 Text("Hmm... parece que ainda não tem nada pra fazer agora. Que tal pedir pra um adulto adicionar uma atividade bem legal pra você?")
@@ -170,7 +165,7 @@ struct KidHomeView: View {
                                     emptyMessage: "",
                                     selectedRegister: $selectedRegister,
                                     vmKid: vmKid,
-                                    showPopUp: $showPopUp
+                                    messageCompleted: $messageCompletedActivy
                                     
                                 )
                                 .shadow(color: .black.opacity(0.2), radius: 4, x: 4, y: 4)
@@ -192,7 +187,7 @@ struct KidHomeView: View {
                                     emptyMessage: "",
                                     selectedRegister: $selectedRegister,
                                     vmKid: vmKid,
-                                    showPopUp: $showPopUp
+                                    messageCompleted: $messageCompletedActivy
                                 )
                                 .shadow(color: .black.opacity(0.2), radius: 4, x: 4, y: 4)
                             }
@@ -261,7 +256,7 @@ struct ActivitySection: View {
     let emptyMessage: String
     @Binding var selectedRegister: ActivitiesRegister?
     var vmKid: KidViewModel
-    @Binding var showPopUp: Bool
+    @Binding var messageCompleted: Bool
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -276,6 +271,7 @@ struct ActivitySection: View {
                                 selectedRegister = register
                             } label: {
                                 CardActivity(register: register)
+                                    .padding(.leading, 10)
                             }
                         }
                     }
@@ -284,14 +280,17 @@ struct ActivitySection: View {
         }
         .sheet(item: $selectedRegister) { register in
             DetailView(kidViewModel: vmKid, register: register,  onCompletion: {
-               
-                    showPopUp = true
+                messageCompleted = true
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+                        messageCompleted = false
+                    }
             })
         }
     }
 }
 
-
-#Preview {
-    KidHomeView()
-}
+//
+//#Preview {
+//    KidHomeView(vmKid: KidViewModel())
+//}
