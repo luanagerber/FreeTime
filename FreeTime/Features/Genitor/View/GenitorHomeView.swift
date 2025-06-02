@@ -31,7 +31,6 @@ struct GenitorHomeView: View {
                 }
                 
             }
-            // ✅ CORREÇÃO: Sheet moved to the correct level
             .sheet(isPresented: $viewModel.createNewTask) {
                 NewTaskView()
                     .presentationDetents([.large]) // Alturas suportadas
@@ -39,7 +38,6 @@ struct GenitorHomeView: View {
             }
         }
         .ignoresSafeArea(edges: .bottom)
-        .onAppear(viewModel.loadSharedActivities(for: UserManager))
     }
     
     @ViewBuilder

@@ -420,6 +420,50 @@ class GenitorViewModel: ObservableObject {
         }
     }
     
+    func loadActivitiesOnAppear() {
+        guard let kidID = firstKid?.id?.recordName else {
+            print("⚠️ Nenhum kid disponível para carregar atividades")
+            return
+        }
+        loadSharedActivities(for: kidID)
+    }
+    
+    // MARK: - Improved Activity Loading
+    func loadAllActivitiesOnce() {
+        guard let kidID = firstKid?.id?.recordName else {
+            print("⚠️ Nenhum kid disponível para carregar atividades")
+            return
+        }
+        
+        // Evita carregar múltiplas vezes
+        guard records.isEmpty || isRefreshing else {
+            print("🔄 Atividades já carregadas, pulando...")
+            return
+        }
+        
+        isLoading = true
+        feedbackMessage = "Carregando atividades..."
+        
+        CloudService.shared.fetchAllActivities(forKid: kidID) { [weak self] result in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                
+                self.isLoading = false
+                
+                switch result {
+                case .success(let activities):
+                    self.records = activities
+                    self.feedbackMessage = "✅ \(activities.count) atividades carregadas"
+                    print("🔍 LoadAllActivitiesOnce: Carregadas \(activities.count) atividades")
+                    
+                case .failure(let error):
+                    self.feedbackMessage = "❌ Erro ao carregar atividades: \(error)"
+                    print("❌ LoadAllActivitiesOnce: Erro - \(error)")
+                }
+            }
+        }
+    }
+    
     // MARK: - Utility & Reset Operations
     
     func resetAllData() {
