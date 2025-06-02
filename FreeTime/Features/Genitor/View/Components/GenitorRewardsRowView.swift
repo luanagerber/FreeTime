@@ -22,6 +22,7 @@ struct GenitorRewardsRowView: View {
 //            VStack(alignment: .leading) {
                 // Usar o catálogo existente de Reward
                 Text(Reward.find(by: reward.rewardID)?.name ?? "Recompensa Desconhecida")
+                .font(.system(size: 17, weight: .medium))
 //                    .font(.custom("SF Pro", size: 17, relativeTo: .body))
 //                    .fontWeight(.medium)
                 

@@ -53,9 +53,13 @@ struct GenitorCalendarView: View {
                     weekSlider.append(lastDate.createNextWeek())
                 }
             }
-            
-            // Carrega atividades inicialmente
-            loadActivitiesForCurrentDate()
+        }
+        // ✅ CORREÇÃO: Observar mudanças nos kids e carregar atividades automaticamente
+        .onReceive(viewModel.$kids) { kids in
+            if !kids.isEmpty && viewModel.records.isEmpty {
+                print("🔄 Kids carregados, agora carregando atividades...")
+                viewModel.loadAllActivitiesOnce()
+            }
         }
         .refreshable {
             viewModel.refresh()
@@ -71,8 +75,9 @@ struct GenitorCalendarView: View {
         VStack (alignment: .leading) {
             
             Text(viewModel.currentDate.formattedMonthUppercase())
-                .font(.custom("SF Pro", size: 34, relativeTo: .largeTitle))
-                .fontWeight(.semibold)
+//                .font(.custom("SF Pro", size: 34, relativeTo: .largeTitle).bold())
+//                .fontWeight(.bold)
+                .font(.system(size: 34, weight: .semibold))
                 .foregroundStyle(Color("primaryColor"))
             
             // Semana
@@ -126,8 +131,9 @@ struct GenitorCalendarView: View {
                         .padding(.horizontal, 16)
                     
                     Text(day.date.format("dd"))
-                        .font(.custom("SF Pro", size: 17, relativeTo: .body))
-                        .fontWeight(.semibold)
+                        //.font(.custom("SF Pro", size: 17, relativeTo: .body))
+                        .font(.system(size: 17, weight: .semibold))
+                        //.fontWeight(.semibold)
                         .foregroundStyle(Color("primaryColor"))
                 }
                 .hSpacing(.center)
@@ -183,64 +189,89 @@ struct GenitorCalendarView: View {
                 register.registerStatus == .completed
             }.sorted(by: { $0.date < $1.date})
             
-            // Atividade Planejadas
-            Text("Atividades planejadas")
-                .font(.custom("SF Pro", size: 20, relativeTo: .title3))
-                .fontWeight(.medium)
-                .foregroundStyle(Color("primaryColor"))
-                .hSpacing(.leading)
-            
-            if (tasksCompleted.isEmpty && tasksNotStarted.isEmpty) {
-                VStack(spacing: 16) {
-                    Text("Nenhuma atividade foi planejada ainda. Clique em \"+\" para começar!")
-                        .font(.subheadline)
-                        .foregroundStyle(Color("primaryColor"))
-                        .multilineTextAlignment(.leading)
-                        .hSpacing(.leading)
-                    
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                
-                if tasksNotStarted.isEmpty {
-                    Text("Tudo concluído para esse dia! Ótimo trabalho em equipe!")
-                        .font(.subheadline)
-                        .foregroundStyle(Color("primaryColor"))
-                        .multilineTextAlignment(.leading)
-                        .hSpacing(.leading)
-                } else {
-                    ForEach(tasksNotStarted) { record in
-                        GenitorTaskRowView(record: record)
-                    }
-                }
-                
-                Spacer(minLength: 14)
-                
-                
-                // Atividades concluídas
-                Text("Atividades concluídas")
-                    .font(.custom("SF Pro", size: 20, relativeTo: .title3))
-                    .fontWeight(.medium)
-                    .foregroundStyle(Color("primaryColor"))
-                    .hSpacing(.leading)
-                
-                if tasksCompleted.isEmpty {
-                    Text("Nada foi concluído nesse dia ainda. Que tal checar com seu filho?")
-                        .font(.subheadline)
-                        .foregroundStyle(Color("primaryColor"))
-                        .multilineTextAlignment(.leading)
-                        .hSpacing(.leading)
-                } else {
-                    ForEach(tasksCompleted) { record in
-                        GenitorTaskRowView(record: record)
-                    }
-                }
-            }
-            
             if viewModel.isLoading {
                 ProgressView()
                     .padding()
             }
+            
+            if viewModel.refreshFailed {
+                VStack (spacing: 5) {
+                    Text("Algo deu errado")
+                        .font(.custom("SF Pro", size: 17, relativeTo: .headline))
+                        .fontWeight(.medium)
+                        .foregroundStyle(.text)
+                    
+                    Text("Não foi possível carregar os dados. \nTente novamente mais tarde")
+                        .font(.custom("SF Pro", size: 15, relativeTo: .subheadline))
+                        .fontWeight(.medium)
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.text)
+                }
+                .padding(.top, 174)
+                .padding(.bottom, 380)
+                
+                
+            } else {
+                
+                
+                // Atividade Planejadas
+                Text("Atividades planejadas")
+                    //.font(.custom("SF Pro", size: 20, relativeTo: .title3))
+                    .font(.system(size: 20, weight: .medium))
+                    //.fontWeight(.medium)
+                    .foregroundStyle(Color("primaryColor"))
+                    .hSpacing(.leading)
+                
+                if (tasksCompleted.isEmpty && tasksNotStarted.isEmpty) {
+                    VStack(spacing: 16) {
+                        Text("Nenhuma atividade foi planejada ainda. Clique em \"+\" para começar!")
+                            .font(.subheadline)
+                            .foregroundStyle(Color("primaryColor"))
+                            .multilineTextAlignment(.leading)
+                            .hSpacing(.leading)
+                        
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    
+                    if tasksNotStarted.isEmpty {
+                        Text("Tudo concluído para esse dia! Ótimo trabalho em equipe!")
+                            .font(.subheadline)
+                            .foregroundStyle(Color("primaryColor"))
+                            .multilineTextAlignment(.leading)
+                            .hSpacing(.leading)
+                    } else {
+                        ForEach(tasksNotStarted) { record in
+                            GenitorTaskRowView(record: record)
+                        }
+                    }
+                    
+                    Spacer(minLength: 14)
+                    
+                    
+                    // Atividades concluídas
+                    Text("Atividades concluídas")
+                     //   .font(.custom("SF Pro", size: 20, relativeTo: .title3))
+                        .font(.system(size: 20, weight: .medium))
+                      //  .fontWeight(.medium)
+                        .foregroundStyle(Color("primaryColor"))
+                        .hSpacing(.leading)
+                    
+                    if tasksCompleted.isEmpty {
+                        Text("Nada foi concluído nesse dia ainda. Que tal checar com seu filho?")
+                            .font(.subheadline)
+                            .foregroundStyle(Color("primaryColor"))
+                            .multilineTextAlignment(.leading)
+                            .hSpacing(.leading)
+                    } else {
+                        ForEach(tasksCompleted) { record in
+                            GenitorTaskRowView(record: record)
+                        }
+                    }
+                }
+            }
+            
+            
         }
     }
     

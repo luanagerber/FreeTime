@@ -67,19 +67,8 @@ struct KidHomeView: View {
 //                }
 //                .transition(.opacity)
 //                .zIndex(2)
-            }
-        }
-    }
-    
-    private var HeaderView: some View {
-        Rectangle()
-            .fill(.backgroundHeaderYellowKid)
-            .cornerRadius(20)
-            .frame(height: 156)
             .overlay {
                 HStack {
-                    HStack(spacing: 24) {
-                        // ✅ CORREÇÃO: Usar dados reais do vmKid
                         KidDataView(kidName: vmKid.kidName ?? "Carregando...", kidCoins: vmKid.kidCoins)
                             .padding(.top, 46)
                             .ignoresSafeArea()
@@ -87,19 +76,19 @@ struct KidHomeView: View {
                     }
                     Spacer()
                     HStack(spacing: 39) {
-                        NavButton(page: .kidHome, icon: .iActivity)
-                        NavButton(page: .rewardsStore, icon: .iStore)
+                        NavButton(page: .kidHome)
+                        NavButton(page: .rewardsStore)
                     }
                     .padding(.bottom, 15)
-                    .ignoresSafeArea()
+                        KidDataView(kidName: vmKid.kidName ?? "Carregando...", kidCoins: vmKid.kidCoins)
                     .frame(maxHeight: 156, alignment: .bottom)
                 }
                 .ignoresSafeArea()
                 .frame(maxHeight: 156)
                 .padding(.horizontal, 36)
                 .foregroundColor(.fontColorKid)
-            }
-    }
+                        NavButton(page: .kidHome, icon: .iActivity)
+                        NavButton(page: .rewardsStore, icon: .iStore)
     
     @ViewBuilder
     private var contentView: some View {
@@ -117,7 +106,7 @@ struct KidHomeView: View {
     private var ActivitiesView: some View {
         let notStarted = vmKid.notCompletedRegister()
         let completed = vmKid.completedRegister()
-        let allActivities = notStarted + completed
+                    //.padding(.top, 40)
         
         return VStack(alignment: .leading, spacing: 24) {
             HStack{
@@ -131,9 +120,9 @@ struct KidHomeView: View {
                 
                 Text(Date().formattedDayTitle())
                     .font(.title2)
-                    .kerning(0.3)
+            HStack{
             }
-                if messageCompletedActivy{
+                
                     HeaderMessage(message: "Parabéns!! Você concluiu a atividade com sucesso!", color: .message)
                         .transition(.move(edge: .trailing).combined(with: .opacity))
                         .frame(maxWidth: .infinity, alignment: .trailing)
@@ -144,12 +133,12 @@ struct KidHomeView: View {
                 Text("Hmm... parece que ainda não tem nada pra fazer agora. Que tal pedir pra um adulto adicionar uma atividade bem legal pra você?")
                     .padding(.trailing, 133)
                     .font(.title2)
-                
-            } else {
-                VStack {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Para fazer")
+                if messageCompletedActivy{
+                    HeaderMessage(message: "Parabéns!! Você concluiu a atividade com sucesso!", color: .message)
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+        }
                                 .font(.title)
                                 .kerning(0.38)
                                 .fontWeight(.medium)
@@ -176,7 +165,7 @@ struct KidHomeView: View {
                                 .kerning(0.38)
                                 .fontWeight(.medium)
                             
-                            if completed.isEmpty {
+                                    messageCompleted: $messageCompletedActivy
                                 Text("Eita! Ainda não começamos nenhuma atividade hoje... Vamos entrar em ação?")
                                     .padding(.trailing, 133)
                                     .font(.title2)
@@ -198,30 +187,30 @@ struct KidHomeView: View {
             }
         }
         .padding(.vertical, 26)
-        .padding(.leading, 133)
+                                    messageCompleted: $messageCompletedActivy
     }
     
     
-    private func NavButton(page: Page, icon: ImageResource) -> some View {
+    private func NavButton(page: Page) -> some View {
         let isSelected = currentPage == page
         return Button {
             currentPage = page
         } label: {
             VStack {
-                Image(icon)
-                    .frame(width: 137, height: 146)
+                NavBarView(isSelected: isSelected, page: page)
+                    //.frame(width: 137, height: 146)
+                    .frame(width: 137, height: 136)
+                    .frame(maxHeight: .infinity)
                     .opacity(isSelected ? 1 : 0.5)
+    private func NavButton(page: Page, icon: ImageResource) -> some View {
             }
         }
         .disabled(isSelected)
     }
 }
-
-struct KidDataView: View {
-    let kidName: String
-    var kidCoins: Int
+                Image(icon)
+                    .frame(width: 137, height: 146)
     
-    var body: some View {
         HStack(spacing: 24) {
             Image(.iPerfil)
                 .frame(width: 80, height: 80)
@@ -267,7 +256,7 @@ struct ActivitySection: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 32) {
                         ForEach(registers) { register in
-                            Button {
+    @Binding var messageCompleted: Bool
                                 selectedRegister = register
                             } label: {
                                 CardActivity(register: register)
@@ -282,7 +271,7 @@ struct ActivitySection: View {
             DetailView(kidViewModel: vmKid, register: register,  onCompletion: {
                 messageCompleted = true
                 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+                                    .padding(.leading, 10)
                         messageCompleted = false
                     }
             })
@@ -290,6 +279,15 @@ struct ActivitySection: View {
     }
 }
 
+//
+                messageCompleted = true
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+                        messageCompleted = false
+                    }
+//#Preview {
+//    KidHomeView(vmKid: KidViewModel())
+//}
 //
 //#Preview {
 //    KidHomeView(vmKid: KidViewModel())

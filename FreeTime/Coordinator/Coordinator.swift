@@ -9,7 +9,7 @@ import SwiftUI
 
 enum Page: Hashable {
     //setup pages
-    case kidManagement
+    case genitorManagement
     case kidWaitingInvite
     
     // home
@@ -66,7 +66,7 @@ class Coordinator: ObservableObject {
     @ViewBuilder
     func build(page: Page) -> some View {
         switch page {
-        case .kidManagement:
+        case .genitorManagement:
             GenitorManagementView()
                 .navigationBarBackButtonHidden(true)
         case .kidWaitingInvite:
