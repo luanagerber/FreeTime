@@ -70,7 +70,7 @@ struct GenitorCalendarView: View {
     func HeaderView() -> some View {
         VStack (alignment: .leading) {
             
-            Text(viewModel.currentDate.format("MMMM"))
+            Text(viewModel.currentDate.formattedMonthUppercase())
                 .font(.custom("SF Pro", size: 34, relativeTo: .largeTitle))
                 .fontWeight(.semibold)
                 .foregroundStyle(Color("primaryColor"))

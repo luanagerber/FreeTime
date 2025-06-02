@@ -134,6 +134,13 @@ extension Date {
         return formatter.string(from: self)
     }
     
+    func formattedMonthUppercase(locale: Locale = Locale(identifier: "pt_BR")) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.dateFormat = "MMMM"
+        return formatter.string(from: self).capitalizingFirstLetter
+    }
+    
     /// Retorna a data no início do dia, útil para agrupar recompensas que ocorreram no mesmo dia.
     var startOfDay: Date {
         Calendar.current.startOfDay(for: self)
