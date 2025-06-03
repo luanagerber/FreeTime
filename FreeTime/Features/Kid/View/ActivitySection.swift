@@ -11,7 +11,7 @@ struct ActivitySection: View {
     let emptyMessage: String
     @Binding var selectedRegister: ActivitiesRegister?
     var vmKid: KidViewModel
-    @Binding var showPopUp: Bool
+    @Binding var messageCompleted: Bool
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -26,6 +26,7 @@ struct ActivitySection: View {
                                 selectedRegister = register
                             } label: {
                                 CardActivity(register: register)
+                                    .padding(.leading, 10)
                             }
                         }
                     }
@@ -34,9 +35,12 @@ struct ActivitySection: View {
         }
         .sheet(item: $selectedRegister) { register in
             DetailView(kidViewModel: vmKid, register: register,  onCompletion: {
-               
-                    showPopUp = true
-            })
+                messageCompleted = true
+                
+//                DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+//                    messageCompleted = false
+            }//, messageCompletedActivy: <#Binding<Bool>#>
+            )//, messageCompletedActivy: $messageCompleted)
         }
     }
 }

@@ -12,6 +12,7 @@ struct DetailView: View {
     var register: ActivitiesRegister
     @Environment(\.dismiss) private var dismiss
     var onCompletion: (() -> Void)? = nil
+    //@Binding var messageCompletedActivy : Bool
 
     var body: some View {
         ZStack {
@@ -37,7 +38,7 @@ struct DetailView: View {
                     kidViewModel: kidViewModel,
                     register: register,
                     dismiss: { dismiss() },
-                    onCompletion: onCompletion
+                    onCompletion: onCompletion//, messageCompletedActivy: $messageCompletedActivy
                 )
             }
             .overlay(alignment: .topTrailing) {
@@ -142,6 +143,7 @@ struct ConfirmButton: View {
     var register: ActivitiesRegister
     let dismiss: () -> Void
     var onCompletion: (() -> Void)?
+    //@Binding var messageCompletedActivy : Bool
 
     private var isCompleted: Bool {
         register.registerStatus == .completed
@@ -167,7 +169,7 @@ struct ConfirmButton: View {
         .padding(.bottom, 22)
     }
 }
-
-#Preview {
-    DetailView(kidViewModel: KidViewModel(), register: ActivitiesRegister.sample1)
-}
+//
+//#Preview {
+//    DetailView(kidViewModel: KidViewModel(), register: ActivitiesRegister.sample1, messageCompletedActivy )
+//}

@@ -26,7 +26,7 @@ struct HeaderMessage: View {
                     color: color == .errorMessage ? .errorMessageShadow : .messageShadow,
                     radius: 0, x: -8, y: 8
                 )
-                .frame(maxWidth: 588)
+                .frame(maxWidth: .infinity)
                 .frame(height: 75)
             
             Text(message)

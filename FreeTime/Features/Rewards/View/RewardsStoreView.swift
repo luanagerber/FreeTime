@@ -78,7 +78,7 @@ struct RewardsStoreView: View {
             .padding(.trailing)
             .padding([.top, .bottom], 32)
             
-            
+            //Aqui
             if let message = message {
                 headerMessage(message: message, color: color)
                     .offset(x: messageOffset.rawValue)

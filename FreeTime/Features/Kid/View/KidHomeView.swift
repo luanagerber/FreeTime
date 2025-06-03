@@ -10,12 +10,13 @@ import CloudKit
 
 struct KidHomeView: View {
     @State private var currentPage: Page = .kidHome
-    @StateObject private var vmKid = KidViewModel()
+    @StateObject var vmKid : KidViewModel
     @State private var selectedRegister: ActivitiesRegister? = nil
     @EnvironmentObject var coordinator: Coordinator
-    @State private var showPopUp = false
+    @State private var messageCompletedActivy : Bool = true
     
     @State var testNumber = 0
+    
     
     var body: some View {
         ZStack {
@@ -26,9 +27,9 @@ struct KidHomeView: View {
                 HeaderView
                 
                 ScrollView(.vertical, showsIndicators: false) {
-                        contentView
-
-                    .frame(maxWidth: .infinity)
+                    contentView
+                    
+                        .frame(maxWidth: .infinity)
                 }
                 .refreshable {
                     print("KidHomeView: Pull to refresh...")
@@ -54,31 +55,20 @@ struct KidHomeView: View {
             Text(vmKid.errorMessage)
         }
         .overlay {
-//            if vmKid.isLoading {
-//                ZStack {
-//                    Color(.backgroundHeaderYellowKid)
-//                        .ignoresSafeArea()
-//                    VStack(spacing: 16) {
-//                        ProgressView("Carregando...")
-//                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-//                            .foregroundColor(.white)
-//                            .font(.title)
-//                            .fontWeight(.bold)
-//                    }
-//                }
-//                .transition(.opacity)
-//                .zIndex(2)
-//            }
-        }
-        .overlay{
-            if showPopUp {
-                VStack {
-                    Spacer()
-                    PopUp(showPopUp: $showPopUp)
-                }
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .transition(.move(edge: .trailing).combined(with: .opacity))
-                .zIndex(1)
+            if vmKid.isLoading {
+                ////                ZStack {
+                ////                    Color(.backgroundHeaderYellowKid)
+                ////                        .ignoresSafeArea()
+                ////                    VStack(spacing: 16) {
+                ////                        ProgressView("Carregando...")
+                ////                            .progressViewStyle(CircularProgressViewStyle(tint: .fontColorKid))
+                ////                            .foregroundColor(.fontColorKid)
+                ////                            .font(.title)
+                ////                            .fontWeight(.bold)
+                ////                    }
+                ////                }
+                ////                .transition(.opacity)
+                ////                .zIndex(2)
             }
         }
     }
@@ -92,7 +82,7 @@ struct KidHomeView: View {
                 HStack {
                     HStack(spacing: 24) {
                         // ✅ CORREÇÃO: Usar dados reais do vmKid
-                        KidDataView(kidName: vmKid.kidName ?? "Carregando...", kidCoins: vmKid.kidCoins ?? testNumber)
+                        KidDataView(kidName: vmKid.kidName ?? "Carregando...", kidCoins: vmKid.kidCoins)
                             .padding(.top, 46)
                             .ignoresSafeArea()
                             .frame(maxHeight: 156, alignment: .top)
@@ -118,6 +108,7 @@ struct KidHomeView: View {
             }
     }
     
+    
     @ViewBuilder
     private var contentView: some View {
         switch currentPage {
@@ -137,16 +128,26 @@ struct KidHomeView: View {
         let allActivities = notStarted + completed
         
         return VStack(alignment: .leading, spacing: 24) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Atividades para hoje")
-                    .kerning(0.4)
-                    .font(.largeTitle)
-                    .fontWeight(.semibold)
+            
+            HStack(alignment: .center){
+                VStack(alignment: .leading, spacing: 4) {
+                    
+                    Text("Atividades para hoje")
+                        .kerning(0.4)
+                        .font(.largeTitle)
+                        .fontWeight(.semibold)
+                    
+                    
+                    Text(Date().formattedDayTitle())
+                        .font(.title2)
+                        .kerning(0.3)
+                }
                 
-                
-                Text(Date().formattedDayTitle())
-                    .font(.title2)
-                    .kerning(0.3)
+                if messageCompletedActivy{
+                    HeaderMessage(message: "Parabéns!! Você concluiu a atividade com sucesso!", color: .message)
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                        
+                }
             }
             
             if allActivities.isEmpty {
@@ -174,7 +175,7 @@ struct KidHomeView: View {
                                     emptyMessage: "",
                                     selectedRegister: $selectedRegister,
                                     vmKid: vmKid,
-                                    showPopUp: $showPopUp
+                                    messageCompleted: $messageCompletedActivy
                                     
                                 )
                                 .shadow(color: .black.opacity(0.2), radius: 4, x: 4, y: 4)
@@ -196,7 +197,7 @@ struct KidHomeView: View {
                                     emptyMessage: "",
                                     selectedRegister: $selectedRegister,
                                     vmKid: vmKid,
-                                    showPopUp: $showPopUp
+                                    messageCompleted: $messageCompletedActivy
                                 )
                                 .shadow(color: .black.opacity(0.2), radius: 4, x: 4, y: 4)
                             }
@@ -228,23 +229,7 @@ struct KidHomeView: View {
     }
 }
 
-#Preview("KidHome") {
-    
-    struct PreviewWrapper: View {
-        @StateObject var coordinator = Coordinator() // Use @StateObject para coordinators em Views
-        
-        
-        
-        var body: some View {
-            NavigationStack(path: $coordinator.path) {
-                KidHomeView()
-                    .navigationDestination(for: Page.self) { page in
-                        coordinator.build(page: page)
-                    }
-                
-            }
-            .environmentObject(coordinator)
-        }
-    }
-    return PreviewWrapper()
+
+#Preview {
+    KidHomeView(vmKid: KidViewModel())
 }
