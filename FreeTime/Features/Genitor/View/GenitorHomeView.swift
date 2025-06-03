@@ -38,7 +38,6 @@ struct GenitorHomeView: View {
                 }
                 
             }
-            // ✅ CORREÇÃO: Sheet moved to the correct level
             .sheet(isPresented: $viewModel.createNewTask) {
                 NewTaskView()
                     .presentationDetents([.large]) // Alturas suportadas
@@ -91,7 +90,11 @@ struct GenitorHomeView: View {
         .frame(maxWidth: .infinity)
         .contentShape(Rectangle()) // permite clicar em toda a área
         .onTapGesture {
-            currentTab = tab
+            print("🔘 TabBarItem clicado: \(tab)")
+            withAnimation(.easeInOut(duration: 0.2)) {
+                currentTab = tab
+            }
+            print("✅ currentTab agora é: \(currentTab)")
         }
     }
 }

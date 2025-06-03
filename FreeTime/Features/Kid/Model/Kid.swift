@@ -101,3 +101,23 @@ extension Kid: Equatable, Hashable {
         hasher.combine(coins)
     }
 }
+
+extension Kid {
+    var pendingRewards: [Int] {
+        get {
+            associatedRecord?["pendingRewards"] as? [Int] ?? []
+        }
+        set {
+            associatedRecord?["pendingRewards"] = newValue
+        }
+    }
+    
+    var deliveredRewards: [Int] {
+        get {
+            associatedRecord?["deliveredRewards"] as? [Int] ?? []
+        }
+        set {
+            associatedRecord?["deliveredRewards"] = newValue
+        }
+    }
+}

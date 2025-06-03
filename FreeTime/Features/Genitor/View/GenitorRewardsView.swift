@@ -5,6 +5,7 @@
 //  Created by Thales Araújo on 22/05/25.
 //
 
+
 import SwiftUI
 
 struct GenitorRewardsView: View {
@@ -14,18 +15,19 @@ struct GenitorRewardsView: View {
     
     var body: some View {
         VStack() {
+            // Debug
+            let _ = print("🎁 GenitorRewardsView - Rewards count: \(viewModel.rewards.count)")
+            let _ = print("🎁 GenitorRewardsView - Is loading: \(viewModel.isLoading)")
+            let _ = print("🎁 GenitorRewardsView - First kid: \(viewModel.firstKid?.name ?? "nil")")
             
             HeaderView()
-            
             RewardsView()
-            
         }
         .vSpacing(.top)
         .onAppear {
-            // Carrega dados apenas uma vez quando a view aparece
             if !hasLoadedInitialData {
                 viewModel.setupCloudKit()
-                loadRewards()
+                viewModel.loadRewardsFromKid()
                 viewModel.setupCoinManager()
                 hasLoadedInitialData = true
             }
@@ -36,15 +38,32 @@ struct GenitorRewardsView: View {
         .background(Color("backgroundGenitor"))
     }
     
+    private func saveRewardUpdate(_ reward: CollectedReward) {
+        viewModel.toggleRewardDeliveryStatus(reward)
+    }
+    
+    @MainActor
+    private func refreshData() async {
+        await withCheckedContinuation { continuation in
+            viewModel.loadRewardsFromKid()
+            viewModel.setupCoinManager()
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                continuation.resume()
+            }
+        }
+    }
     
     @ViewBuilder
     func HeaderView() -> some View {
         VStack(alignment: .leading) {
             
             Text("Histórico")
-                .font(.custom("SF Pro", size: 34, relativeTo: .largeTitle))
-                .fontWeight(.semibold)
+                //.font(.custom("SF Pro", size: 34, relativeTo: .largeTitle))
+                .font(.system(size: 34, weight: .semibold))
+//                .fontWeight(.bold)
                 .padding(.bottom, 10)
+                .padding(.top, 15)
                 .foregroundStyle(Color("primaryColor"))
             
             Text("Confira as recompensas da criança e marque quando forem entregues.")
@@ -65,8 +84,9 @@ struct GenitorRewardsView: View {
                 
                 Image(systemName: "dollarsign.circle.fill")
             }
-            .font(.custom("SF Pro", size: 17, relativeTo: .body))
-            .fontWeight(.medium)
+            //.font(.custom("SF Pro", size: 17, relativeTo: .body))
+           // .fontWeight(.medium)
+            .font(.system(size: 17, weight: .medium))
             .foregroundStyle(Color("primaryColor").opacity(0.6))
             .padding()
             .background {
@@ -96,8 +116,9 @@ struct GenitorRewardsView: View {
                     
                     VStack (spacing: 5) {
                         Text("Algo deu errado")
-                            .font(.custom("SF Pro", size: 17, relativeTo: .headline))
-                            .fontWeight(.medium)
+                            //.font(.custom("SF Pro", size: 17, relativeTo: .headline))
+                            //.fontWeight(.medium)
+                            .font(.system(size: 17, weight: .medium))
                             .foregroundStyle(.text)
                         
                         Text("Não foi possível carregar os dados. \nTente novamente mais tarde")
@@ -204,33 +225,6 @@ struct GenitorRewardsView: View {
                     viewModel.rewards = []
                     
                 }
-            }
-        }
-    }
-    
-    @MainActor
-    private func refreshData() async {
-        // Usar Task para executar de forma assíncrona
-        await withCheckedContinuation { continuation in
-            loadRewards()
-            viewModel.setupCoinManager()
-            
-            // Aguardar um pouco para garantir que as operações foram iniciadas
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                continuation.resume()
-            }
-        }
-    }
-    
-    private func saveRewardUpdate(_ reward: CollectedReward) {
-        CloudService.shared.updateCollectedReward(reward, isShared: false) { result in
-            switch result {
-            case .success:
-                print("Recompensa atualizada com sucesso")
-                // Recarregar as moedas após atualizar o status de entrega
-                viewModel.setupCoinManager()
-            case .failure(let error):
-                print("Erro ao atualizar recompensa: \(error)")
             }
         }
     }

@@ -179,7 +179,6 @@ extension RewardsStore {
     }
 }
 
-// MARK: - Reward Purchase (Kid Operations)
 extension RewardsStore {
     
     func buyReward(_ reward: Reward) throws {
@@ -196,34 +195,23 @@ extension RewardsStore {
         
         isLoading = true
         
-        // Create CollectedReward record
-        var collectedReward = CollectedReward(
-            kidID: kidID.recordName,
-            rewardID: reward.id,
-            dateCollected: Date(),
-            isDelivered: false
-        )
-        collectedReward.kidReference = CKRecord.Reference(recordID: kidID, action: .deleteSelf)
-        
         Task {
             do {
-                // Save reward first
-                let savedReward = try await withCheckedThrowingContinuation { continuation in
-                    CloudService.shared.saveCollectedReward(collectedReward) { result in
-                        continuation.resume(with: result)
-                    }
-                }
-                
-                // Update coins through CoinManager
+                // 1. Primeiro remove as moedas
                 try await CoinManager.shared.removeCoins(reward.cost, reason: "Compra: \(reward.name)")
                 
+                // 2. Adiciona a recompensa aos pendingRewards do Kid
+                try await addRewardToPending(rewardID: reward.id, kidID: kidID)
+                
                 DispatchQueue.main.async { [weak self] in
-                    self?.collectedRewards.append(savedReward)
                     self?.isLoading = false
                     self?.setHeaderMessage("✅ \(reward.name) comprado!", color: .green)
                 }
                 
             } catch {
+                // Se falhar, devolve as moedas
+                try? await CoinManager.shared.addCoins(reward.cost, reason: "Estorno: \(reward.name)")
+                
                 DispatchQueue.main.async { [weak self] in
                     self?.isLoading = false
                     self?.handleError("Failed to purchase reward: \(error.localizedDescription)")
@@ -232,10 +220,32 @@ extension RewardsStore {
         }
     }
     
-    func canAfford(_ reward: Reward) -> Bool {
-        return CoinManager.shared.canAfford(cost: reward.cost)
+    private func addRewardToPending(rewardID: Int, kidID: CKRecord.ID) async throws {
+        let container = CKContainer(identifier: CloudConfig.containerIdentifier)
+        let isSharedZone = kidID.zoneID.ownerName != CKCurrentUserDefaultName
+        let isChildUser = UserManager.shared.isChild
+        let database = (isSharedZone || isChildUser) ?
+                       container.sharedCloudDatabase :
+                       container.privateCloudDatabase
+        
+        // Busca o registro do Kid
+        let record = try await database.record(for: kidID)
+        
+        // Adiciona o rewardID ao array de pendingRewards com timestamp
+        var pendingRewards = record["pendingRewards"] as? [Int] ?? []
+        var pendingDates = record["pendingRewardDates"] as? [Date] ?? []
+        
+        pendingRewards.append(rewardID)
+        pendingDates.append(Date())
+        
+        record["pendingRewards"] = pendingRewards
+        record["pendingRewardDates"] = pendingDates
+        
+        // Salva o registro atualizado
+        _ = try await database.save(record)
     }
 }
+
 
 // MARK: - CollectedReward Management
 extension RewardsStore {
@@ -415,4 +425,5 @@ extension RewardsStore {
 
 enum RewardsStoreError: Error {
     case notEnoughCoins
+    case noKidSelected
 }
