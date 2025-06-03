@@ -228,6 +228,23 @@ struct KidHomeView: View {
     }
 }
 
-#Preview {
-    KidHomeView()
+#Preview("KidHome") {
+    
+    struct PreviewWrapper: View {
+        @StateObject var coordinator = Coordinator() // Use @StateObject para coordinators em Views
+        
+        
+        
+        var body: some View {
+            NavigationStack(path: $coordinator.path) {
+                KidHomeView()
+                    .navigationDestination(for: Page.self) { page in
+                        coordinator.build(page: page)
+                    }
+                
+            }
+            .environmentObject(coordinator)
+        }
+    }
+    return PreviewWrapper()
 }

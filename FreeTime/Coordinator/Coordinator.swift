@@ -75,7 +75,7 @@ class Coordinator: ObservableObject {
         case .activityManagement:
             ActivityManagementDebugView()
         case .kidHome:
-                KidHomeView(vmKid: self.vmKid)
+                KidHomeView()
                 .navigationBarBackButtonHidden(true)
         case .genitorHome:
             GenitorHomeView()
