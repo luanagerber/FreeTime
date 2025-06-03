@@ -56,9 +56,11 @@ class CoinManager: ObservableObject {
         Task {
             do {
                 let coins = try await fetchCoinsFromCloudKit(kidID: kidID)
-                self.kidCoins = coins
-                self.isLoading = false
-                print("CoinManager: Moedas atualizadas: \(coins)")
+                withAnimation {
+                    self.kidCoins = coins
+                    self.isLoading = false
+                    print("CoinManager: Moedas atualizadas: \(coins)")
+                }
             } catch {
                 self.isLoading = false
                 self.errorMessage = "Erro ao carregar moedas: \(error.localizedDescription)"

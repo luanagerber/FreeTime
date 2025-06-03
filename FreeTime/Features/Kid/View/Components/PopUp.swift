@@ -19,8 +19,7 @@ struct PopUp: View {
         ZStack(alignment: .leading) {
             CustomCornerShape(radius: 20, corners: [.topLeft, .bottomLeft])
                 .fill(color)
-                .shadow(color: .messageShadow, radius: 0, x: -7, y: 7)
-                
+                .customMessageShadow()
                 .frame(width: 578)
                 .frame(height: 80)
             

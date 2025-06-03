@@ -142,7 +142,7 @@ struct BuyRewardConfirmationView: View {
     ZStack {
         Color.blue.opacity(0.2)
             .ignoresSafeArea(.all)
-        coordinator.build(sheet: .buyRewardConfirmation(Reward.catalog[6]))
+        coordinator.build(sheet: .buyRewardConfirmation(Reward.catalog[1]))
             .environmentObject(coordinator)
     }
 }

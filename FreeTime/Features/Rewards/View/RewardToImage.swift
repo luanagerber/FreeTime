@@ -18,7 +18,7 @@ enum RewardToImageMap {
     case passeio
     case piquenique
     case praia
-    case viagem
+    case shopping
     case zoologico
     case placeholder // quando nao é nenhum dos casos
     
@@ -40,8 +40,8 @@ enum RewardToImageMap {
             self = .piquenique
         case "Ir para a praia":
             self = .praia
-        case "Viagem":
-            self = .viagem
+        case "Ir ao shopping":
+            self = .shopping
         case "Ir ao zoologico":
             self = .zoologico
         default:
@@ -67,7 +67,7 @@ enum RewardToImageMap {
             return "Piquenique"
         case .praia:
             return "Praia"
-        case .viagem:
+        case .shopping:
             return "Viagem"
         case .zoologico:
             return "Zoologico"

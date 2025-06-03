@@ -20,7 +20,7 @@ extension Reward {
         Reward(id: 6, name: "Escolher passeio", cost: 25, image: "🏞️"),       // Ex: Um passeio no parque
         Reward(id: 7, name: "Fazer piquenique", cost: 35, image: "🧺"),
         Reward(id: 8, name: "Ir para a praia", cost: 60, image: "🏖️"),
-        Reward(id: 9, name: "Viagem", cost: 500, image: "✈️"),
+        Reward(id: 9, name: "Ir ao shopping", cost: 500, image: "🛒"),
         Reward(id: 10, name: "Ir ao zoologico", cost: 45, image: "🐘")
     ]
     
