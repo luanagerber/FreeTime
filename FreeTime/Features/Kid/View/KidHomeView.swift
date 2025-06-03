@@ -81,8 +81,6 @@ struct KidHomeView: View {
                 .zIndex(1)
             }
         }
-        
-        
     }
     
     private var HeaderView: some View {
@@ -229,77 +227,6 @@ struct KidHomeView: View {
         .disabled(isSelected)
     }
 }
-
-struct KidDataView: View {
-    let kidName: String
-    var kidCoins: Int
-    
-    var body: some View {
-        HStack(spacing: 24) {
-            Image(.iPerfil)
-                .frame(width: 80, height: 80)
-            
-            VStack(alignment: .leading, spacing: 5) {
-                Text(kidName)
-                    .font(.system(size: 28))
-                    .fontWeight(.bold)
-                
-                RoundedCorner(radius: 20)
-                    .fill(.backgroundRoundedRectangleCoins)
-                    .frame(width: 98, height: 35)
-                    .overlay(alignment:.center){
-                        HStack (spacing: 8){
-                            Image(.iCoin)
-                                .frame(width: 24, height: 24)
-                            
-                            Text("\(kidCoins)")
-                                .font(.system(size: 20))
-                                .fontWeight(.semibold)
-                                .contentTransition(.numericText())
-                        }
-                    }
-            }
-            .frame(maxHeight: 80, alignment: .bottom)
-            
-        }
-    }
-}
-
-struct ActivitySection: View {
-    let registers: [ActivitiesRegister]
-    let emptyMessage: String
-    @Binding var selectedRegister: ActivitiesRegister?
-    var vmKid: KidViewModel
-    @Binding var showPopUp: Bool
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            if registers.isEmpty {
-                Text(emptyMessage)
-                    .foregroundColor(.secondary)
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 32) {
-                        ForEach(registers) { register in
-                            Button {
-                                selectedRegister = register
-                            } label: {
-                                CardActivity(register: register)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        .sheet(item: $selectedRegister) { register in
-            DetailView(kidViewModel: vmKid, register: register,  onCompletion: {
-               
-                    showPopUp = true
-            })
-        }
-    }
-}
-
 
 #Preview {
     KidHomeView()
