@@ -15,6 +15,7 @@ struct KidHomeView: View {
     @EnvironmentObject var coordinator: Coordinator
     @State private var showPopUp = false
     
+    @State var testNumber = 0
     
     var body: some View {
         ZStack {
@@ -53,21 +54,21 @@ struct KidHomeView: View {
             Text(vmKid.errorMessage)
         }
         .overlay {
-//            if vmKid.isLoading {
-//                ZStack {
-//                    Color(.backgroundHeaderYellowKid)
-//                        .ignoresSafeArea()
-//                    VStack(spacing: 16) {
-//                        ProgressView("Carregando...")
-//                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-//                            .foregroundColor(.white)
-//                            .font(.title)
-//                            .fontWeight(.bold)
-//                    }
-//                }
-//                .transition(.opacity)
-//                .zIndex(2)
-//            }
+            if vmKid.isLoading {
+                ZStack {
+                    Color(.backgroundHeaderYellowKid)
+                        .ignoresSafeArea()
+                    VStack(spacing: 16) {
+                        ProgressView("Carregando...")
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .foregroundColor(.white)
+                            .font(.title)
+                            .fontWeight(.bold)
+                    }
+                }
+                .transition(.opacity)
+                .zIndex(2)
+            }
         }
         .overlay{
             if showPopUp {
@@ -80,8 +81,6 @@ struct KidHomeView: View {
                 .zIndex(1)
             }
         }
-        
-        
     }
     
     private var HeaderView: some View {
@@ -93,10 +92,15 @@ struct KidHomeView: View {
                 HStack {
                     HStack(spacing: 24) {
                         // ✅ CORREÇÃO: Usar dados reais do vmKid
-                        KidDataView(kidName: vmKid.kidName ?? "Carregando...", kidCoins: vmKid.kidCoins ?? 0)
+                        KidDataView(kidName: vmKid.kidName ?? "Carregando...", kidCoins: vmKid.kidCoins ?? testNumber)
                             .padding(.top, 46)
                             .ignoresSafeArea()
                             .frame(maxHeight: 156, alignment: .top)
+                            .onTapGesture {
+                                withAnimation {
+                                    testNumber += 5
+                                }
+                            }
                     }
                     Spacer()
                     HStack(spacing: 39) {
@@ -214,7 +218,6 @@ struct KidHomeView: View {
         } label: {
             VStack {
                 NavBarView(isSelected: isSelected, page: page)
-                    //.frame(width: 137, height: 146)
                     .frame(width: 137, height: 136)
                     .frame(maxHeight: .infinity)
                     .opacity(isSelected ? 1 : 0.5)
@@ -225,76 +228,23 @@ struct KidHomeView: View {
     }
 }
 
-struct KidDataView: View {
-    let kidName: String
-    var kidCoins: Int
+#Preview("KidHome") {
     
-    var body: some View {
-        HStack(spacing: 24) {
-            Image(.iPerfil)
-                .frame(width: 80, height: 80)
-            
-            VStack(alignment: .leading, spacing: 5) {
-                Text(kidName)
-                    .font(.system(size: 28))
-                    .fontWeight(.bold)
+    struct PreviewWrapper: View {
+        @StateObject var coordinator = Coordinator() // Use @StateObject para coordinators em Views
+        
+        
+        
+        var body: some View {
+            NavigationStack(path: $coordinator.path) {
+                KidHomeView()
+                    .navigationDestination(for: Page.self) { page in
+                        coordinator.build(page: page)
+                    }
                 
-                RoundedCorner(radius: 20)
-                    .fill(.backgroundRoundedRectangleCoins)
-                    .frame(width: 98, height: 35)
-                    .overlay(alignment:.center){
-                        HStack (spacing: 8){
-                            Image(.iCoin)
-                                .frame(width: 24, height: 24)
-                            
-                            Text("\(kidCoins)")
-                                .font(.system(size: 20))
-                                .fontWeight(.semibold)
-                        }
-                    }
             }
-            .frame(maxHeight: 80, alignment: .bottom)
-            
+            .environmentObject(coordinator)
         }
     }
-}
-
-struct ActivitySection: View {
-    let registers: [ActivitiesRegister]
-    let emptyMessage: String
-    @Binding var selectedRegister: ActivitiesRegister?
-    var vmKid: KidViewModel
-    @Binding var showPopUp: Bool
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            if registers.isEmpty {
-                Text(emptyMessage)
-                    .foregroundColor(.secondary)
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 32) {
-                        ForEach(registers) { register in
-                            Button {
-                                selectedRegister = register
-                            } label: {
-                                CardActivity(register: register)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        .sheet(item: $selectedRegister) { register in
-            DetailView(kidViewModel: vmKid, register: register,  onCompletion: {
-               
-                    showPopUp = true
-            })
-        }
-    }
-}
-
-
-#Preview {
-    KidHomeView()
+    return PreviewWrapper()
 }

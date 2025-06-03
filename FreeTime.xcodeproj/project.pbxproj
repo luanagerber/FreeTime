@@ -11,7 +11,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		3BBA966D2DEE2CB60081DDA6 /* Exceptions for "FreeTime" folder in "FreeTime" target */ = {
+		3BDC01E52DD5227A00314258 /* Exceptions for "FreeTime" folder in "FreeTime" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -24,7 +24,7 @@
 		4F7AA3262DC9321100C91898 /* FreeTime */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				3BBA966D2DEE2CB60081DDA6 /* Exceptions for "FreeTime" folder in "FreeTime" target */,
+				3BDC01E52DD5227A00314258 /* Exceptions for "FreeTime" folder in "FreeTime" target */,
 			);
 			path = FreeTime;
 			sourceTree = "<group>";
@@ -266,7 +266,7 @@
 				CODE_SIGN_ENTITLEMENTS = FreeTime/FreeTime.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = UZ6BDJX457;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -305,7 +305,7 @@
 				CODE_SIGN_ENTITLEMENTS = FreeTime/FreeTime.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = UZ6BDJX457;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;

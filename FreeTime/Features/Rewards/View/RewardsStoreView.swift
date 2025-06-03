@@ -62,6 +62,7 @@ struct RewardsStoreView: View {
             }
             .scrollTargetLayout()
             .padding(.trailing, 36)
+            .padding(.bottom, 20)
         }
         .scrollTargetBehavior(.viewAligned)
         .scrollIndicators(.hidden)
@@ -110,19 +111,20 @@ struct RewardsStoreView: View {
     func headerMessage(message: String, color: Color) -> some View {
         ZStack(alignment: .leading){
             CustomCornerShape(radius: 20, corners: [.topLeft, .bottomLeft])
-                .fill(color)
-                .shadow(color: color == .errorMessage ? .errorMessageShadow : .messageShadow, radius: 0, x: -8, y: 8)
-                .frame(maxWidth: .infinity)
+                .compositingGroup()
+                .foregroundStyle(color)
+                .ignoresSafeArea(edges: .all)
                 .frame(height: 75)
-            
+                .customMessageShadow(color: color == .errorMessage ? .errorMessageShadow : .messageShadow)
+                
             Text(message)
                 .font(.title3)
                 .fontWeight(.medium)
-                .foregroundStyle(.text)
                 .padding()
                 .padding(.leading, 20)
-                .fontDesign(.rounded)
+                .defaultText()
         }
+        
     }
     
     
@@ -140,8 +142,7 @@ struct RewardsStoreView: View {
         Text("Lojinha de Recompensas")
             .font(.largeTitle)
             .fontWeight(.semibold)
-            .foregroundStyle(.text)
-            .fontDesign(.rounded)
+            .defaultText()
     }
     
     private var subtitleText: some View {
@@ -149,9 +150,8 @@ struct RewardsStoreView: View {
              "Hmm... parece que ainda não tem nenhuma recompensa para comprar. Que tal pedir pra um adulto adicionar uma recompensa pra você?" : "Clique nas recompensas que deseja ganhar!"
         )
         .font(.title2)
-        .fontDesign(.rounded)
         .fontWeight(.regular)
-        .foregroundStyle(.text)
+        .defaultText()
     }
     
     @ViewBuilder
