@@ -23,6 +23,8 @@ class GenitorViewModel: ObservableObject {
     @Published var selectedKid: Kid?
     @Published var isLoading = false
     @Published var isRefreshing = false
+    @Published var isSelectedActivity = false
+    @Published var selectedActivityRegister: ActivitiesRegister?
     @Published var createNewTask = false
     @Published var feedbackMessage = ""
     @Published var sharingSheet = false
