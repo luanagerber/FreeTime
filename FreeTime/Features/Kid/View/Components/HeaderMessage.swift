@@ -22,10 +22,7 @@ struct HeaderMessage: View {
         ZStack(alignment: .leading) {
             CustomCornerShape(radius: 20, corners: [.topLeft, .bottomLeft])
                 .fill(color)
-                .shadow(
-                    color: color == .errorMessage ? .errorMessageShadow : .messageShadow,
-                    radius: 0, x: -8, y: 8
-                )
+                .customMessageShadow(color: color == .errorMessage ? .errorMessageShadow : .messageShadow)
                 .frame(maxWidth: .infinity)
                 .frame(height: 75)
             

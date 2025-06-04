@@ -27,9 +27,7 @@ struct RewardsStoreView: View {
                 
                 ScrollView(.vertical){
                     VStack(alignment: .leading){
-                        
                         header(store.headerState)
-                        //.padding(.horizontal, 132)
                         rewardsGrid
                     }
                     .padding(.leading, 132)

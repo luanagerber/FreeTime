@@ -6,7 +6,7 @@
 //
 import SwiftUI
 
-struct ActivitySection: View {
+struct ActivitySectionView: View {
     let registers: [ActivitiesRegister]
     let emptyMessage: String
     @Binding var selectedRegister: ActivitiesRegister?
@@ -24,6 +24,7 @@ struct ActivitySection: View {
                         ForEach(registers) { register in
                             Button {
                                 selectedRegister = register
+
                             } label: {
                                 CardActivity(register: register)
                                     .padding(.leading, 10)
@@ -35,8 +36,7 @@ struct ActivitySection: View {
         }
         .sheet(item: $selectedRegister) { register in
             DetailView(kidViewModel: vmKid, register: register,  onCompletion: {
-                messageCompleted = true
-                
+                messageCompleted = true     
 //                DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
 //                    messageCompleted = false
             }//, messageCompletedActivy: <#Binding<Bool>#>
