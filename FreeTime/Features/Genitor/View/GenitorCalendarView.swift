@@ -61,6 +61,13 @@ struct GenitorCalendarView: View {
                 viewModel.loadAllActivitiesOnce()
             }
         }
+        .onReceive(viewModel.$records) { records in
+            print("📱 Records atualizados: \(records.count) atividades")
+            let todayActivities = records.filter {
+                Calendar.current.isDate($0.date, inSameDayAs: viewModel.currentDate)
+            }
+            print("📱 Atividades para hoje (\(viewModel.currentDate.format("dd/MM"))): \(todayActivities.count)")
+        }
         .refreshable {
             viewModel.refresh()
             loadActivitiesForCurrentDate()

@@ -73,7 +73,7 @@ class GenitorViewModel: ObservableObject {
     private var sharedDB: CKDatabase {
         container.sharedCloudDatabase
     }
-
+    
     
     // MARK: - CloudKit Setup & Initialization
     func setupCloudKit() {
@@ -92,8 +92,8 @@ class GenitorViewModel: ObservableObject {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                     self.debugKidRecord()
                     self.loadRewardsFromKid()
-                    }
-                } catch {
+                }
+            } catch {
                 await handleZoneCreationError(error)
             }
         }
@@ -284,124 +284,155 @@ class GenitorViewModel: ObservableObject {
     
     // MARK: - Activity Management Operations
     func scheduleActivity() {
-         guard let kid = selectedKid,
-               let activity = selectedActivity,
-               let kidIDString = kid.id?.recordName else {
-             feedbackMessage = "❌ Erro: Dados incompletos para agendar atividade"
-             return
-         }
-         
-         isLoading = true
-         feedbackMessage = "Agendando atividade para \(kid.name)..."
-         
-         let activityRegister = ActivitiesRegister(
-             kid: kid,
-             activityID: activity.id, // Agora activity.id é Int
-             date: scheduledDate,
-             duration: duration,
-             registerStatus: .notCompleted
-         )
-         
-         cloudService.saveActivity(activityRegister) { [weak self] result in
-             guard let self = self else { return }
-             
-             self.isLoading = false
-             
-             switch result {
-             case .success(let savedActivity):
-                 self.handleActivitySaveSuccess(savedActivity, for: kid, activity: activity)
-             case .failure(let error):
-                 self.feedbackMessage = "❌ Erro ao agendar atividade: \(error)"
-             }
-         }
-     }
-     
-     private func handleActivitySaveSuccess(_ savedActivity: ActivitiesRegister, for kid: Kid, activity: Activity) {
-         feedbackMessage = "✅ Atividade '\(activity.name)' agendada para \(kid.name)"
-         showActivitySelector = false
-         
-         Task {
-             if let shareReference = kid.shareReference {
-                 print("🔄 Forçando re-compartilhamento para incluir nova atividade...")
-                 await updateSharing(for: kid)
-             } else {
-                 print("Criança não tem compartilhamento ainda, criando...")
-                 await createNewSharing(for: kid)
-             }
-             
-             // Debug verification after delay
-             try? await Task.sleep(nanoseconds: 3_000_000_000)
-             await verifyActivityInSharedDatabase(savedActivity, kid: kid)
-         }
-     }
-     
-     private func loadSharedActivities(for kidID: String) {
-         cloudService.fetchSharedActivities(forKid: kidID) { [weak self] (result: Result<[ActivitiesRegister], CloudError>) in
-             guard let self = self else { return }
-             
-             self.isLoading = false
-             
-             switch result {
-             case .success(let sharedActivities):
-                 if !sharedActivities.isEmpty {
-                     self.syncActivitiesWithPrivateDB(sharedActivities, kidID: kidID)
-                 } else {
-                     self.feedbackMessage = "✅ Dados atualizados"
-                 }
-             case .failure:
-                 self.feedbackMessage = "✅ Dados atualizados"
-             }
-         }
-     }
-     
-     private func syncActivitiesWithPrivateDB(_ sharedActivities: [ActivitiesRegister], kidID: String) {
-         cloudService.fetchAllActivities(forKid: kidID) { [weak self] (result: Result<[ActivitiesRegister], CloudError>) in
-             guard let self = self else { return }
-             
-             switch result {
-             case .success(let privateActivities):
-                 var activitiesToUpdate: [ActivitiesRegister] = []
-                 
-                 for sharedActivity in sharedActivities {
-                     if let privateVersion = privateActivities.first(where: { $0.activityID == sharedActivity.activityID }),
-                        privateVersion.registerStatus != sharedActivity.registerStatus {
-                         var updatedActivity = privateVersion
-                         updatedActivity.registerStatus = sharedActivity.registerStatus
-                         activitiesToUpdate.append(updatedActivity)
-                     }
-                 }
-                 
-                 if !activitiesToUpdate.isEmpty {
-                     self.updatePrivateActivities(activitiesToUpdate)
-                 } else {
-                     self.feedbackMessage = "✅ Dados atualizados - Tudo sincronizado"
-                 }
-                 
-             case .failure:
-                 self.feedbackMessage = "✅ Dados atualizados, mas falha ao sincronizar atividades"
-             }
-         }
-     }
-     
-     private func updatePrivateActivities(_ activities: [ActivitiesRegister]) {
-         let dispatchGroup = DispatchGroup()
-         var updatedCount = 0
-         
-         for activity in activities {
-             dispatchGroup.enter()
-             
-             cloudService.updateActivity(activity, isShared: false) { result in
-                 if case .success = result {
-                     updatedCount += 1
-                 }
-                 dispatchGroup.leave()
-             }
-         }
-         
-         dispatchGroup.notify(queue: .main) { [weak self] in
-             self?.feedbackMessage = "✅ Dados atualizados - \(updatedCount) atividades sincronizadas"
-         }
-     }
+        guard let kid = selectedKid,
+              let activity = selectedActivity,
+              let kidIDString = kid.id?.recordName else {
+            feedbackMessage = "❌ Erro: Dados incompletos para agendar atividade"
+            return
+        }
+        
+        isLoading = true
+        feedbackMessage = "Agendando atividade para \(kid.name)..."
+        
+        let activityRegister = ActivitiesRegister(
+            kid: kid,
+            activityID: activity.id,
+            date: scheduledDate,
+            duration: duration,
+            registerStatus: .notCompleted
+        )
+        
+        cloudService.saveActivity(activityRegister) { [weak self] result in
+            guard let self = self else { return }
+            
+            self.isLoading = false
+            
+            switch result {
+            case .success(let savedActivity):
+                self.feedbackMessage = "✅ Atividade '\(activity.name)' agendada para \(kid.name)"
+                self.showActivitySelector = false
+                
+                // ✅ NOVA ABORDAGEM: Atualizar currentDate se necessário
+                if !Calendar.current.isDate(savedActivity.date, inSameDayAs: self.currentDate) {
+                    self.currentDate = savedActivity.date
+                }
+                
+                // ✅ NOVA ABORDAGEM: Fetch das atividades após delay
+                Task {
+                    // Aguarda 1 segundo para o CloudKit processar
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                    
+                    await MainActor.run {
+                        self.refreshActivitiesAfterSchedule(kidID: kidIDString)
+                    }
+                    
+                    // Manter o CloudKit sharing como estava (não mexer)
+                    if let shareReference = kid.shareReference {
+                        await self.updateSharing(for: kid)
+                    } else {
+                        await self.createNewSharing(for: kid)
+                    }
+                }
+                
+            case .failure(let error):
+                self.feedbackMessage = "❌ Erro ao agendar atividade: \(error)"
+            }
+        }
+    }
+    
+    private func handleActivitySaveSuccess(_ savedActivity: ActivitiesRegister, for kid: Kid, activity: Activity) {
+        feedbackMessage = "✅ Atividade '\(activity.name)' agendada para \(kid.name)"
+        showActivitySelector = false
+        
+        Task {
+            if let shareReference = kid.shareReference {
+                print("🔄 Forçando re-compartilhamento para incluir nova atividade...")
+                await updateSharing(for: kid)
+            } else {
+                print("Criança não tem compartilhamento ainda, criando...")
+                await createNewSharing(for: kid)
+            }
+            
+            // Debug verification after delay
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            await verifyActivityInSharedDatabase(savedActivity, kid: kid)
+        }
+        
+    }
+    
+    private func refreshActivitiesAfterSchedule(kidID: String) {
+        print("🔄 Fazendo fetch das atividades após agendar...")
+        
+        CloudService.shared.fetchAllActivities(forKid: kidID) { [weak self] result in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                
+                switch result {
+                case .success(let activities):
+                    self.records = activities
+                    print("✅ Activities refreshed após agendar: \(activities.count) atividades")
+                    
+                    // Debug: quantas atividades para a data atual
+                    let activitiesForCurrentDate = activities.filter {
+                        Calendar.current.isDate($0.date, inSameDayAs: self.currentDate)
+                    }
+                    print("📅 Atividades para \(self.currentDate.format("dd/MM")): \(activitiesForCurrentDate.count)")
+                    
+                case .failure(let error):
+                    print("❌ Erro ao refresh atividades: \(error)")
+                }
+            }
+        }
+    }
+    
+    private func syncActivitiesWithPrivateDB(_ sharedActivities: [ActivitiesRegister], kidID: String) {
+        cloudService.fetchAllActivities(forKid: kidID) { [weak self] (result: Result<[ActivitiesRegister], CloudError>) in
+            guard let self = self else { return }
+            
+            switch result {
+            case .success(let privateActivities):
+                var activitiesToUpdate: [ActivitiesRegister] = []
+                
+                for sharedActivity in sharedActivities {
+                    if let privateVersion = privateActivities.first(where: { $0.activityID == sharedActivity.activityID }),
+                       privateVersion.registerStatus != sharedActivity.registerStatus {
+                        var updatedActivity = privateVersion
+                        updatedActivity.registerStatus = sharedActivity.registerStatus
+                        activitiesToUpdate.append(updatedActivity)
+                    }
+                }
+                
+                if !activitiesToUpdate.isEmpty {
+                    self.updatePrivateActivities(activitiesToUpdate)
+                } else {
+                    self.feedbackMessage = "✅ Dados atualizados - Tudo sincronizado"
+                }
+                
+            case .failure:
+                self.feedbackMessage = "✅ Dados atualizados, mas falha ao sincronizar atividades"
+            }
+        }
+    }
+    
+    private func updatePrivateActivities(_ activities: [ActivitiesRegister]) {
+        let dispatchGroup = DispatchGroup()
+        var updatedCount = 0
+        
+        for activity in activities {
+            dispatchGroup.enter()
+            
+            cloudService.updateActivity(activity, isShared: false) { result in
+                if case .success = result {
+                    updatedCount += 1
+                }
+                dispatchGroup.leave()
+            }
+        }
+        
+        dispatchGroup.notify(queue: .main) { [weak self] in
+            self?.feedbackMessage = "✅ Dados atualizados - \(updatedCount) atividades sincronizadas"
+        }
+    }
     
     
     func loadAllActivitiesOnce() {
@@ -554,84 +585,84 @@ class GenitorViewModel: ObservableObject {
 
 // MARK: REWARDS FUNCTIONS
 extension GenitorViewModel {
+    
+    func loadRewardsFromKid() {
+        guard let kid = firstKid else {
+            print("❌ loadRewardsFromKid: Nenhuma criança encontrada")
+            rewards = []
+            return
+        }
         
-        func loadRewardsFromKid() {
-            guard let kid = firstKid else {
-                print("❌ loadRewardsFromKid: Nenhuma criança encontrada")
-                rewards = []
-                return
-            }
-            
-            // Primeiro, garantir que temos o registro mais atualizado
-            guard let kidID = kid.id else {
-                rewards = []
-                return
-            }
-            
-            isLoading = true
-            
-            Task {
-                do {
-                    let container = CKContainer(identifier: CloudConfig.containerIdentifier)
-                    let database = container.privateCloudDatabase
-                    
-                    // Buscar registro atualizado do Kid
-                    let record = try await database.record(for: kidID)
-                    
-                    let pendingRewardIDs = record["pendingRewards"] as? [Int] ?? []
-                    let pendingDates = record["pendingRewardDates"] as? [Date] ?? []
-                    let deliveredRewardIDs = record["deliveredRewards"] as? [Int] ?? []
-                    let deliveredDates = record["deliveredRewardDates"] as? [Date] ?? []
-                    
-                    print("📦 Recompensas pendentes: \(pendingRewardIDs.count)")
-                    print("📦 Recompensas entregues: \(deliveredRewardIDs.count)")
-                    
-                    var allRewards: [CollectedReward] = []
-                    
-                    // Criar CollectedRewards temporários para pendentes
-                    for (index, rewardID) in pendingRewardIDs.enumerated() {
-                        let date = index < pendingDates.count ? pendingDates[index] : Date()
-                        var reward = CollectedReward(
-                            kidID: kidID.recordName,
-                            rewardID: rewardID,
-                            dateCollected: date,
-                            isDelivered: false
-                        )
-                        // Criar um ID temporário para a view
-                        reward.id = CKRecord.ID(recordName: "pending-\(rewardID)-\(index)")
-                        allRewards.append(reward)
-                    }
-                    
-                    // Criar CollectedRewards temporários para entregues
-                    for (index, rewardID) in deliveredRewardIDs.enumerated() {
-                        let date = index < deliveredDates.count ? deliveredDates[index] : Date()
-                        var reward = CollectedReward(
-                            kidID: kidID.recordName,
-                            rewardID: rewardID,
-                            dateCollected: date,
-                            isDelivered: true
-                        )
-                        // Criar um ID temporário para a view
-                        reward.id = CKRecord.ID(recordName: "delivered-\(rewardID)-\(index)")
-                        allRewards.append(reward)
-                    }
-                    
-                    // Atualizar no main thread
-                    await MainActor.run {
-                        self.rewards = allRewards.sorted { $0.dateCollected > $1.dateCollected }
-                        self.isLoading = false
-                        print("✅ Total de recompensas carregadas: \(self.rewards.count)")
-                    }
-                    
-                } catch {
-                    await MainActor.run {
-                        print("❌ Erro ao carregar recompensas: \(error)")
-                        self.rewards = []
-                        self.isLoading = false
-                    }
+        // Primeiro, garantir que temos o registro mais atualizado
+        guard let kidID = kid.id else {
+            rewards = []
+            return
+        }
+        
+        isLoading = true
+        
+        Task {
+            do {
+                let container = CKContainer(identifier: CloudConfig.containerIdentifier)
+                let database = container.privateCloudDatabase
+                
+                // Buscar registro atualizado do Kid
+                let record = try await database.record(for: kidID)
+                
+                let pendingRewardIDs = record["pendingRewards"] as? [Int] ?? []
+                let pendingDates = record["pendingRewardDates"] as? [Date] ?? []
+                let deliveredRewardIDs = record["deliveredRewards"] as? [Int] ?? []
+                let deliveredDates = record["deliveredRewardDates"] as? [Date] ?? []
+                
+                print("📦 Recompensas pendentes: \(pendingRewardIDs.count)")
+                print("📦 Recompensas entregues: \(deliveredRewardIDs.count)")
+                
+                var allRewards: [CollectedReward] = []
+                
+                // Criar CollectedRewards temporários para pendentes
+                for (index, rewardID) in pendingRewardIDs.enumerated() {
+                    let date = index < pendingDates.count ? pendingDates[index] : Date()
+                    var reward = CollectedReward(
+                        kidID: kidID.recordName,
+                        rewardID: rewardID,
+                        dateCollected: date,
+                        isDelivered: false
+                    )
+                    // Criar um ID temporário para a view
+                    reward.id = CKRecord.ID(recordName: "pending-\(rewardID)-\(index)")
+                    allRewards.append(reward)
+                }
+                
+                // Criar CollectedRewards temporários para entregues
+                for (index, rewardID) in deliveredRewardIDs.enumerated() {
+                    let date = index < deliveredDates.count ? deliveredDates[index] : Date()
+                    var reward = CollectedReward(
+                        kidID: kidID.recordName,
+                        rewardID: rewardID,
+                        dateCollected: date,
+                        isDelivered: true
+                    )
+                    // Criar um ID temporário para a view
+                    reward.id = CKRecord.ID(recordName: "delivered-\(rewardID)-\(index)")
+                    allRewards.append(reward)
+                }
+                
+                // Atualizar no main thread
+                await MainActor.run {
+                    self.rewards = allRewards.sorted { $0.dateCollected > $1.dateCollected }
+                    self.isLoading = false
+                    print("✅ Total de recompensas carregadas: \(self.rewards.count)")
+                }
+                
+            } catch {
+                await MainActor.run {
+                    print("❌ Erro ao carregar recompensas: \(error)")
+                    self.rewards = []
+                    self.isLoading = false
                 }
             }
         }
+    }
     
     func toggleRewardDeliveryStatus(_ reward: CollectedReward) {
         Task {
