@@ -44,8 +44,18 @@ struct KidHomeView: View {
         }
         .navigationBarBackButtonHidden(true)
         .onAppear {
-            print("KidHomeView: Carregando na inicialização...")
-            vmKid.refreshActivities()
+            print("KidHomeView: View appeared - Kid já carregado: \(vmKid.kid?.name ?? "nil")")
+            // ✅ REMOVIDO: vmKid.refreshActivities() - agora é feito pelo onReceive
+        }
+        // ✅ NOVO: onReceive para detectar quando o kid é carregado
+        .onReceive(vmKid.kidDidChange) { kid in
+            if let kid = kid {
+                print("🔄 KidHomeView: Kid carregado via onReceive: \(kid.name)")
+                print("🔄 KidHomeView: Iniciando carregamento das atividades...")
+                vmKid.loadActivities()
+            } else {
+                print("🔄 KidHomeView: Kid removido via onReceive")
+            }
         }
         .alert("Erro", isPresented: $vmKid.showError) {
             Button("OK") {
@@ -112,112 +122,187 @@ struct KidHomeView: View {
     @ViewBuilder
     private var contentView: some View {
         switch currentPage {
-            case .kidHome:
-                ActivitiesView
-                    .padding(.top, 40)
-            case .rewardsStore:
-                RewardsStoreView(store: coordinator.rewardsStore)
-            default:
-                EmptyView()
+        case .kidHome:
+            ActivitiesView
+                .padding(.top, 40)
+        case .rewardsStore:
+            RewardsStoreView(store: coordinator.rewardsStore)
+        default:
+            EmptyView()
         }
     }
     
     private var ActivitiesView: some View {
-        let notStarted = vmKid.notCompletedRegister()
-        let completed = vmKid.completedRegister()
-        let allActivities = notStarted + completed
-        
-        return VStack(alignment: .leading, spacing: 24) {
-            
-            HStack(alignment: .center){
-                VStack(alignment: .leading, spacing: 4) {
-                    
-                    Text("Atividades para hoje")
-                        .kerning(0.4)
-                        .font(.largeTitle)
-                        .fontWeight(.semibold)
-                    
-                    
-                    Text(Date().formattedDayTitle())
+            // ✅ NOVO: Estados baseados no carregamento
+            return Group {
+                if vmKid.kid == nil {
+                // Kid ainda não carregou
+                VStack(spacing: 16) {
+                    ProgressView("Carregando perfil...")
+                        .progressViewStyle(CircularProgressViewStyle(tint: .fontColorKid))
+                        .foregroundColor(.fontColorKid)
                         .font(.title2)
-                        .kerning(0.3)
-                }
-                
-                if messageCompletedActivy{
-                    HeaderMessage(message: "Parabéns!! Você concluiu a atividade com sucesso!", color: .message)
-                        .transition(.move(edge: .trailing).combined(with: .opacity))
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                                withAnimation {
-                                    messageCompletedActivy = false
-                                }
-                            }
-                        }
                     
+                    Text("Aguardando dados do UserManager...")
+                        .font(.caption)
+                        .foregroundColor(.gray)
                 }
-            }
-            
-            if allActivities.isEmpty {
-                Text("Hmm... parece que ainda não tem nada pra fazer agora. Que tal pedir pra um adulto adicionar uma atividade bem legal pra você?")
-                    .padding(.trailing, 133)
-                    .font(.title2)
+                .frame(maxWidth: .infinity, maxHeight: 200)
+                .padding()
+                
+            } else if vmKid.isLoadingActivities {
+                // Kid carregado, mas atividades ainda carregando
+                VStack(spacing: 16) {
+                    ProgressView("Carregando atividades...")
+                        .progressViewStyle(CircularProgressViewStyle(tint: .fontColorKid))
+                        .foregroundColor(.fontColorKid)
+                        .font(.title2)
+                    
+                    Text("Perfil: \(vmKid.kid?.name ?? "Carregado")")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+                .frame(maxWidth: .infinity, maxHeight: 200)
+                .padding()
                 
             } else {
-                VStack {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Para fazer")
-                                .font(.title)
-                                .kerning(0.38)
-                                .fontWeight(.medium)
+                // ✅ Tudo carregado - mostrar atividades (código original)
+                let notStarted = vmKid.notCompletedRegister()
+                let completed = vmKid.completedRegister()
+                let allActivities = notStarted + completed
+                
+                // Debug info (mantido do código original)
+                let _ = print("🔍 KidHomeView DEBUG:")
+                let _ = print("  - Kid carregado: \(vmKid.kid?.name ?? "nil")")
+                let _ = print("  - Total atividades carregadas: \(vmKid.activities.count)")
+                let _ = print("  - Atividades de hoje (não concluídas): \(notStarted.count)")
+                let _ = print("  - Atividades de hoje (concluídas): \(completed.count)")
+                let _ = print("  - Total de hoje: \(allActivities.count)")
+                
+                let allKidActivities = vmKid.allActivitiesForKid()
+                let _ = print("  - Todas as atividades do kid: \(allKidActivities.count)")
+                
+                VStack(alignment: .leading, spacing: 24) {
+                    
+                    HStack(alignment: .center){
+                        VStack(alignment: .leading, spacing: 4) {
                             
-                            if notStarted.isEmpty && !completed.isEmpty {
-                                Text("Uhul! Você mandou super bem e completou tudo por hoje! Parabéns, você arrasou demais!")
-                                    .padding(.trailing, 133)
-                                    .font(.title2)
-                                    .padding(.bottom, 62)
-                            } else {
-                                ActivitySectionView(
-                                    registers: notStarted,
-                                    emptyMessage: "",
-                                    selectedRegister: $selectedRegister,
-                                    vmKid: vmKid,
-                                    messageCompleted: $messageCompletedActivy
-                                    
-                                )
-                                .shadow(color: .black.opacity(0.2), radius: 4, x: 4, y: 4)
-                            }
+                            Text("Atividades para hoje")
+                                .kerning(0.4)
+                                .font(.largeTitle)
+                                .fontWeight(.semibold)
                             
-                            Text("Feito")
-                                .font(.title)
-                                .kerning(0.38)
-                                .fontWeight(.medium)
+                            Text(Date().formattedDayTitle())
+                                .font(.title2)
+                                .kerning(0.3)
+                        }
+                        
+                        if messageCompletedActivy{
+                            HeaderMessage(message: "Parabéns!! Você concluiu a atividade com sucesso!", color: .message)
+                                .transition(.move(edge: .trailing).combined(with: .opacity))
+                                .onAppear {
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                        withAnimation {
+                                            messageCompletedActivy = false
+                                        }
+                                    }
+                                }
+                        }
+                    }
+                    
+                    // ✅ MANTIDO: Botão para debug (pode remover depois)
+                    #if DEBUG
+                    Button("Debug Datas das Atividades") {
+                        vmKid.debugActivityDates()
+                        vmKid.debugAllActivities()
+                    }
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
+                    #endif
+                    
+                    if allActivities.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Hmm... parece que ainda não tem nada pra fazer agora. Que tal pedir pra um adulto adicionar uma atividade bem legal pra você?")
+                                .padding(.trailing, 133)
+                                .font(.title2)
                             
-                            if completed.isEmpty {
-                                Text("Eita! Ainda não começamos nenhuma atividade hoje... Vamos entrar em ação?")
-                                    .padding(.trailing, 133)
-                                    .font(.title2)
+                            #if DEBUG
+                            Text("Debug: \(vmKid.activities.count) atividades carregadas no total")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                            
+                            if !allKidActivities.isEmpty {
+                                Text("⚠️ Existem \(allKidActivities.count) atividades para este kid, mas nenhuma para hoje")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
                                 
-                            } else {
-                                ActivitySectionView(
-                                    registers: completed,
-                                    emptyMessage: "",
-                                    selectedRegister: $selectedRegister,
-                                    vmKid: vmKid,
-                                    messageCompleted: $messageCompletedActivy
-                                )
-                                .shadow(color: .black.opacity(0.2), radius: 4, x: 4, y: 4)
+                                ForEach(Array(allKidActivities.prefix(3).enumerated()), id: \.element.id) { index, activity in
+                                    Text("\(index + 1). \(activity.activity?.name ?? "Unknown") - \(activity.date)")
+                                        .font(.caption2)
+                                        .foregroundColor(.gray)
+                                }
+                            }
+                            #endif
+                        }
+                        
+                    } else {
+                        VStack {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 16) {
+                                    Text("Para fazer")
+                                        .font(.title)
+                                        .kerning(0.38)
+                                        .fontWeight(.medium)
+                                    
+                                    if notStarted.isEmpty && !completed.isEmpty {
+                                        Text("Uhul! Você mandou super bem e completou tudo por hoje! Parabéns, você arrasou demais!")
+                                            .padding(.trailing, 133)
+                                            .font(.title2)
+                                            .padding(.bottom, 62)
+                                    } else {
+                                        ActivitySectionView(
+                                            registers: notStarted,
+                                            emptyMessage: "",
+                                            selectedRegister: $selectedRegister,
+                                            vmKid: vmKid,
+                                            messageCompleted: $messageCompletedActivy
+                                        )
+                                        .shadow(color: .black.opacity(0.2), radius: 4, x: 4, y: 4)
+                                    }
+                                    
+                                    Text("Feito")
+                                        .font(.title)
+                                        .kerning(0.38)
+                                        .fontWeight(.medium)
+                                    
+                                    if completed.isEmpty {
+                                        Text("Eita! Ainda não começamos nenhuma atividade hoje... Vamos entrar em ação?")
+                                            .padding(.trailing, 133)
+                                            .font(.title2)
+                                        
+                                    } else {
+                                        ActivitySectionView(
+                                            registers: completed,
+                                            emptyMessage: "",
+                                            selectedRegister: $selectedRegister,
+                                            vmKid: vmKid,
+                                            messageCompleted: $messageCompletedActivy
+                                        )
+                                        .shadow(color: .black.opacity(0.2), radius: 4, x: 4, y: 4)
+                                    }
+                                }
+                                Spacer()
                             }
                         }
-                        Spacer()
                     }
                 }
+                .padding(.vertical, 26)
+                .padding(.leading, 133)
             }
         }
-        .padding(.vertical, 26)
-        .padding(.leading, 133)
-    }
-    
+        }
     
     private func NavButton(page: Page) -> some View {
         let isSelected = currentPage == page

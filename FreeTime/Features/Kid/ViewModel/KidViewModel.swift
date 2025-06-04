@@ -14,10 +14,17 @@ import Combine
 class KidViewModel: ObservableObject {
     
     // MARK: - Published Properties
-    @Published var kid: Kid?
+    @Published var kid: Kid? {
+        didSet {
+            print("🔄 Kid atualizado: \(kid?.name ?? "nil")")
+            // Publica que o kid mudou para triggerar onReceive
+            kidDidChange.send(kid)
+        }
+    }
 
     @Published var activities: [ActivitiesRegister] = []
     @Published var isLoading = false
+    @Published var isLoadingActivities = false // ✅ Separar loading das atividades
     @Published var errorMessage: String = ""
     @Published var showError: Bool = false
     @Published var feedbackMessage = ""
@@ -28,6 +35,9 @@ class KidViewModel: ObservableObject {
     private let invitationManager = InvitationStatusManager.shared
     
     var currentKidID: CKRecord.ID?
+    
+    // ✅ NOVO: Publisher para comunicar mudanças no kid
+    let kidDidChange = PassthroughSubject<Kid?, Never>()
     
     var kidName: String? {
         return UserManager.shared.currentKidName
@@ -83,6 +93,101 @@ class KidViewModel: ObservableObject {
 
 // MARK: - Kid Management
 extension KidViewModel {
+    
+    // ✅ NOVO: Carrega só o kid (sem atividades) - versão pai
+       private func loadKidDataOnly() {
+           guard let kidID = currentKidID else {
+               print("KidViewModel: loadKidDataOnly - Nenhum kidID definido")
+               return
+           }
+           
+           print("KidViewModel: Carregando APENAS kid: \(kidID.recordName)")
+           isLoading = true
+           
+           let container = CKContainer(identifier: CloudConfig.containerIdentifier)
+           let isSharedZone = kidID.zoneID.ownerName != CKCurrentUserDefaultName
+           let isChildUser = UserManager.shared.isChild
+           
+           let database = (isSharedZone || isChildUser) ?
+                          container.sharedCloudDatabase :
+                          container.privateCloudDatabase
+           
+           Task {
+               do {
+                   let record = try await database.record(for: kidID)
+                   print("✅ KidViewModel: Kid carregado (só dados básicos)")
+                   
+                   DispatchQueue.main.async { [weak self] in
+                       self?.isLoading = false
+                       if let kid = Kid(record: record) {
+                           self?.kid = kid // ✅ Isto vai triggerar o didSet e o Publisher
+                       } else {
+                           self?.handleError("Failed to convert record to Kid")
+                       }
+                   }
+               } catch {
+                   DispatchQueue.main.async { [weak self] in
+                       print("❌ KidViewModel: Erro ao carregar kid: \(error)")
+                       self?.isLoading = false
+                       self?.handleError("Failed to load kid data: \(error.localizedDescription)")
+                   }
+               }
+           }
+       }
+       
+       // ✅ NOVO: Carrega só o kid (sem atividades) - versão criança
+       private func loadChildKidOnly() {
+           guard let kidID = currentKidID else {
+               print("KidViewModel: loadChildKidOnly - Nenhum kidID definido")
+               return
+           }
+           
+           print("KidViewModel: Carregando APENAS dados da criança: \(kidID.recordName)")
+           isLoading = true
+           
+           let container = CKContainer(identifier: CloudConfig.containerIdentifier)
+           
+           Task {
+               do {
+                   let sharedDB = container.sharedCloudDatabase
+                   let record = try await sharedDB.record(for: kidID)
+                   print("✅ KidViewModel: Kid criança carregado do banco compartilhado")
+                   
+                   DispatchQueue.main.async { [weak self] in
+                       self?.isLoading = false
+                       if let kid = Kid(record: record) {
+                           self?.kid = kid // ✅ Isto vai triggerar o didSet e o Publisher
+                       } else {
+                           self?.handleError("Failed to convert shared record to Kid")
+                       }
+                   }
+               } catch {
+                   print("❌ KidViewModel: Falha no banco compartilhado: \(error)")
+                   
+                   // Fallback para banco privado
+                   do {
+                       let privateDB = container.privateCloudDatabase
+                       let record = try await privateDB.record(for: kidID)
+                       print("✅ KidViewModel: Kid encontrado no banco privado")
+                       
+                       DispatchQueue.main.async { [weak self] in
+                           self?.isLoading = false
+                           if let kid = Kid(record: record) {
+                               self?.kid = kid // ✅ Isto vai triggerar o didSet e o Publisher
+                           } else {
+                               self?.handleError("Failed to convert private record to Kid")
+                           }
+                       }
+                   } catch {
+                       DispatchQueue.main.async { [weak self] in
+                           print("❌ KidViewModel: Falha em ambos os bancos: \(error)")
+                           self?.isLoading = false
+                           self?.handleError("Failed to load kid from both databases: \(error.localizedDescription)")
+                       }
+                   }
+               }
+           }
+       }
     
     func setCurrentKid(_ kidID: CKRecord.ID) {
         self.currentKidID = kidID
@@ -235,6 +340,26 @@ extension KidViewModel {
 // MARK: - Activities Management
 extension KidViewModel {
    
+    // ✅ NOVO: Método público para carregar atividades (chamado pelo onReceive)
+        func loadActivities() {
+            guard let kid = kid else {
+                print("❌ loadActivities: Kid ainda não está carregado")
+                return
+            }
+            
+            print("🔄 loadActivities: Iniciando carregamento das atividades para \(kid.name)")
+            
+            if UserManager.shared.isChild {
+                loadActivitiesFromSharedDB(for: kid)
+            } else if let currentKidID = currentKidID {
+                loadActivities(for: kid, using: currentKidID.zoneID)
+            } else {
+                print("❌ loadActivities: currentKidID é nil")
+                handleError("ID do filho não disponível")
+            }
+        }
+    
+    
     private func loadActivities(for kid: Kid, using zoneID: CKRecordZone.ID) {
         guard let kidID = kid.id?.recordName else {
             feedbackMessage = "ID do filho não encontrado"
@@ -381,6 +506,7 @@ extension KidViewModel {
             }
         }
     }
+    
     
     // CORREÇÃO CRÍTICA: Esta função estava limitando as atividades
     private func processLoadedActivities(_ allActivities: [ActivitiesRegister], kidID: String) {
@@ -561,18 +687,21 @@ extension KidViewModel {
         
         let calendar = Calendar.current
         let today = Date()
+        let startOfToday = calendar.startOfDay(for: today)
+        let endOfToday = calendar.date(byAdding: .day, value: 1, to: startOfToday)!
         
         print("🔍 DEBUG: registerForToday chamado")
         print("🔍 DEBUG: kidID procurado: \(kidID)")
         print("🔍 DEBUG: Total de atividades: \(activities.count)")
-        print("🔍 DEBUG: Data de hoje: \(today)")
+        print("🔍 DEBUG: Início do dia: \(startOfToday)")
+        print("🔍 DEBUG: Fim do dia: \(endOfToday)")
         
         let result = activities.filter { activity in
             let belongsToKid = activity.kidID == kidID ||
                               activity.kidReference?.recordID.recordName == kidID
             
-            // ✅ CORREÇÃO: Usar apenas a data, ignorando o horário
-            let isToday = calendar.isDate(activity.date, inSameDayAs: today)
+            // ✅ CORREÇÃO: Usar range de datas em vez de isDate(inSameDayAs:)
+            let isToday = activity.date >= startOfToday && activity.date < endOfToday
             
             print("🔍 DEBUG: Atividade '\(activity.activity?.name ?? "Unknown")':")
             print("  - activity.kidID: \(activity.kidID)")
@@ -590,18 +719,59 @@ extension KidViewModel {
         return result
     }
     
+    // ✅ MÉTODO ALTERNATIVO: Para debug - retorna todas as atividades do kid
+    func allActivitiesForKid() -> [ActivitiesRegister] {
+        guard let kidID = kid?.id?.recordName else {
+            print("🔍 DEBUG: allActivitiesForKid - kidID é nil")
+            return []
+        }
+        
+        let result = activities.filter { activity in
+            let belongsToKid = activity.kidID == kidID ||
+                              activity.kidReference?.recordID.recordName == kidID
+            return belongsToKid
+        }
+        .sorted { $0.date < $1.date }
+        
+        print("🔍 DEBUG: allActivitiesForKid retornando \(result.count) atividades")
+        return result
+    }
+    
     func notCompletedRegister() -> [ActivitiesRegister] {
-        let result = registerForToday().filter { $0.registerStatus == .notCompleted }
-        print("🔍 DEBUG: notCompletedRegister retornando \(result.count) atividades")
+        // ✅ TEMPORÁRIO: Use todas as atividades para debug
+        let todayActivities = registerForToday()
+        let result = todayActivities.filter { $0.registerStatus == .notCompleted }
+        
+        print("🔍 DEBUG: notCompletedRegister - atividades de hoje: \(todayActivities.count)")
+        print("🔍 DEBUG: notCompletedRegister retornando \(result.count) atividades não concluídas")
+        
         return result
     }
     
     func completedRegister() -> [ActivitiesRegister] {
-        let result = registerForToday().filter { $0.registerStatus == .completed }
-        print("🔍 DEBUG: completedRegister retornando \(result.count) atividades")
+        let todayActivities = registerForToday()
+        let result = todayActivities.filter { $0.registerStatus == .completed }
+        
+        print("🔍 DEBUG: completedRegister - atividades de hoje: \(todayActivities.count)")
+        print("🔍 DEBUG: completedRegister retornando \(result.count) atividades concluídas")
+        
         return result
     }
-
+    
+    // ✅ MÉTODO ADICIONAL: Para debug - mostra todas as datas das atividades
+    func debugActivityDates() {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        
+        print("🔍 DEBUG: === TODAS AS DATAS DAS ATIVIDADES ===")
+        print("🔍 DEBUG: Data atual: \(formatter.string(from: Date()))")
+        
+        for (index, activity) in activities.enumerated() {
+            print("🔍 DEBUG: \(index + 1). \(activity.activity?.name ?? "Unknown"): \(formatter.string(from: activity.date))")
+        }
+        print("🔍 DEBUG: =======================================")
+    }
 }
 
 // MARK: - Invitation Management
