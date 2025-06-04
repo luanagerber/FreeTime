@@ -311,6 +311,7 @@ class GenitorViewModel: ObservableObject {
             
             switch result {
             case .success(let savedActivity):
+                self.handleActivitySaveSuccess(savedActivity, for: kid, activity: activity)
                 self.feedbackMessage = "✅ Atividade '\(activity.name)' agendada para \(kid.name)"
                 self.showActivitySelector = false
                 
