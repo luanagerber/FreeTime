@@ -11,9 +11,9 @@ import CloudKit
 struct KidHomeView: View {
     @State private var currentPage: Page = .kidHome
     @StateObject var vmKid : KidViewModel
-    @State private var selectedRegister: ActivitiesRegister? = nil
+    @State var selectedRegister: ActivitiesRegister? = nil
     @EnvironmentObject var coordinator: Coordinator
-    @State private var messageCompletedActivy : Bool = true
+    @State private var messageCompletedActivy : Bool = false
     
     @State var testNumber = 0
     
@@ -146,7 +146,14 @@ struct KidHomeView: View {
                 if messageCompletedActivy{
                     HeaderMessage(message: "Parabéns!! Você concluiu a atividade com sucesso!", color: .message)
                         .transition(.move(edge: .trailing).combined(with: .opacity))
-                        
+                        .onAppear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                withAnimation {
+                                    messageCompletedActivy = false
+                                }
+                            }
+                        }
+                    
                 }
             }
             
@@ -170,7 +177,7 @@ struct KidHomeView: View {
                                     .font(.title2)
                                     .padding(.bottom, 62)
                             } else {
-                                ActivitySection(
+                                ActivitySectionView(
                                     registers: notStarted,
                                     emptyMessage: "",
                                     selectedRegister: $selectedRegister,
@@ -192,7 +199,7 @@ struct KidHomeView: View {
                                     .font(.title2)
                                 
                             } else {
-                                ActivitySection(
+                                ActivitySectionView(
                                     registers: completed,
                                     emptyMessage: "",
                                     selectedRegister: $selectedRegister,
@@ -229,7 +236,29 @@ struct KidHomeView: View {
     }
 }
 
-
-#Preview {
-    KidHomeView(vmKid: KidViewModel())
+#Preview("KidHome") {
+    
+    struct PreviewWrapper: View {
+        @StateObject var coordinator = Coordinator()
+        
+        
+        var body: some View {
+            NavigationStack(path: $coordinator.path) {
+                KidHomeView(vmKid: coordinator.vmKid)
+                    .navigationDestination(for: Page.self) { page in
+                        coordinator.build(page: page)
+                    }
+                    .sheet(item: $coordinator.sheet) { sheet in
+                        coordinator.build(sheet: sheet)
+                            .presentationSizing(.fitted)
+                            .presentationCornerRadius(20)
+                    }
+                    .onAppear {
+                        coordinator.vmKid.loadTestActivities()
+                    }
+            }
+            .environmentObject(coordinator)
+        }
+    }
+    return PreviewWrapper()
 }

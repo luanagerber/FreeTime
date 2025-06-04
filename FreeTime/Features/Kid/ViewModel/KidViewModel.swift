@@ -42,6 +42,11 @@ class KidViewModel: ObservableObject {
         loadFromUserManager()
     }
     
+    func loadTestActivities() {
+        activities = [
+            ActivitiesRegister(kid: Kid.sample, activityID: 1, date: Date(), duration: TimeInterval())]
+    }
+    
     private func loadFromUserManager() {
         let userManager = UserManager.shared
         

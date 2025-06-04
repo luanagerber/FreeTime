@@ -8,6 +8,8 @@ import SwiftUI
 
 struct GenitorCalendarView: View {
     
+    @Environment(\.dismiss) private var dismiss
+    
     /// Task Manager Properties
     @State private var weekSlider: [[Date.WeekDay]] = []
     @State private var currentWeekIndex: Int = 1
@@ -72,8 +74,8 @@ struct GenitorCalendarView: View {
             viewModel.refresh()
             loadActivitiesForCurrentDate()
         }
-        .sheet(isPresented: $viewModel.showActivitySelector) {
-            ActivitySelectorView()
+        .sheet(isPresented: $viewModel.isSelectedActivity) {
+            GenitorDetailsActivityRegisterView()
         }
     }
     
@@ -251,7 +253,13 @@ struct GenitorCalendarView: View {
                             .hSpacing(.leading)
                     } else {
                         ForEach(tasksNotStarted) { record in
-                            GenitorTaskRowView(record: record)
+                            Button(action: {
+                                viewModel.isSelectedActivity = true
+                                viewModel.selectedActivityRegister = record
+                            }, label: {
+                                GenitorTaskRowView(record: record)
+                            })
+                            
                         }
                     }
                     

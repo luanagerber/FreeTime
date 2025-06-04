@@ -23,6 +23,8 @@ class GenitorViewModel: ObservableObject {
     @Published var selectedKid: Kid?
     @Published var isLoading = false
     @Published var isRefreshing = false
+    @Published var isSelectedActivity = false
+    @Published var selectedActivityRegister: ActivitiesRegister?
     @Published var createNewTask = false
     @Published var feedbackMessage = ""
     @Published var sharingSheet = false
@@ -171,10 +173,10 @@ class GenitorViewModel: ObservableObject {
                 
                 switch result {
                 case .success(let fetchedKids):
-                    self.kids = fetchedKids
-                    self.feedbackMessage = fetchedKids.isEmpty
-                    ? "Nenhuma criança encontrada no CloudKit"
-                    : "✅ Carregadas \(fetchedKids.count) crianças"
+                        self.kids = fetchedKids
+                        self.feedbackMessage = fetchedKids.isEmpty
+                        ? "Nenhuma criança encontrada no CloudKit"
+                        : "✅ Carregadas \(fetchedKids.count) crianças"
                 case .failure(let error):
                     self.feedbackMessage = "❌ Erro ao carregar crianças: \(error)"
                 }
