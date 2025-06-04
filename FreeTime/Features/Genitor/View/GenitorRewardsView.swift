@@ -15,11 +15,6 @@ struct GenitorRewardsView: View {
     
     var body: some View {
         VStack() {
-            // Debug
-            let _ = print("🎁 GenitorRewardsView - Rewards count: \(viewModel.rewards.count)")
-            let _ = print("🎁 GenitorRewardsView - Is loading: \(viewModel.isLoading)")
-            let _ = print("🎁 GenitorRewardsView - First kid: \(viewModel.firstKid?.name ?? "nil")")
-            
             HeaderView()
             RewardsView()
         }
@@ -59,9 +54,7 @@ struct GenitorRewardsView: View {
         VStack(alignment: .leading) {
             
             Text("Histórico")
-                //.font(.custom("SF Pro", size: 34, relativeTo: .largeTitle))
                 .font(.system(size: 34, weight: .semibold))
-//                .fontWeight(.bold)
                 .padding(.bottom, 10)
                 .padding(.top, 15)
                 .foregroundStyle(Color("primaryColor"))
@@ -84,18 +77,14 @@ struct GenitorRewardsView: View {
                 
                 Image(systemName: "dollarsign.circle.fill")
             }
-            //.font(.custom("SF Pro", size: 17, relativeTo: .body))
-           // .fontWeight(.medium)
             .font(.system(size: 17, weight: .medium))
             .foregroundStyle(Color("primaryColor").opacity(0.6))
             .padding()
             .background {
                 ZStack {
-                    // Fundo arredondado com a cor desejada
                     RoundedRectangle(cornerRadius: 10)
                         .fill(Color("BackgroundHeaderCoins"))
                     
-                    // Borda fina arredondada por cima
                     RoundedRectangle(cornerRadius: 10)
                         .stroke(Color(red: 0.87, green: 0.87, blue: 0.87), lineWidth: 2)
                 }
@@ -116,8 +105,6 @@ struct GenitorRewardsView: View {
                     
                     VStack (spacing: 5) {
                         Text("Algo deu errado")
-                            //.font(.custom("SF Pro", size: 17, relativeTo: .headline))
-                            //.fontWeight(.medium)
                             .font(.system(size: 17, weight: .medium))
                             .foregroundStyle(.text)
                         
@@ -146,8 +133,6 @@ struct GenitorRewardsView: View {
                         VStack(alignment: .center, spacing: 10) {
                             
                             Text("Nenhuma recompensa registrada")
-                                //.font(.custom("SF Pro", size: 17, relativeTo: .headline))
-                                //.fontWeight(.medium)
                                 .font(.system(size: 17, weight: .medium))
                                 .foregroundStyle(Color("primaryColor"))
                             
@@ -188,46 +173,19 @@ struct GenitorRewardsView: View {
                             .padding(.bottom, 20)
                         }
                     }
-
                 }
             }
             .padding(20)
             .background(Color.white)
-            .overlay(
+            .overlay {
+                let borderColor = Color(red: 0.87, green: 0.87, blue: 0.87)
                 RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color(red: 0.87, green: 0.87, blue: 0.87), lineWidth: 2)
-            )
+                    .stroke(borderColor, lineWidth: 2)
+            }
             .cornerRadius(10)
         }
         .padding(.horizontal, 20)
         .padding(.top, 25)
-    }
-    
-    private func loadRewards() {
-        guard let kidID = viewModel.firstKid?.id?.recordName else {
-            // Se não há criança, limpar rewards
-            viewModel.rewards = []
-            return
-        }
-        
-        viewModel.isLoading = true
-        
-        CloudService.shared.fetchAllCollectedRewards(forKid: kidID) { result in
-            DispatchQueue.main.async {
-                viewModel.isLoading = false
-                switch result {
-                case .success(let rewards):
-                    viewModel.refreshFailed = false
-                    viewModel.rewards = rewards
-                   
-                case .failure(let error):
-                    print("Erro ao carregar recompensas: \(error)")
-                    viewModel.refreshFailed = true
-                    viewModel.rewards = []
-                    
-                }
-            }
-        }
     }
 }
 
