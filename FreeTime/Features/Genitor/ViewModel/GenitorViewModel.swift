@@ -171,10 +171,10 @@ class GenitorViewModel: ObservableObject {
                 
                 switch result {
                 case .success(let fetchedKids):
-                    self.kids = fetchedKids
-                    self.feedbackMessage = fetchedKids.isEmpty
-                    ? "Nenhuma criança encontrada no CloudKit"
-                    : "✅ Carregadas \(fetchedKids.count) crianças"
+                        self.kids = fetchedKids
+                        self.feedbackMessage = fetchedKids.isEmpty
+                        ? "Nenhuma criança encontrada no CloudKit"
+                        : "✅ Carregadas \(fetchedKids.count) crianças"
                 case .failure(let error):
                     self.feedbackMessage = "❌ Erro ao carregar crianças: \(error)"
                 }
