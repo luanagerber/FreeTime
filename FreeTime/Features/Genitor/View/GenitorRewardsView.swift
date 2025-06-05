@@ -5,21 +5,17 @@
 //  Created by Thales Araújo on 22/05/25.
 //
 
-
 import SwiftUI
 
 struct GenitorRewardsView: View {
     
     @ObservedObject var viewModel = GenitorViewModel.shared
+    @ObservedObject var coinManager = CoinManager.shared
+    
     @State private var hasLoadedInitialData = false
     
     var body: some View {
         VStack() {
-            // Debug
-            let _ = print("🎁 GenitorRewardsView - Rewards count: \(viewModel.rewards.count)")
-            let _ = print("🎁 GenitorRewardsView - Is loading: \(viewModel.isLoading)")
-            let _ = print("🎁 GenitorRewardsView - First kid: \(viewModel.firstKid?.name ?? "nil")")
-            
             HeaderView()
             RewardsView()
         }
@@ -59,9 +55,7 @@ struct GenitorRewardsView: View {
         VStack(alignment: .leading) {
             
             Text("Histórico")
-                //.font(.custom("SF Pro", size: 34, relativeTo: .largeTitle))
                 .font(.system(size: 34, weight: .semibold))
-//                .fontWeight(.bold)
                 .padding(.bottom, 10)
                 .padding(.top, 15)
                 .foregroundStyle(Color("primaryColor"))
@@ -69,33 +63,30 @@ struct GenitorRewardsView: View {
             Text("Confira as recompensas da criança e marque quando forem entregues.")
                 .font(.custom("SF Pro", size: 15, relativeTo: .body))
                 .foregroundStyle(Color("primaryColor"))
-            
+                        
             HStack {
                 Text("Saldo da criança")
                 
                 Spacer()
                 
-                if viewModel.isLoading && viewModel.kidCoins == 0 {
+                if coinManager.isLoading && coinManager.kidCoins == 0 {
                     ProgressView()
                         .scaleEffect(0.8)
                 } else {
-                    Text("\(viewModel.kidCoins)")
+                    Text("\(coinManager.kidCoins)")
+                        .animation(.easeInOut(duration: 0.3), value: coinManager.kidCoins)
                 }
                 
                 Image(systemName: "dollarsign.circle.fill")
             }
-            //.font(.custom("SF Pro", size: 17, relativeTo: .body))
-           // .fontWeight(.medium)
             .font(.system(size: 17, weight: .medium))
             .foregroundStyle(Color("primaryColor").opacity(0.6))
             .padding()
             .background {
                 ZStack {
-                    // Fundo arredondado com a cor desejada
                     RoundedRectangle(cornerRadius: 10)
                         .fill(Color("BackgroundHeaderCoins"))
                     
-                    // Borda fina arredondada por cima
                     RoundedRectangle(cornerRadius: 10)
                         .stroke(Color(red: 0.87, green: 0.87, blue: 0.87), lineWidth: 2)
                 }
@@ -116,8 +107,6 @@ struct GenitorRewardsView: View {
                     
                     VStack (spacing: 5) {
                         Text("Algo deu errado")
-                            //.font(.custom("SF Pro", size: 17, relativeTo: .headline))
-                            //.fontWeight(.medium)
                             .font(.system(size: 17, weight: .medium))
                             .foregroundStyle(.text)
                         
@@ -130,7 +119,6 @@ struct GenitorRewardsView: View {
                     .padding(.vertical, 171)
                     
                 } else {
-                    // Mostrar loading inicial
                     if viewModel.isLoading && viewModel.rewards.isEmpty {
                         VStack {
                             ProgressView()
@@ -141,13 +129,10 @@ struct GenitorRewardsView: View {
                         }
                         .padding(.vertical, 100)
                     }
-                    // Mostrar conteúdo vazio quando não há recompensas
                     else if viewModel.rewards.isEmpty && !viewModel.isLoading {
                         VStack(alignment: .center, spacing: 10) {
                             
                             Text("Nenhuma recompensa registrada")
-                                //.font(.custom("SF Pro", size: 17, relativeTo: .headline))
-                                //.fontWeight(.medium)
                                 .font(.system(size: 17, weight: .medium))
                                 .foregroundStyle(Color("primaryColor"))
                             
@@ -161,7 +146,6 @@ struct GenitorRewardsView: View {
                         .padding(.top, 171)
                     }
                     
-                    // Mostrar lista de recompensas
                     else {
                         ForEach(viewModel.groupedRewardsByDay, id: \.self) { group in
                             VStack(alignment: .leading, spacing: 10) {
@@ -178,56 +162,31 @@ struct GenitorRewardsView: View {
                                 ForEach(viewModel.rewards.indices, id: \.self) { index in
                                     let reward = viewModel.rewards[index]
                                     if Calendar.current.isDate(reward.dateCollected, inSameDayAs: group.date) {
-                                        GenitorRewardsRowView(reward: $viewModel.rewards[index])
-                                            .onTapGesture {
+                                        GenitorRewardsRowView(
+                                            reward: $viewModel.rewards[index],
+                                            onToggle: {
                                                 saveRewardUpdate(reward)
                                             }
+                                        )
                                     }
                                 }
                             }
                             .padding(.bottom, 20)
                         }
                     }
-
                 }
             }
             .padding(20)
             .background(Color.white)
-            .overlay(
+            .overlay {
+                let borderColor = Color(red: 0.87, green: 0.87, blue: 0.87)
                 RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color(red: 0.87, green: 0.87, blue: 0.87), lineWidth: 2)
-            )
+                    .stroke(borderColor, lineWidth: 2)
+            }
             .cornerRadius(10)
         }
         .padding(.horizontal, 20)
         .padding(.top, 25)
-    }
-    
-    private func loadRewards() {
-        guard let kidID = viewModel.firstKid?.id?.recordName else {
-            // Se não há criança, limpar rewards
-            viewModel.rewards = []
-            return
-        }
-        
-        viewModel.isLoading = true
-        
-        CloudService.shared.fetchAllCollectedRewards(forKid: kidID) { result in
-            DispatchQueue.main.async {
-                viewModel.isLoading = false
-                switch result {
-                case .success(let rewards):
-                    viewModel.refreshFailed = false
-                    viewModel.rewards = rewards
-                   
-                case .failure(let error):
-                    print("Erro ao carregar recompensas: \(error)")
-                    viewModel.refreshFailed = true
-                    viewModel.rewards = []
-                    
-                }
-            }
-        }
     }
 }
 
