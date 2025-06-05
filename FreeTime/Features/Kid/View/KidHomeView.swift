@@ -92,10 +92,8 @@ struct KidHomeView: View {
     }
     
     private var HeaderView: some View {
-        Rectangle()
-            .fill(.backgroundHeaderYellowKid)
-            .cornerRadius(20)
-            .frame(height: 156)
+        CustomCornerShape(radius: 20, corners: [.bottomLeft, .bottomRight])
+            .frame(maxHeight: 156)
             .overlay {
                 HStack {
                     HStack(spacing: 24) {
@@ -273,6 +271,7 @@ struct KidHomeView: View {
                 .padding(.leading, 133)
             }
         }
+            .fontDesign(.rounded)
         }
     
     private func NavButton(page: Page) -> some View {
