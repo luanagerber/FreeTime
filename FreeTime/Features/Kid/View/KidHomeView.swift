@@ -93,6 +93,7 @@ struct KidHomeView: View {
     
     private var HeaderView: some View {
         CustomCornerShape(radius: 20, corners: [.bottomLeft, .bottomRight])
+            .fill(.backgroundHeaderYellowKid)
             .frame(maxHeight: 156)
             .overlay {
                 HStack {
