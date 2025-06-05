@@ -37,9 +37,9 @@ class GenitorViewModel: ObservableObject {
     @Published var duration: TimeInterval = 3600 // 1 hour default
     
     // MARK: - Kid Properties
-    var kidCoins: Int {
-        CoinManager.shared.kidCoins
-    }
+//    var kidCoins: Int {
+//        CoinManager.shared.kidCoins
+//    }
     
     var uniqueDates: [Date] {
         Array(Set(rewards.map { $0.dateCollected.startOfDay })).sorted(by: { $1 < $0})
@@ -210,11 +210,11 @@ class GenitorViewModel: ObservableObject {
         }
     }
     
-    func setupCoinManager() {
-        if let kidID = firstKid?.id {
-            CoinManager.shared.setCurrentKid(kidID)
-        }
-    }
+//    func setupCoinManager() {
+//        if let kidID = firstKid?.id {
+//            CoinManager.shared.setCurrentKid(kidID)
+//        }
+//    }
     
     // MARK: - Sharing Operations
     func shareKid(_ kid: Kid) {
@@ -632,7 +632,7 @@ extension GenitorViewModel {
                 }
             }
         }
-    
+
     func toggleRewardDeliveryStatus(_ reward: CollectedReward) {
         Task {
             do {
@@ -687,9 +687,11 @@ extension GenitorViewModel {
                 
                 _ = try await database.save(record)
                 
-                // Recarregar dados
+                // Recarregar dados E sincronizar moedas
                 await MainActor.run {
                     loadRewardsFromKid()
+                    // ✅ ADICIONADO: Sincronizar moedas após mudança
+                    syncCoinsAfterRewardUpdate()
                 }
                 
             } catch {
@@ -733,5 +735,30 @@ extension GenitorViewModel {
     
     func shouldShowShareConfirmation(hasSharedSuccessfully: Bool) -> Bool {
         return hasKids && hasSharedSuccessfully
+    }
+}
+
+extension GenitorViewModel {
+    
+    // ✅ NOVO: Método para forçar atualização das moedas quando necessário
+    func refreshCoins() {
+        CoinManager.shared.reloadCoins()
+    }
+    
+    // ✅ CORREÇÃO: Atualizar o método setupCoinManager para garantir sincronização
+    func setupCoinManager() {
+        if let kidID = firstKid?.id {
+            CoinManager.shared.setCurrentKid(kidID)
+            // Força uma atualização das moedas após configurar
+            CoinManager.shared.reloadCoins()
+        }
+    }
+    
+    // ✅ NOVO: Método para ser chamado após alterações nas recompensas
+    func syncCoinsAfterRewardUpdate() {
+        // Força sincronização das moedas após mudanças nas recompensas
+        Task {
+            try? await CoinManager.shared.forceSync()
+        }
     }
 }
