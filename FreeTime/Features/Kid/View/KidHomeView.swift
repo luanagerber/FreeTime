@@ -66,21 +66,28 @@ struct KidHomeView: View {
             Text(vmKid.errorMessage)
         }
         .overlay {
-            if vmKid.isLoading {
-                ////                ZStack {
-                ////                    Color(.backgroundHeaderYellowKid)
-                ////                        .ignoresSafeArea()
-                ////                    VStack(spacing: 16) {
-                ////                        ProgressView("Carregando...")
-                ////                            .progressViewStyle(CircularProgressViewStyle(tint: .fontColorKid))
-                ////                            .foregroundColor(.fontColorKid)
-                ////                            .font(.title)
-                ////                            .fontWeight(.bold)
-                ////                    }
-                ////                }
-                ////                .transition(.opacity)
-                ////                .zIndex(2)
-            }
+            if vmKid.isLoading && vmKid.kid == nil {
+                    // Só mostra overlay quando está carregando o perfil inicial
+                    ZStack {
+                        Color(.backgroundHeaderYellowKid)
+                            .ignoresSafeArea()
+                        VStack(spacing: 16) {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .fontColorKid))
+                            
+                            Text("Carregando seu perfil...")
+                                .foregroundColor(.fontColorKid)
+                                .font(.title2)
+                                .fontWeight(.medium)
+                            
+                            Text("Aguarde um momento...")
+                                .foregroundColor(.fontColorKid.opacity(0.8))
+                                .font(.caption)
+                        }
+                    }
+                    .transition(.opacity)
+                    .zIndex(2)
+                }
         }
     }
     
@@ -150,7 +157,7 @@ struct KidHomeView: View {
             } else if vmKid.isLoadingActivities {
                 // Kid carregado, mas atividades ainda carregando
                 VStack(spacing: 16) {
-                    ProgressView("Carregando atividades...")
+                    ProgressView("Carregando suas atividades...")
                         .progressViewStyle(CircularProgressViewStyle(tint: .fontColorKid))
                         .foregroundColor(.fontColorKid)
                         .font(.title2)
@@ -159,12 +166,12 @@ struct KidHomeView: View {
                 .padding()
                 
             } else {
-                // ✅ Tudo carregado - mostrar atividades (código original)
+                // ✅ Tudo carregado - mostrar atividades
                 let notStarted = vmKid.notCompletedRegister()
                 let completed = vmKid.completedRegister()
                 let allActivities = notStarted + completed
                 
-                // Debug info (mantido do código original)
+                // Debug info
                 let _ = print("🔍 KidHomeView DEBUG:")
                 let _ = print("  - Kid carregado: \(vmKid.kid?.name ?? "nil")")
                 let _ = print("  - Total atividades carregadas: \(vmKid.activities.count)")
@@ -203,41 +210,12 @@ struct KidHomeView: View {
                         }
                     }
                     
-                    // ✅ MANTIDO: Botão para debug (pode remover depois)
-//                    #if DEBUG
-//                    Button("Debug Datas das Atividades") {
-//                        vmKid.debugActivityDates()
-//                        vmKid.debugAllActivities()
-//                    }
-//                    .padding()
-//                    .background(Color.blue)
-//                    .foregroundColor(.white)
-//                    .cornerRadius(8)
-//                    #endif
-                    
                     if allActivities.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Hmm... parece que ainda não tem nada pra fazer agora. Que tal pedir pra um adulto adicionar uma atividade bem legal pra você?")
                                 .padding(.trailing, 133)
                                 .font(.title2)
                             
-//                            #if DEBUG
-//                            Text("Debug: \(vmKid.activities.count) atividades carregadas no total")
-//                                .font(.caption)
-//                                .foregroundColor(.gray)
-//                            
-//                            if !allKidActivities.isEmpty {
-//                                Text("⚠️ Existem \(allKidActivities.count) atividades para este kid, mas nenhuma para hoje")
-//                                    .font(.caption)
-//                                    .foregroundColor(.orange)
-//                                
-//                                ForEach(Array(allKidActivities.prefix(3).enumerated()), id: \.element.id) { index, activity in
-//                                    Text("\(index + 1). \(activity.activity?.name ?? "Unknown") - \(activity.date)")
-//                                        .font(.caption2)
-//                                        .foregroundColor(.gray)
-//                                }
-//                            }
-//                            #endif
                         }
                         
                     } else {

@@ -399,6 +399,9 @@ extension KidViewModel {
             
             print("🔄 loadActivities: Iniciando carregamento das atividades para \(kid.name)")
             
+            isLoadingActivities = true
+
+            
             if UserManager.shared.isChild {
                 loadActivitiesFromSharedDB(for: kid)
             } else if let currentKidID = currentKidID {
@@ -469,7 +472,7 @@ extension KidViewModel {
                 
             } catch {
                 DispatchQueue.main.async { [weak self] in
-                    self?.isLoading = false
+                    self?.isLoadingActivities = false
                     self?.handleError("Failed to load activities: \(error.localizedDescription)")
                 }
             }
@@ -550,7 +553,7 @@ extension KidViewModel {
             } catch {
                 print("❌ KidViewModel: Erro geral ao carregar atividades: \(error)")
                 DispatchQueue.main.async { [weak self] in
-                    self?.isLoading = false
+                    self?.isLoadingActivities = false
                     self?.handleError("Failed to load activities from shared database: \(error.localizedDescription)")
                 }
             }
@@ -560,8 +563,8 @@ extension KidViewModel {
     
     // CORREÇÃO CRÍTICA: Esta função estava limitando as atividades
     private func processLoadedActivities(_ allActivities: [ActivitiesRegister], kidID: String) {
-        isLoading = false
-        
+        isLoadingActivities = false
+
         if allActivities.isEmpty {
             feedbackMessage = "❌ Nenhuma atividade encontrada para este filho"
             activities = []
@@ -602,6 +605,8 @@ extension KidViewModel {
     
     func refreshActivities() {
         if let kid = kid {
+            isLoadingActivities = true
+
             if UserManager.shared.isChild {
                 loadActivitiesFromSharedDB(for: kid)
             } else if let currentKidID = currentKidID {
