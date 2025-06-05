@@ -149,6 +149,7 @@ struct KidHomeView: View {
                         .progressViewStyle(CircularProgressViewStyle(tint: .fontColorKid))
                         .foregroundColor(.fontColorKid)
                         .font(.title2)
+                        .fontDesign(.rounded)
                 }
                 .frame(maxWidth: .infinity, maxHeight: 200)
                 .padding()
@@ -160,6 +161,7 @@ struct KidHomeView: View {
                         .progressViewStyle(CircularProgressViewStyle(tint: .fontColorKid))
                         .foregroundColor(.fontColorKid)
                         .font(.title2)
+                        .fontDesign(.rounded)
                 }
                 .frame(maxWidth: .infinity, maxHeight: 200)
                 .padding()
