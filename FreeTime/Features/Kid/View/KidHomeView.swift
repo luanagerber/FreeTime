@@ -143,10 +143,6 @@ struct KidHomeView: View {
                         .progressViewStyle(CircularProgressViewStyle(tint: .fontColorKid))
                         .foregroundColor(.fontColorKid)
                         .font(.title2)
-                    
-                    Text("Aguardando dados do UserManager...")
-                        .font(.caption)
-                        .foregroundColor(.gray)
                 }
                 .frame(maxWidth: .infinity, maxHeight: 200)
                 .padding()
@@ -158,10 +154,6 @@ struct KidHomeView: View {
                         .progressViewStyle(CircularProgressViewStyle(tint: .fontColorKid))
                         .foregroundColor(.fontColorKid)
                         .font(.title2)
-                    
-                    Text("Perfil: \(vmKid.kid?.name ?? "Carregado")")
-                        .font(.caption)
-                        .foregroundColor(.gray)
                 }
                 .frame(maxWidth: .infinity, maxHeight: 200)
                 .padding()
@@ -212,16 +204,16 @@ struct KidHomeView: View {
                     }
                     
                     // ✅ MANTIDO: Botão para debug (pode remover depois)
-                    #if DEBUG
-                    Button("Debug Datas das Atividades") {
-                        vmKid.debugActivityDates()
-                        vmKid.debugAllActivities()
-                    }
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
-                    #endif
+//                    #if DEBUG
+//                    Button("Debug Datas das Atividades") {
+//                        vmKid.debugActivityDates()
+//                        vmKid.debugAllActivities()
+//                    }
+//                    .padding()
+//                    .background(Color.blue)
+//                    .foregroundColor(.white)
+//                    .cornerRadius(8)
+//                    #endif
                     
                     if allActivities.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
@@ -229,23 +221,23 @@ struct KidHomeView: View {
                                 .padding(.trailing, 133)
                                 .font(.title2)
                             
-                            #if DEBUG
-                            Text("Debug: \(vmKid.activities.count) atividades carregadas no total")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                            
-                            if !allKidActivities.isEmpty {
-                                Text("⚠️ Existem \(allKidActivities.count) atividades para este kid, mas nenhuma para hoje")
-                                    .font(.caption)
-                                    .foregroundColor(.orange)
-                                
-                                ForEach(Array(allKidActivities.prefix(3).enumerated()), id: \.element.id) { index, activity in
-                                    Text("\(index + 1). \(activity.activity?.name ?? "Unknown") - \(activity.date)")
-                                        .font(.caption2)
-                                        .foregroundColor(.gray)
-                                }
-                            }
-                            #endif
+//                            #if DEBUG
+//                            Text("Debug: \(vmKid.activities.count) atividades carregadas no total")
+//                                .font(.caption)
+//                                .foregroundColor(.gray)
+//                            
+//                            if !allKidActivities.isEmpty {
+//                                Text("⚠️ Existem \(allKidActivities.count) atividades para este kid, mas nenhuma para hoje")
+//                                    .font(.caption)
+//                                    .foregroundColor(.orange)
+//                                
+//                                ForEach(Array(allKidActivities.prefix(3).enumerated()), id: \.element.id) { index, activity in
+//                                    Text("\(index + 1). \(activity.activity?.name ?? "Unknown") - \(activity.date)")
+//                                        .font(.caption2)
+//                                        .foregroundColor(.gray)
+//                                }
+//                            }
+//                            #endif
                         }
                         
                     } else {
