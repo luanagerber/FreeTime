@@ -17,6 +17,12 @@ class KidViewModel: ObservableObject {
     @Published var kid: Kid? {
         didSet {
             print("🔄 Kid atualizado: \(kid?.name ?? "nil")")
+            
+            // ✅ Para o observer uma vez que o kid é carregado
+            if kid != nil {
+                stopUserManagerObserver()
+            }
+            
             // Publica que o kid mudou para triggerar onReceive
             kidDidChange.send(kid)
         }
@@ -24,20 +30,23 @@ class KidViewModel: ObservableObject {
 
     @Published var activities: [ActivitiesRegister] = []
     @Published var isLoading = false
-    @Published var isLoadingActivities = false // ✅ Separar loading das atividades
+    @Published var isLoadingActivities = false
     @Published var errorMessage: String = ""
     @Published var showError: Bool = false
     @Published var feedbackMessage = ""
     @Published var hasAcceptedShareLink = false
+    
+    // ✅ NOVO: Publisher para comunicar mudanças no kid
+    let kidDidChange = PassthroughSubject<Kid?, Never>()
+    
+    // ✅ NOVO: Cancellables para observar UserManager
+    private var cancellables = Set<AnyCancellable>()
     
     // MARK: - Other Properties
     private let cloudService = CloudService.shared
     private let invitationManager = InvitationStatusManager.shared
     
     var currentKidID: CKRecord.ID?
-    
-    // ✅ NOVO: Publisher para comunicar mudanças no kid
-    let kidDidChange = PassthroughSubject<Kid?, Never>()
     
     var kidName: String? {
         return UserManager.shared.currentKidName
@@ -50,6 +59,7 @@ class KidViewModel: ObservableObject {
     // MARK: - Initialization
     init() {
         loadFromUserManager()
+        setupUserManagerObserver()
     }
     
     func loadTestActivities() {
@@ -57,37 +67,109 @@ class KidViewModel: ObservableObject {
             ActivitiesRegister(kid: Kid.sample, activityID: 1, date: Date(), duration: TimeInterval())]
     }
     
-    private func loadFromUserManager() {
-        let userManager = UserManager.shared
-        
-        print("🔄 LOAD: Carregando dados do UserManager")
-        print("🔄 LOAD: UserManager hasValidKid: \(userManager.hasValidKid)")
-        print("🔄 LOAD: UserManager isChild: \(userManager.isChild)")
-        print("🔄 LOAD: UserManager currentKidName: \(userManager.currentKidName)")
-        
-        // Se o UserManager tem um kid válido, use-o
-        if let kidID = userManager.currentKidID {
-            print("🔄 LOAD: Kid encontrado - ID: \(kidID.recordName), Nome: \(userManager.currentKidName)")
-            print("🔄 LOAD: Zone: \(kidID.zoneID.zoneName):\(kidID.zoneID.ownerName)")
-            self.currentKidID = kidID
-            
-            // Carrega dados baseado no tipo de usuário
-            if userManager.isChild {
-                print("🔄 LOAD: Carregando como criança (dados compartilhados)")
-                loadChildData() // ✅ CORREÇÃO: usar método existente
-            } else {
-                print("🔄 LOAD: Carregando como pai (dados privados)")
-                loadKidData()
-            }
-        } else if let rootRecordID = CloudService.shared.getRootRecordID() {
-            // Fallback para o método antigo se necessário
-            print("🔄 LOAD: Usando fallback rootRecordID")
-            self.currentKidID = rootRecordID
-            loadChildData() // ✅ CORREÇÃO: usar método existente
-        } else {
-            print("🔄 LOAD: ❌ Nenhum kid encontrado!")
-        }
-    }
+    // ✅ NOVO: Observer para mudanças no UserManager
+       private func setupUserManagerObserver() {
+           // Observa mudanças no UserManager a cada 0.5 segundos
+           Timer.publish(every: 0.5, on: .main, in: .common)
+               .autoconnect()
+               .sink { [weak self] _ in
+                   self?.checkForUserManagerUpdates()
+               }
+               .store(in: &cancellables)
+           
+           print("🔄 Observer do UserManager configurado")
+       }
+       
+       // ✅ NOVO: Verifica se UserManager teve mudanças
+       private func checkForUserManagerUpdates() {
+           let userManager = UserManager.shared
+           
+           // ✅ Se já temos um kid carregado, para o observer
+           if kid != nil {
+               print("🔄 OBSERVER: Kid já carregado (\(kid?.name ?? "unknown")), parando observer...")
+               stopUserManagerObserver()
+               return
+           }
+           
+           // Se não temos kid carregado mas UserManager agora tem um
+           if userManager.hasValidKid {
+               print("🔄 OBSERVER: UserManager agora tem kid válido, recarregando...")
+               print("🔄 OBSERVER: Kid name: \(userManager.currentKidName)")
+               print("🔄 OBSERVER: Is child: \(userManager.isChild)")
+               
+               loadFromUserManager()
+           }
+       }
+       
+       // ✅ NOVO: Para o observer do UserManager
+       private func stopUserManagerObserver() {
+           cancellables.removeAll()
+           print("🔄 Observer do UserManager parado - kid carregado com sucesso")
+       }
+       
+       private func loadFromUserManager() {
+           let userManager = UserManager.shared
+           
+           print("🔄 LOAD: Carregando dados do UserManager")
+           print("🔄 LOAD: UserManager hasValidKid: \(userManager.hasValidKid)")
+           print("🔄 LOAD: UserManager isChild: \(userManager.isChild)")
+           print("🔄 LOAD: UserManager currentKidName: \(userManager.currentKidName)")
+           
+           // Se o UserManager tem um kid válido, use-o
+           if let kidID = userManager.currentKidID {
+               print("🔄 LOAD: Kid encontrado - ID: \(kidID.recordName), Nome: \(userManager.currentKidName)")
+               print("🔄 LOAD: Zone: \(kidID.zoneID.zoneName):\(kidID.zoneID.ownerName)")
+               self.currentKidID = kidID
+               
+               // Carrega dados baseado no tipo de usuário
+               if userManager.isChild {
+                   print("🔄 LOAD: Carregando como criança (dados compartilhados)")
+                   loadChildKidOnly()
+               } else {
+                   print("🔄 LOAD: Carregando como pai (dados privados)")
+                   loadKidDataOnly()
+               }
+           } else if let rootRecordID = CloudService.shared.getRootRecordID() {
+               // Fallback para o método antigo se necessário
+               print("🔄 LOAD: Usando fallback rootRecordID")
+               self.currentKidID = rootRecordID
+               loadChildKidOnly()
+           } else {
+               print("🔄 LOAD: ❌ Nenhum kid encontrado!")
+           }
+       }
+    
+//    private func loadFromUserManager() {
+//        let userManager = UserManager.shared
+//        
+//        print("🔄 LOAD: Carregando dados do UserManager")
+//        print("🔄 LOAD: UserManager hasValidKid: \(userManager.hasValidKid)")
+//        print("🔄 LOAD: UserManager isChild: \(userManager.isChild)")
+//        print("🔄 LOAD: UserManager currentKidName: \(userManager.currentKidName)")
+//        
+//        // Se o UserManager tem um kid válido, use-o
+//        if let kidID = userManager.currentKidID {
+//            print("🔄 LOAD: Kid encontrado - ID: \(kidID.recordName), Nome: \(userManager.currentKidName)")
+//            print("🔄 LOAD: Zone: \(kidID.zoneID.zoneName):\(kidID.zoneID.ownerName)")
+//            self.currentKidID = kidID
+//            
+//            // Carrega dados baseado no tipo de usuário
+//            if userManager.isChild {
+//                print("🔄 LOAD: Carregando como criança (dados compartilhados)")
+//                loadChildData() // ✅ CORREÇÃO: usar método existente
+//            } else {
+//                print("🔄 LOAD: Carregando como pai (dados privados)")
+//                loadKidData()
+//            }
+//        } else if let rootRecordID = CloudService.shared.getRootRecordID() {
+//            // Fallback para o método antigo se necessário
+//            print("🔄 LOAD: Usando fallback rootRecordID")
+//            self.currentKidID = rootRecordID
+//            loadChildData() // ✅ CORREÇÃO: usar método existente
+//        } else {
+//            print("🔄 LOAD: ❌ Nenhum kid encontrado!")
+//        }
+//    }
 }
     
 
