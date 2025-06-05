@@ -66,6 +66,10 @@ class GenitorViewModel: ObservableObject {
         return groupAux
     }
     
+    // ✅ NOVO: Sistema de controle de loading
+    private var loadingOperations: Set<String> = []
+    
+    
     // MARK: - Private Properties
     private let cloudService = CloudService.shared
     private let container = CKContainer(identifier: CloudConfig.containerIdentifier)
@@ -79,14 +83,16 @@ class GenitorViewModel: ObservableObject {
     
     // MARK: - CloudKit Setup & Initialization
     func setupCloudKit() {
+        let operation = "setupCloudKit"
+
         // ✅ Evita setup múltiplo
-         if isLoading {
-             print("🔄 CloudKit já está sendo configurado...")
-             return
-         }
-         
-         feedbackMessage = "Configurando CloudKit..."
-         isLoading = true
+                if loadingOperations.contains(operation) {
+                    print("🔄 CloudKit já está sendo configurado...")
+                    return
+                }
+                
+                startLoading(operation: operation)
+                feedbackMessage = "Configurando CloudKit..."
         
         Task {
             do {
@@ -102,9 +108,13 @@ class GenitorViewModel: ObservableObject {
                 await MainActor.run {
                         self.debugKidRecord()
                         self.loadRewardsFromKid()
+                    self.stopLoading(operation: operation)
                     }
             } catch {
                 await handleZoneCreationError(error)
+                await MainActor.run {
+                    self.stopLoading(operation: operation)
+                }
             }
         }
     }
@@ -133,40 +143,53 @@ class GenitorViewModel: ObservableObject {
     // MARK: - Kid Management Operations
     
     func addChild() {
+        let operation = "addChild"
+
         guard !childName.isEmpty else { return }
         
-        isLoading = true
+        startLoading(operation: operation)
         feedbackMessage = "Adicionando criança ao CloudKit..."
         
         let kid = Kid(name: childName)
         
         guard kid.record != nil else {
-            isLoading = false
+            stopLoading(operation: operation)
             feedbackMessage = "❌ Erro: Falha ao criar registro da criança"
             return
         }
         
         CloudService.shared.saveKid(kid) { [weak self] result in
             DispatchQueue.main.async {
+                guard let self = self else { return }
+
                 switch result {
                 case .success(let savedKid):
-                    self?.kids.append(savedKid)
-                    self?.childName = ""
-                    self?.feedbackMessage = "✅ \(savedKid.name) foi adicionado com sucesso!"
+                    self.kids.append(savedKid)
+                    self.childName = ""
+                    self.feedbackMessage = "✅ \(savedKid.name) foi adicionado com sucesso!"
                     
                     // Define o usuário como pai e salva o Kid completo
                     UserManager.shared.setAsParent(withKid: savedKid)
                     
                 case .failure(let error):
-                    self?.feedbackMessage = "❌ Erro ao adicionar criança: \(error.localizedDescription)"
+                    self.feedbackMessage = "❌ Erro ao adicionar criança: \(error.localizedDescription)"
                 }
-                self?.isLoading = false
+                
+                self.stopLoading(operation: operation)
             }
         }
     }
     
     @MainActor
     private func loadKids() {
+        let operation = "loadKids"
+        
+        if loadingOperations.contains(operation) {
+            print("🔄 Kids já estão sendo carregados...")
+            return
+        }
+        
+        startLoading(operation: operation)
         feedbackMessage = "Carregando suas crianças do CloudKit..."
         
         Task {
@@ -188,80 +211,29 @@ class GenitorViewModel: ObservableObject {
                     // ✅ Se há kids, carrega atividades; senão, para o loading
                     if !fetchedKids.isEmpty {
                         self.loadAllActivitiesOnce()
-                    } else {
-                        self.isLoading = false
                     }
                     
                 case .failure(let error):
-                    self.isLoading = false // ✅ CRÍTICO: Reset em erro
                     self.feedbackMessage = "❌ Erro ao carregar crianças: \(error)"
                 }
+                
+                self.stopLoading(operation: operation)
             }
-        }
-    }
-    
-    func refresh() {
-        print("🔄 GenitorViewModel.refresh() chamado")
-                
-                // ✅ Evita refresh múltiplo
-                if isLoading {
-                    print("🔄 Já está fazendo refresh, pulando...")
-                    return
-                }
-                
-                isLoading = true
-                feedbackMessage = "Atualizando dados..."
-                
-                if !zoneReady {
-                    print("🔄 Zona não está pronta, configurando CloudKit...")
-                    setupCloudKit()
-                    setupCoinManager()
-                    return
-                }
-        
-        cloudService.fetchAllKids { [weak self] result in
-            guard let self = self else { return }
-            
-            switch result {
-            case .success(let fetchedKids):
-                self.refreshFailed = false
-                self.kids = fetchedKids
-                
-                // ✅ Após carregar kids, carregar atividades se tiver kids
-                 if !fetchedKids.isEmpty {
-                     self.loadAllActivitiesOnce()
-                 } else {
-                     // ✅ CRÍTICO: Reset loading se não há kids
-                     self.isLoading = false
-                     self.feedbackMessage = "Nenhuma criança encontrada"
-                 }
-                
-            case .failure(let error):
-                self.refreshFailed = true
-                self.isLoading = false // ✅ CRÍTICO: Reset loading em erro
-                self.feedbackMessage = "❌ Erro ao carregar crianças: \(error)"
-            }
-        }
-    }
-    
-    func setupCoinManager() {
-        if let kidID = firstKid?.id {
-            CoinManager.shared.setCurrentKid(kidID)
         }
     }
     
     // MARK: - Sharing Operations
     func shareKid(_ kid: Kid) {
-        isLoading = true
+        let operation = "shareKid"
+
+        startLoading(operation: operation)
         feedbackMessage = "Gerando link de compartilhamento para \(kid.name)..."
         
         Task {
             do {
                 try await cloudService.shareKid(kid) { [weak self] result in
                     guard let self = self else { return }
-                    
-                    self.isLoading = false
-                    
+                                        
                     switch result {
                     case .success(let view):
                         self.shareView = AnyView(view)
@@ -271,10 +243,14 @@ class GenitorViewModel: ObservableObject {
                     case .failure(let error):
                         self.feedbackMessage = "❌ Erro ao compartilhar criança: \(error)"
                     }
+                    
+                    self.stopLoading(operation: operation)
                 }
             } catch {
-                isLoading = false
-                feedbackMessage = "❌ Erro: \(error.localizedDescription)"
+                await MainActor.run {
+                    feedbackMessage = "❌ Erro: \(error.localizedDescription)"
+                    self.stopLoading(operation: operation)
+                }
             }
         }
     }
@@ -316,8 +292,106 @@ class GenitorViewModel: ObservableObject {
         shareKid(kid)
     }
     
+    func setupCoinManager() {
+        if let kidID = firstKid?.id {
+            CoinManager.shared.setCurrentKid(kidID)
+        }
+    }
+    
+    // MARK: - Loading Control System
+        private func startLoading(operation: String) {
+            print("🔄 Starting loading: \(operation)")
+            loadingOperations.insert(operation)
+            updateLoadingState()
+        }
+        
+        private func stopLoading(operation: String) {
+            print("✅ Stopping loading: \(operation)")
+            loadingOperations.remove(operation)
+            updateLoadingState()
+        }
+        
+        private func updateLoadingState() {
+            let shouldBeLoading = !loadingOperations.isEmpty
+            if isLoading != shouldBeLoading {
+                isLoading = shouldBeLoading
+                print("🔄 Loading state updated: \(isLoading) (operations: \(loadingOperations))")
+            }
+        }
+    
+    // ✅ NOVO: Force stop all loading
+        private func forceStopAllLoading() {
+            print("🛑 Force stopping all loading operations")
+            loadingOperations.removeAll()
+            isLoading = false
+        }
+    
+    func refresh() {
+            let operation = "refresh"
+            
+            print("🔄 GenitorViewModel.refresh() chamado")
+            
+            // ✅ Evita refresh múltiplo
+            if loadingOperations.contains(operation) {
+                print("🔄 Já está fazendo refresh, pulando...")
+                return
+            }
+            
+            startLoading(operation: operation)
+            feedbackMessage = "Atualizando dados..."
+            
+            if !zoneReady {
+                print("🔄 Zona não está pronta, configurando CloudKit...")
+                setupCloudKit()
+                setupCoinManager()
+                stopLoading(operation: operation)
+                return
+            }
+            
+            cloudService.fetchAllKids { [weak self] result in
+                guard let self = self else { return }
+                
+                switch result {
+                case .success(let fetchedKids):
+                    self.refreshFailed = false
+                    self.kids = fetchedKids
+                    
+                    // ✅ Após carregar kids, carregar atividades se tiver kids
+                    if !fetchedKids.isEmpty {
+                        self.loadAllActivitiesOnce()
+                    } else {
+                        self.feedbackMessage = "Nenhuma criança encontrada"
+                    }
+                    
+                case .failure(let error):
+                    self.refreshFailed = true
+                    self.feedbackMessage = "❌ Erro ao carregar crianças: \(error)"
+                }
+                
+                self.stopLoading(operation: operation)
+            }
+        }
+    
+    // ✅ NOVO: Método para debug do loading state
+        func debugLoadingState() {
+            print("🔍 DEBUG Loading State:")
+            print("  - isLoading: \(isLoading)")
+            print("  - Active operations: \(loadingOperations)")
+            print("  - Records count: \(records.count)")
+            print("  - Kids count: \(kids.count)")
+        }
+        
+        // ✅ NOVO: Emergency stop para casos de loading travado
+        func emergencyStopLoading() {
+            print("🆘 EMERGENCY: Stopping all loading operations")
+            forceStopAllLoading()
+            feedbackMessage = "Loading parado manualmente"
+        }
+    
     // MARK: - Activity Management Operations
     func scheduleActivity() {
+        let operation = "scheduleActivity"
+
         guard let kid = selectedKid,
               let activity = selectedActivity,
               let kidIDString = kid.id?.recordName else {
@@ -325,8 +399,7 @@ class GenitorViewModel: ObservableObject {
             return
         }
         
-        // ✅ CORREÇÃO: Usar um loading específico para scheduling
-        isLoading = true
+        startLoading(operation: operation)
         feedbackMessage = "Agendando atividade para \(kid.name)..."
         
         let activityRegister = ActivitiesRegister(
@@ -348,12 +421,12 @@ class GenitorViewModel: ObservableObject {
                 self.feedbackMessage = "✅ Atividade '\(activity.name)' agendada para \(kid.name)"
                 self.showActivitySelector = false
                 
-                // ✅ NOVA ABORDAGEM: Atualizar currentDate se necessário
+                // ✅ Atualizar currentDate se necessário
                 if !Calendar.current.isDate(savedActivity.date, inSameDayAs: self.currentDate) {
                     self.currentDate = savedActivity.date
                 }
                 
-                // ✅ NOVA ABORDAGEM: Fetch das atividades após delay
+                // ✅ Refresh das atividades após delay
                 Task {
                     // Aguarda 1 segundo para o CloudKit processar
                     try? await Task.sleep(nanoseconds: 1_000_000_000)
@@ -373,6 +446,8 @@ class GenitorViewModel: ObservableObject {
             case .failure(let error):
                 self.feedbackMessage = "❌ Erro ao agendar atividade: \(error)"
             }
+            
+            self.stopLoading(operation: operation)
         }
     }
     
@@ -399,6 +474,7 @@ class GenitorViewModel: ObservableObject {
     private func refreshActivitiesAfterSchedule(kidID: String) {
         print("🔄 refreshActivitiesAfterSchedule: Fazendo fetch das atividades após agendar...")
         
+        // ✅ NÃO usar loading aqui para não interferir com outras operações
         CloudService.shared.fetchAllActivities(forKid: kidID) { [weak self] result in
             DispatchQueue.main.async {
                 guard let self = self else { return }
@@ -472,19 +548,21 @@ class GenitorViewModel: ObservableObject {
     
     
     func loadAllActivitiesOnce() {
+        let operation = "loadActivities"
+
         guard let kidID = firstKid?.id?.recordName else {
             print("⚠️ Nenhum kid disponível para carregar atividades")
             return
         }
         
-        // ✅ CORREÇÃO: Evita carregar múltiplas vezes, mas permite refresh quando necessário
-        if isLoading {
-            print("🔄 Já está carregando atividades, pulando...")
+        // ✅ Evita carregar múltiplas vezes
+        if loadingOperations.contains(operation) {
+            print("🔄 Atividades já estão sendo carregadas, pulando...")
             return
         }
         
         print("🔄 loadAllActivitiesOnce: Iniciando carregamento para kid \(kidID)")
-        isLoading = true
+        startLoading(operation: operation)
         feedbackMessage = "Carregando atividades..."
         
         CloudService.shared.fetchAllActivities(forKid: kidID) { [weak self] result in
@@ -507,6 +585,8 @@ class GenitorViewModel: ObservableObject {
                     self.feedbackMessage = "❌ Erro ao carregar atividades: \(error)"
                     print("❌ LoadAllActivitiesOnce: Erro - \(error)")
                 }
+                
+                self.stopLoading(operation: operation)
             }
         }
     }
@@ -628,6 +708,8 @@ class GenitorViewModel: ObservableObject {
 extension GenitorViewModel {
     
     func loadRewardsFromKid() {
+        let operation = "loadRewards"
+
         guard let kid = firstKid else {
             print("❌ loadRewardsFromKid: Nenhuma criança encontrada")
             rewards = []
@@ -640,8 +722,8 @@ extension GenitorViewModel {
             return
         }
         
-        isLoading = true
-        
+        startLoading(operation: operation)
+
         Task {
             do {
                 let container = CKContainer(identifier: CloudConfig.containerIdentifier)
@@ -691,7 +773,7 @@ extension GenitorViewModel {
                 // Atualizar no main thread
                 await MainActor.run {
                     self.rewards = allRewards.sorted { $0.dateCollected > $1.dateCollected }
-                    self.isLoading = false
+                    self.stopLoading(operation: operation)
                     print("✅ Total de recompensas carregadas: \(self.rewards.count)")
                 }
                 
@@ -699,7 +781,7 @@ extension GenitorViewModel {
                 await MainActor.run {
                     print("❌ Erro ao carregar recompensas: \(error)")
                     self.rewards = []
-                    self.isLoading = false
+                    self.stopLoading(operation: operation)
                 }
             }
         }
