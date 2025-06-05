@@ -79,22 +79,30 @@ class GenitorViewModel: ObservableObject {
     
     // MARK: - CloudKit Setup & Initialization
     func setupCloudKit() {
-        feedbackMessage = "Configurando CloudKit..."
-        isLoading = true
+        // ✅ Evita setup múltiplo
+         if isLoading {
+             print("🔄 CloudKit já está sendo configurado...")
+             return
+         }
+         
+         feedbackMessage = "Configurando CloudKit..."
+         isLoading = true
         
         Task {
             do {
                 try await cloudService.createZoneIfNeeded()
                 print("✅ Zona Kids criada ou verificada")
                 
-                zoneReady = true
-                feedbackMessage = "✅ CloudKit configurado com sucesso"
-                loadKids()
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    self.debugKidRecord()
-                    self.loadRewardsFromKid()
+                await MainActor.run {
+                    self.zoneReady = true
+                    self.feedbackMessage = "✅ CloudKit configurado com sucesso"
+                    self.loadKids()
                 }
+                
+                await MainActor.run {
+                        self.debugKidRecord()
+                        self.loadRewardsFromKid()
+                    }
             } catch {
                 await handleZoneCreationError(error)
             }
@@ -159,25 +167,33 @@ class GenitorViewModel: ObservableObject {
     
     @MainActor
     private func loadKids() {
-        isLoading = true
         feedbackMessage = "Carregando suas crianças do CloudKit..."
         
         Task {
-            // Wait for 1 second before checking CloudKit
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
+
+            try? await Task.sleep(nanoseconds: 500_000_000)
             
             cloudService.fetchAllKids { [weak self] result in
                 guard let self = self else { return }
                 
-                self.isLoading = false
-                
+                // ✅ CRÍTICO: Só resetar loading se não há mais operações pendentes
+
                 switch result {
                 case .success(let fetchedKids):
-                        self.kids = fetchedKids
-                        self.feedbackMessage = fetchedKids.isEmpty
-                        ? "Nenhuma criança encontrada no CloudKit"
-                        : "✅ Carregadas \(fetchedKids.count) crianças"
+                    self.kids = fetchedKids
+                    self.feedbackMessage = fetchedKids.isEmpty
+                    ? "Nenhuma criança encontrada no CloudKit"
+                    : "✅ Carregadas \(fetchedKids.count) crianças"
+                    
+                    // ✅ Se há kids, carrega atividades; senão, para o loading
+                    if !fetchedKids.isEmpty {
+                        self.loadAllActivitiesOnce()
+                    } else {
+                        self.isLoading = false
+                    }
+                    
                 case .failure(let error):
+                    self.isLoading = false // ✅ CRÍTICO: Reset em erro
                     self.feedbackMessage = "❌ Erro ao carregar crianças: \(error)"
                 }
             }
@@ -185,14 +201,23 @@ class GenitorViewModel: ObservableObject {
     }
     
     func refresh() {
-        isLoading = true
-        feedbackMessage = "Atualizando dados..."
-        
-        if !zoneReady {
-            setupCloudKit()
-            setupCoinManager()
-            return
-        }
+        print("🔄 GenitorViewModel.refresh() chamado")
+                
+                // ✅ Evita refresh múltiplo
+                if isLoading {
+                    print("🔄 Já está fazendo refresh, pulando...")
+                    return
+                }
+                
+                isLoading = true
+                feedbackMessage = "Atualizando dados..."
+                
+                if !zoneReady {
+                    print("🔄 Zona não está pronta, configurando CloudKit...")
+                    setupCloudKit()
+                    setupCoinManager()
+                    return
+                }
         
         cloudService.fetchAllKids { [weak self] result in
             guard let self = self else { return }
@@ -201,12 +226,19 @@ class GenitorViewModel: ObservableObject {
             case .success(let fetchedKids):
                 self.refreshFailed = false
                 self.kids = fetchedKids
-                self.isLoading = false
-                self.feedbackMessage = "✅ Dados atualizados"
+                
+                // ✅ Após carregar kids, carregar atividades se tiver kids
+                 if !fetchedKids.isEmpty {
+                     self.loadAllActivitiesOnce()
+                 } else {
+                     // ✅ CRÍTICO: Reset loading se não há kids
+                     self.isLoading = false
+                     self.feedbackMessage = "Nenhuma criança encontrada"
+                 }
                 
             case .failure(let error):
                 self.refreshFailed = true
-                self.isLoading = false
+                self.isLoading = false // ✅ CRÍTICO: Reset loading em erro
                 self.feedbackMessage = "❌ Erro ao carregar crianças: \(error)"
             }
         }
@@ -293,6 +325,7 @@ class GenitorViewModel: ObservableObject {
             return
         }
         
+        // ✅ CORREÇÃO: Usar um loading específico para scheduling
         isLoading = true
         feedbackMessage = "Agendando atividade para \(kid.name)..."
         
@@ -329,7 +362,7 @@ class GenitorViewModel: ObservableObject {
                         self.refreshActivitiesAfterSchedule(kidID: kidIDString)
                     }
                     
-                    // Manter o CloudKit sharing como estava (não mexer)
+                    // CloudKit sharing (não mexer)
                     if let shareReference = kid.shareReference {
                         await self.updateSharing(for: kid)
                     } else {
@@ -364,7 +397,7 @@ class GenitorViewModel: ObservableObject {
     }
     
     private func refreshActivitiesAfterSchedule(kidID: String) {
-        print("🔄 Fazendo fetch das atividades após agendar...")
+        print("🔄 refreshActivitiesAfterSchedule: Fazendo fetch das atividades após agendar...")
         
         CloudService.shared.fetchAllActivities(forKid: kidID) { [weak self] result in
             DispatchQueue.main.async {
@@ -444,12 +477,13 @@ class GenitorViewModel: ObservableObject {
             return
         }
         
-        // Evita carregar múltiplas vezes
-        guard records.isEmpty || isRefreshing else {
-            print("🔄 Atividades já carregadas, pulando...")
+        // ✅ CORREÇÃO: Evita carregar múltiplas vezes, mas permite refresh quando necessário
+        if isLoading {
+            print("🔄 Já está carregando atividades, pulando...")
             return
         }
         
+        print("🔄 loadAllActivitiesOnce: Iniciando carregamento para kid \(kidID)")
         isLoading = true
         feedbackMessage = "Carregando atividades..."
         
@@ -462,10 +496,14 @@ class GenitorViewModel: ObservableObject {
                 switch result {
                 case .success(let activities):
                     self.records = activities
-                    self.feedbackMessage = "✅ \(activities.count) atividades carregadas"
+                    self.feedbackMessage = activities.isEmpty
+                    ? "Nenhuma atividade encontrada"
+                    : "✅ \(activities.count) atividades carregadas"
+                    
                     print("🔍 LoadAllActivitiesOnce: Carregadas \(activities.count) atividades")
                     
                 case .failure(let error):
+                    self.records = [] // ✅ Limpar em caso de erro
                     self.feedbackMessage = "❌ Erro ao carregar atividades: \(error)"
                     print("❌ LoadAllActivitiesOnce: Erro - \(error)")
                 }
