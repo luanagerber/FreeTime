@@ -5,12 +5,12 @@
 //  Created by Thales Araújo on 22/05/25.
 //
 
-
 import SwiftUI
 
 struct GenitorRewardsView: View {
     
     @ObservedObject var viewModel = GenitorViewModel.shared
+    @ObservedObject var coinManager = CoinManager.shared // ✅ ADICIONADO: Observar CoinManager
     @State private var hasLoadedInitialData = false
     
     var body: some View {
@@ -68,11 +68,12 @@ struct GenitorRewardsView: View {
                 
                 Spacer()
                 
-                if viewModel.isLoading && viewModel.kidCoins == 0 {
+                // ✅ CORREÇÃO: Usar coinManager.kidCoins em vez de viewModel.kidCoins
+                if coinManager.isLoading && coinManager.kidCoins == 0 {
                     ProgressView()
                         .scaleEffect(0.8)
                 } else {
-                    Text("\(viewModel.kidCoins)")
+                    Text("\(coinManager.kidCoins)")
                 }
                 
                 Image(systemName: "dollarsign.circle.fill")
