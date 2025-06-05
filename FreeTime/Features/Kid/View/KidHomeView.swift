@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 import CloudKit
 
 struct KidHomeView: View {
