@@ -548,7 +548,6 @@ class GenitorViewModel: ObservableObject {
         // ✅ Evita carregar múltiplas vezes
         if loadingOperations.contains(operation) {
             print("🔄 Atividades já estão sendo carregadas, pulando...")
-
             return
         }
         
