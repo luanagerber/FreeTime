@@ -205,7 +205,6 @@ extension RewardsStore {
                 
                 DispatchQueue.main.async { [weak self] in
                     self?.isLoading = false
-                    self?.setHeaderMessage("✅ \(reward.name) comprado!", color: .green)
                 }
                 
             } catch {
