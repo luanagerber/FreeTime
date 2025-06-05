@@ -156,9 +156,14 @@ struct GenitorDetailsActivityRegisterView: View {
             Button("Cancelar", role: .cancel) {
                 exclusionConfirmation = false
             }
+//            Button("Deletar", role: .destructive) {
+//                isDeleting = true
+//                //deleteActivity()
+//            }
+            
             Button("Deletar", role: .destructive) {
                 isDeleting = true
-                //deleteActivity()
+                vm.deleteActivity()
             }
         } message: {
             Text("Essa ação é permanente e não poderá ser desfeita")

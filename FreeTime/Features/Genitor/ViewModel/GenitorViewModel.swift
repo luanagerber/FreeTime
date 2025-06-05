@@ -815,6 +815,55 @@ extension GenitorViewModel {
     }
 }
 
+// MARK: - Activity Deletion
+extension GenitorViewModel {
+    
+    func deleteActivity() {
+        guard let activityToDelete = selectedActivityRegister else {
+            feedbackMessage = "❌ Nenhuma atividade selecionada para deletar"
+            isLoading = false
+            return
+        }
+        
+        isLoading = true
+        feedbackMessage = "Deletando atividade..."
+        
+        // Determinar se a atividade está no banco compartilhado ou privado
+        let isShared = activityToDelete.associatedRecord?.share != nil
+        
+        CloudService.shared.deleteActivity(activityToDelete, isShared: isShared) { [weak self] result in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                
+                self.isLoading = false
+                
+                switch result {
+                case .success:
+                    // Remover da lista local
+                    self.records.removeAll { $0.id == activityToDelete.id }
+                    
+                    // Limpar seleção
+                    self.selectedActivityRegister = nil
+                    self.isSelectedActivity = false
+                    
+                    self.feedbackMessage = "✅ Atividade deletada com sucesso"
+                    
+                    // Limpar mensagem após 3 segundos
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        if self.feedbackMessage.contains("deletada com sucesso") {
+                            self.feedbackMessage = ""
+                        }
+                    }
+                    
+                case .failure(let error):
+                    self.feedbackMessage = "❌ Erro ao deletar atividade: \(error.localizedDescription)"
+                    print("❌ Erro ao deletar atividade: \(error)")
+                }
+            }
+        }
+    }
+}
+
 extension GenitorViewModel {
     
     func refreshCoins() {
