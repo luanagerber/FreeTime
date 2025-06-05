@@ -138,38 +138,6 @@ class KidViewModel: ObservableObject {
                print("🔄 LOAD: ❌ Nenhum kid encontrado!")
            }
        }
-    
-//    private func loadFromUserManager() {
-//        let userManager = UserManager.shared
-//        
-//        print("🔄 LOAD: Carregando dados do UserManager")
-//        print("🔄 LOAD: UserManager hasValidKid: \(userManager.hasValidKid)")
-//        print("🔄 LOAD: UserManager isChild: \(userManager.isChild)")
-//        print("🔄 LOAD: UserManager currentKidName: \(userManager.currentKidName)")
-//        
-//        // Se o UserManager tem um kid válido, use-o
-//        if let kidID = userManager.currentKidID {
-//            print("🔄 LOAD: Kid encontrado - ID: \(kidID.recordName), Nome: \(userManager.currentKidName)")
-//            print("🔄 LOAD: Zone: \(kidID.zoneID.zoneName):\(kidID.zoneID.ownerName)")
-//            self.currentKidID = kidID
-//            
-//            // Carrega dados baseado no tipo de usuário
-//            if userManager.isChild {
-//                print("🔄 LOAD: Carregando como criança (dados compartilhados)")
-//                loadChildData() // ✅ CORREÇÃO: usar método existente
-//            } else {
-//                print("🔄 LOAD: Carregando como pai (dados privados)")
-//                loadKidData()
-//            }
-//        } else if let rootRecordID = CloudService.shared.getRootRecordID() {
-//            // Fallback para o método antigo se necessário
-//            print("🔄 LOAD: Usando fallback rootRecordID")
-//            self.currentKidID = rootRecordID
-//            loadChildData() // ✅ CORREÇÃO: usar método existente
-//        } else {
-//            print("🔄 LOAD: ❌ Nenhum kid encontrado!")
-//        }
-//    }
 }
     
 
