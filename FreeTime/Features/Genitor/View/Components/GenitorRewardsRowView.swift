@@ -9,12 +9,15 @@ import SwiftUI
 
 struct GenitorRewardsRowView: View {
     @Binding var reward: CollectedReward
+    var onToggle: (() -> Void)? = nil
 
     var body: some View {
         HStack {
             Button(action: {
+                onToggle?()
             }, label: {
                 Image(systemName: reward.isDelivered ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(reward.isDelivered ? .green : Color("primaryColor"))
             })
             
             Text(Reward.find(by: reward.rewardID)?.name ?? "Recompensa Desconhecida")

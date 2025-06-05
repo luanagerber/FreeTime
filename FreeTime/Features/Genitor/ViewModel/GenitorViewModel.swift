@@ -39,9 +39,6 @@ class GenitorViewModel: ObservableObject {
     @Published var duration: TimeInterval = 3600 // 1 hour default
     
     // MARK: - Kid Properties
-//    var kidCoins: Int {
-//        CoinManager.shared.kidCoins
-//    }
     
     var uniqueDates: [Date] {
         Array(Set(rewards.map { $0.dateCollected.startOfDay })).sorted(by: { $1 < $0})
@@ -163,7 +160,6 @@ class GenitorViewModel: ObservableObject {
         feedbackMessage = "Carregando suas crianças do CloudKit..."
         
         Task {
-            // Wait for 1 second before checking CloudKit
             try? await Task.sleep(nanoseconds: 1_000_000_000)
             
             cloudService.fetchAllKids { [weak self] result in
@@ -211,12 +207,6 @@ class GenitorViewModel: ObservableObject {
             }
         }
     }
-    
-//    func setupCoinManager() {
-//        if let kidID = firstKid?.id {
-//            CoinManager.shared.setCurrentKid(kidID)
-//        }
-//    }
     
     // MARK: - Sharing Operations
     func shareKid(_ kid: Kid) {
@@ -444,7 +434,6 @@ class GenitorViewModel: ObservableObject {
             return
         }
         
-        // Evita carregar múltiplas vezes
         guard records.isEmpty || isRefreshing else {
             print("🔄 Atividades já carregadas, pulando...")
             return
@@ -666,72 +655,6 @@ extension GenitorViewModel {
             }
         }
     }
-    func toggleRewardDeliveryStatus(_ reward: CollectedReward) {
-        Task {
-            do {
-                guard let kid = firstKid,
-                      let kidRecordID = kid.id else {
-                    print("❌ Nenhuma criança selecionada")
-                    return
-                }
-                
-                let container = CKContainer(identifier: CloudConfig.containerIdentifier)
-                let database = container.privateCloudDatabase
-                
-                // Buscar registro atualizado
-                let record = try await database.record(for: kidRecordID)
-                
-                var pendingRewards = record["pendingRewards"] as? [Int] ?? []
-                var pendingDates = record["pendingRewardDates"] as? [Date] ?? []
-                var deliveredRewards = record["deliveredRewards"] as? [Int] ?? []
-                var deliveredDates = record["deliveredRewardDates"] as? [Date] ?? []
-                
-                if !reward.isDelivered {
-                    // Mover de pendente para entregue
-                    if let index = pendingRewards.firstIndex(of: reward.rewardID) {
-                        pendingRewards.remove(at: index)
-                        let date = index < pendingDates.count ? pendingDates[index] : Date()
-                        if index < pendingDates.count {
-                            pendingDates.remove(at: index)
-                        }
-                        
-                        deliveredRewards.append(reward.rewardID)
-                        deliveredDates.append(date)
-                    }
-                } else {
-                    // Mover de entregue para pendente (desfazer entrega)
-                    if let index = deliveredRewards.firstIndex(of: reward.rewardID) {
-                        deliveredRewards.remove(at: index)
-                        let date = index < deliveredDates.count ? deliveredDates[index] : Date()
-                        if index < deliveredDates.count {
-                            deliveredDates.remove(at: index)
-                        }
-                        
-                        pendingRewards.append(reward.rewardID)
-                        pendingDates.append(date)
-                    }
-                }
-                
-                // Atualizar registro
-                record["pendingRewards"] = pendingRewards
-                record["pendingRewardDates"] = pendingDates
-                record["deliveredRewards"] = deliveredRewards
-                record["deliveredRewardDates"] = deliveredDates
-                
-                _ = try await database.save(record)
-                
-                // Recarregar dados E sincronizar moedas
-                await MainActor.run {
-                    loadRewardsFromKid()
-                    // ✅ ADICIONADO: Sincronizar moedas após mudança
-                    syncCoinsAfterRewardUpdate()
-                }
-                
-            } catch {
-                print("❌ Erro ao atualizar status da recompensa: \(error)")
-            }
-        }
-    }
 }
 
 
@@ -773,25 +696,106 @@ extension GenitorViewModel {
 
 extension GenitorViewModel {
     
-    // ✅ NOVO: Método para forçar atualização das moedas quando necessário
     func refreshCoins() {
         CoinManager.shared.reloadCoins()
     }
     
-    // ✅ CORREÇÃO: Atualizar o método setupCoinManager para garantir sincronização
     func setupCoinManager() {
         if let kidID = firstKid?.id {
             CoinManager.shared.setCurrentKid(kidID)
-            // Força uma atualização das moedas após configurar
             CoinManager.shared.reloadCoins()
         }
     }
     
-    // ✅ NOVO: Método para ser chamado após alterações nas recompensas
     func syncCoinsAfterRewardUpdate() {
-        // Força sincronização das moedas após mudanças nas recompensas
         Task {
             try? await CoinManager.shared.forceSync()
+        }
+    }
+    
+    func toggleRewardDeliveryStatus(_ reward: CollectedReward) {
+        // Feedback imediato
+        isLoading = true
+        feedbackMessage = reward.isDelivered ? "Desfazendo entrega..." : "Marcando como entregue..."
+        
+        Task {
+            do {
+                guard let kid = firstKid,
+                      let kidRecordID = kid.id else {
+                    print("❌ Nenhuma criança selecionada")
+                    await MainActor.run {
+                        self.isLoading = false
+                        self.feedbackMessage = "❌ Erro: Nenhuma criança selecionada"
+                    }
+                    return
+                }
+                
+                let container = CKContainer(identifier: CloudConfig.containerIdentifier)
+                let database = container.privateCloudDatabase
+                
+                let record = try await database.record(for: kidRecordID)
+                
+                var pendingRewards = record["pendingRewards"] as? [Int] ?? []
+                var pendingDates = record["pendingRewardDates"] as? [Date] ?? []
+                var deliveredRewards = record["deliveredRewards"] as? [Int] ?? []
+                var deliveredDates = record["deliveredRewardDates"] as? [Date] ?? []
+                
+                let rewardName = Reward.find(by: reward.rewardID)?.name ?? "Recompensa"
+                
+                if !reward.isDelivered {
+                    if let index = pendingRewards.firstIndex(of: reward.rewardID) {
+                        pendingRewards.remove(at: index)
+                        let date = index < pendingDates.count ? pendingDates[index] : Date()
+                        if index < pendingDates.count {
+                            pendingDates.remove(at: index)
+                        }
+                        
+                        deliveredRewards.append(reward.rewardID)
+                        deliveredDates.append(date)
+                    }
+                } else {
+                    if let index = deliveredRewards.firstIndex(of: reward.rewardID) {
+                        deliveredRewards.remove(at: index)
+                        let date = index < deliveredDates.count ? deliveredDates[index] : Date()
+                        if index < deliveredDates.count {
+                            deliveredDates.remove(at: index)
+                        }
+                        
+                        pendingRewards.append(reward.rewardID)
+                        pendingDates.append(date)
+                    }
+                }
+                
+                record["pendingRewards"] = pendingRewards
+                record["pendingRewardDates"] = pendingDates
+                record["deliveredRewards"] = deliveredRewards
+                record["deliveredRewardDates"] = deliveredDates
+                
+                _ = try await database.save(record)
+                
+                await MainActor.run {
+                    self.isLoading = false
+                    self.feedbackMessage = reward.isDelivered
+                        ? "↩️ \(rewardName) marcada como não entregue"
+                        : "✅ \(rewardName) marcada como entregue!"
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        if self.feedbackMessage.contains(rewardName) {
+                            self.feedbackMessage = ""
+                        }
+                    }
+                    
+                    self.loadRewardsFromKid()
+                    self.syncCoinsAfterRewardUpdate()
+                }
+                
+            } catch {
+                await MainActor.run {
+                    self.isLoading = false
+                    self.feedbackMessage = "❌ Erro ao atualizar recompensa: \(error.localizedDescription)"
+                    print("❌ Erro ao atualizar status da recompensa: \(error)")
+                }
+            }
         }
     }
 }

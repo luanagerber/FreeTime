@@ -10,7 +10,8 @@ import SwiftUI
 struct GenitorRewardsView: View {
     
     @ObservedObject var viewModel = GenitorViewModel.shared
-    @ObservedObject var coinManager = CoinManager.shared // ✅ ADICIONADO: Observar CoinManager
+    @ObservedObject var coinManager = CoinManager.shared
+    
     @State private var hasLoadedInitialData = false
     
     var body: some View {
@@ -62,18 +63,18 @@ struct GenitorRewardsView: View {
             Text("Confira as recompensas da criança e marque quando forem entregues.")
                 .font(.custom("SF Pro", size: 15, relativeTo: .body))
                 .foregroundStyle(Color("primaryColor"))
-            
+                        
             HStack {
                 Text("Saldo da criança")
                 
                 Spacer()
                 
-                // ✅ CORREÇÃO: Usar coinManager.kidCoins em vez de viewModel.kidCoins
                 if coinManager.isLoading && coinManager.kidCoins == 0 {
                     ProgressView()
                         .scaleEffect(0.8)
                 } else {
                     Text("\(coinManager.kidCoins)")
+                        .animation(.easeInOut(duration: 0.3), value: coinManager.kidCoins)
                 }
                 
                 Image(systemName: "dollarsign.circle.fill")
@@ -118,7 +119,6 @@ struct GenitorRewardsView: View {
                     .padding(.vertical, 171)
                     
                 } else {
-                    // Mostrar loading inicial
                     if viewModel.isLoading && viewModel.rewards.isEmpty {
                         VStack {
                             ProgressView()
@@ -129,7 +129,6 @@ struct GenitorRewardsView: View {
                         }
                         .padding(.vertical, 100)
                     }
-                    // Mostrar conteúdo vazio quando não há recompensas
                     else if viewModel.rewards.isEmpty && !viewModel.isLoading {
                         VStack(alignment: .center, spacing: 10) {
                             
@@ -147,7 +146,6 @@ struct GenitorRewardsView: View {
                         .padding(.top, 171)
                     }
                     
-                    // Mostrar lista de recompensas
                     else {
                         ForEach(viewModel.groupedRewardsByDay, id: \.self) { group in
                             VStack(alignment: .leading, spacing: 10) {
@@ -164,10 +162,12 @@ struct GenitorRewardsView: View {
                                 ForEach(viewModel.rewards.indices, id: \.self) { index in
                                     let reward = viewModel.rewards[index]
                                     if Calendar.current.isDate(reward.dateCollected, inSameDayAs: group.date) {
-                                        GenitorRewardsRowView(reward: $viewModel.rewards[index])
-                                            .onTapGesture {
+                                        GenitorRewardsRowView(
+                                            reward: $viewModel.rewards[index],
+                                            onToggle: {
                                                 saveRewardUpdate(reward)
                                             }
+                                        )
                                     }
                                 }
                             }
