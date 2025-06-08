@@ -35,6 +35,8 @@ class InvitationStatusManager: ObservableObject {
     }
     
     // For compatibility with UserDefaults usage
+    #warning("Declarar uma constante para armazenar a chave do UserDefaults, menos chance de erro de grafia.")
+
     static func setStatus(_ status: InvitationStatus) {
         UserDefaults.standard.setValue(status.rawValue, forKey: "invitationStatus")
         shared.currentStatus = status
@@ -45,3 +47,4 @@ class InvitationStatusManager: ObservableObject {
         return InvitationStatus(rawValue: rawValue) ?? .pending
     }
 }
+

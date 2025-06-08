@@ -7,6 +7,8 @@
 
 import SwiftUI
 
+#warning("Para efeitos de organização, é importante remover classes que não estão sendo utilizadas.")
+
 class ActivitiesRegisterViewModel: ObservableObject {
     
     @EnvironmentObject var coordinator: Coordinator

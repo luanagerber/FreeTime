@@ -7,6 +7,8 @@
 
 import Foundation
 
+#warning("Poderia estar em no arquivo Reward.swift.")
+
 extension Reward {
     
     static let sample = Reward(id: 0, name: "Tomar sorvete", cost: 10, image: "🍦")

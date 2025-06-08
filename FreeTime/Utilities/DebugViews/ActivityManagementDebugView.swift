@@ -8,6 +8,7 @@
 import SwiftUI
 import CloudKit
 
+#warning("É de debug, mas foi para produção?")
 struct ActivityManagementDebugView: View {
     @EnvironmentObject var coordinator: Coordinator
     @StateObject private var viewModel = GenitorViewModel.shared

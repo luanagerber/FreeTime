@@ -9,6 +9,17 @@ import SwiftUI
 import CloudKit
 import Combine
 
+#warning("A ViewModel fere o princípio de responsabilidade única do SOLID. Exemplo: UI, Gerenciamento de crianças, Integração com CloudKit, Gerenciamento de moedas, etc. Sugestão: GenitorViewModel ser um 'orquestrador' das outras responsabilidades, que pode ser: KidManager, CloudManager, ActivityScheduleManger, etc.. ")
+
+//class KidManager: ObservableObject {
+//    static let shared = KidManager()
+//    
+//    @Published var kids: [Kid] = []
+//    
+//    func addChild() { ... }
+//    func loadKids() async throws -> [Kid] { ... }
+//    // etc.
+//}
 
 @MainActor
 class GenitorViewModel: ObservableObject {
@@ -31,11 +42,11 @@ class GenitorViewModel: ObservableObject {
     @Published var zoneReady = false
     
     // MARK: - Kid Properties
-    
+        
     var kidCoins: Int {
         CoinManager.shared.kidCoins
     }
-    
+
     // MARK: - Activity scheduling properties
     @Published var showActivitySelector = false
     @Published var selectedActivity: Activity?

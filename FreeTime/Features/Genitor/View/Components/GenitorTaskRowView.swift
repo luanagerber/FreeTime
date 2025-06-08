@@ -43,7 +43,8 @@ struct GenitorTaskRowView: View {
             //            Image(systemName: statusIcon)
             //                .foregroundColor(statusColor)
             //                .font(.title2)
-            
+    
+            #warning("Evitar retorno vazios ou nulos, nesse caso, recomendável tratar erros com if let/guard let")
             Image(record.activity?.imageNameGenitor ?? "")
                 .resizable()
                 .scaledToFill()

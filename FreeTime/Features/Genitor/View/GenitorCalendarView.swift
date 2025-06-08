@@ -6,17 +6,23 @@
 //
 import SwiftUI
 
+#warning("Violação do Princípio de Responsabilidade Única do SOLID. O arquivo contém lógica de UI, carregamento de dados e estados")
+
+#warning("Para um arquivo com número ostensivo de linhas, recomendável subdividir em outros arquivos. Exemplo: HeaderView, WeekView, TasksView, etc. Sugestão: Deixar a view principal apenas como 'orquestradora'.")
+
 struct GenitorCalendarView: View {
     
     /// Task Manager Properties
     @State private var weekSlider: [[Date.WeekDay]] = []
     @State private var currentWeekIndex: Int = 1
     @State private var createWeek: Bool = false
+
+    #warning("Problemas de clareza: o dev pode assumir que esse objeto muda a cada instância da view, mas na verdade é sempre o mesmo. Se a utilização for devido a reatividade, prefira usar '@ObservedObject private var genitorViewModel = GenitorViewModel.shared'")
     @StateObject var viewModel = GenitorViewModel.shared
-    
+
     /// Animation Namespace
     @Namespace private var animation
-    
+
     var body: some View {
         VStack(){
             
@@ -33,11 +39,13 @@ struct GenitorCalendarView: View {
                 .vSpacing(.center)
             }
             .scrollIndicators(.hidden)
-            
+            #warning("Criar um Color Set na pasta de assets e chamar no background, mais seguro para não errar o nome da cor")
         }
         .background(Color("backgroundGenitor"))
         .vSpacing(.top)
+        
         .onAppear {
+        #warning("Muita coisa sendo executada no onAppear. Sugestão: Separar em um método em um serviço ou na viewmodel.")
             viewModel.setupCloudKit()
             
             if weekSlider.isEmpty {
@@ -69,6 +77,7 @@ struct GenitorCalendarView: View {
     @ViewBuilder
     func HeaderView() -> some View {
         VStack (alignment: .leading) {
+            #warning("Sugestão: extension de Font, para não precisar passar o nome da fonte customizada toda vez que for aplicá-la em uma view.")
             
             Text(viewModel.currentDate.formattedMonthUppercase())
                 .font(.custom("SF Pro", size: 34, relativeTo: .largeTitle))
@@ -141,6 +150,7 @@ struct GenitorCalendarView: View {
                 }
                 .background {
                     if isSameDate(day.date, viewModel.currentDate) {
+                        #warning("Cuidado com a utilização de magic numbers...")
                         Rectangle()
                             .foregroundColor(Color("backgroundCalendarSelectedDay"))
                             .frame(width: 46, height: 68)
@@ -172,13 +182,14 @@ struct GenitorCalendarView: View {
         
         VStack(alignment: .center, spacing: 20) {
             
+            #warning("Evitar lógica pesada dentro de views. Sugestão: Colocar em um serviço ou manager.")
             // CORREÇÃO: Filtrar atividades do dia selecionado, não apenas "hoje"
             let tasksNotStarted = viewModel.records.filter { register in
                 Calendar.current.isDate(register.date, inSameDayAs: viewModel.currentDate) &&
                 register.registerStatus == .notCompleted
             }.sorted(by: { $0.date < $1.date})
             
-            let tasksCompleted = viewModel.records.filter{ register in
+            let tasksCompleted = viewModel.records.filter { register in
                 Calendar.current.isDate(register.date, inSameDayAs: viewModel.currentDate) &&
                 register.registerStatus == .completed
             }.sorted(by: { $0.date < $1.date})

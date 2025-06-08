@@ -8,6 +8,8 @@
 import Foundation
 import CloudKit
 
+#warning("REMOCAO DOS PRINTS")
+
 struct CollectedReward: Identifiable {
     var id: CKRecord.ID?
     let kidID: String // Stores the recordName of the Kid

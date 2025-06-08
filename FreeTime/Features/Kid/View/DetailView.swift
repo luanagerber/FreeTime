@@ -7,13 +7,13 @@
 
 import SwiftUI
 
+#warning("Cuidado com magic numbers, prefira usar GeometryReader.")
 struct DetailView: View {
     @ObservedObject var kidViewModel: KidViewModel
     var register: ActivitiesRegister
     @Environment(\.dismiss) private var dismiss
     var onCompletion: (() -> Void)? = nil
 
-    
     var body: some View {
         ZStack {
             

@@ -7,6 +7,8 @@
 
 import SwiftUI
 
+#warning("Mesma análise feita na GenitorCalendarView.")
+
 struct GenitorRewardsView: View {
     
     @ObservedObject var viewModel = GenitorViewModel.shared
@@ -184,6 +186,7 @@ struct GenitorRewardsView: View {
         }
     }
     
+    #warning(" n responsabilidade é view")
     @MainActor
     private func refreshData() async {
         // Usar Task para executar de forma assíncrona

@@ -9,6 +9,7 @@ import Foundation
 import CloudKit
 import SwiftUI
 
+#warning("Em questão de legibilidade, sempre apagar prints e comentários depois de debuggado")
 struct ActivitiesRegister: Identifiable {
     var id: CKRecord.ID?
     let kidID: String // Stores the recordName of the Kid
@@ -55,7 +56,15 @@ extension ActivitiesRegister: RecordProtocol {
     var record: CKRecord? {
         guard id == nil else { return nil }
         
+        #warning("Apesar de não afetar na compilação do programa, não é uma boa prática ignorar os warnings.")
         let newRecord = CKRecord(recordType: RecordType.activity.rawValue, zoneID: CloudConfig.recordZone.zoneID)
+        
+        /*
+        //TODO: SUGESTÃO
+        let recordID = CKRecord.ID(recordName: UUID().uuidString, zoneID: CloudConfig.recordZone.zoneID)
+        let newRecord = CKRecord(recordType: RecordType.activity.rawValue, recordID: recordID)
+         */
+
         newRecord["kidID"] = kidID
         newRecord["activityID"] = String(activityID) // Convert Int to String for CloudKit
         newRecord["date"] = date
@@ -88,6 +97,7 @@ extension ActivitiesRegister: RecordProtocol {
         return record
     }
     
+    #warning("Cara de ChatGPT...")
     init?(record: CKRecord) {
         print("🔧 INIT: Tentando criar ActivitiesRegister do record: \(record.recordID.recordName)")
         print("🔧 INIT: Campos disponíveis: \(record.allKeys())")

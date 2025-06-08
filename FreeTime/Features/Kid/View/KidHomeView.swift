@@ -8,6 +8,10 @@
 import SwiftUI
 import CloudKit
 
+#warning("O arquivo armazena mais de uma view, e isso dificulta na hora de aplicar testes, e até para outro dev procurar algo. Sugestão: Separar as views em arquivos com uma pasta para KidActivities, algo nesse sentido.")
+
+#warning("Nomeclatura de varivável precisa mudar, deixar mais claro do que a variável é responsável. Sugestão: var showFinishActivityPopUp")
+
 struct KidHomeView: View {
     @State private var currentPage: Page = .kidHome
     @StateObject private var vmKid = KidViewModel()

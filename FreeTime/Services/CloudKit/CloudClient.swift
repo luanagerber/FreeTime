@@ -52,6 +52,20 @@ final class CloudClient: CKClient {
         }
     }
     
+    /*
+    //MARK: SUGESTÃO
+    private func database(for config: CloudConfig) -> CKDatabase {
+        switch config {
+        case .privateDB:
+            return container.privateCloudDatabase
+        case .publicDB:
+            return container.publicCloudDatabase
+        case .sharedDB:
+            return container.sharedCloudDatabase
+        }
+    }
+     */
+
     func save<T: RecordProtocol>(_ object: T, dbType: CloudConfig, completion: @escaping (Result<T, CloudError>) -> Void) {
         var db: CKDatabase
         
@@ -59,6 +73,9 @@ final class CloudClient: CKClient {
             completion(.failure(.decodeError))
             return
         }
+        #warning("Em todas as funções está passando o mesmo switch. Sugestão: Criar um método que implementa o switch.")
+
+//      let dbType = database(for: dbType)
         
         switch dbType {
         case .privateDB:

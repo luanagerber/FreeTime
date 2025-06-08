@@ -8,6 +8,11 @@
 import CloudKit
 import SwiftUI
 
+
+#warning("Mais um pouco bate a marca de 1000 linhas hahaha")
+
+#warning("Sugestão: // MARK: - CRUD, // MARK: - Sharing, // MARK: - Zone Management")
+
 final class CloudService {
     private let client: CKClient
     

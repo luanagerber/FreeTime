@@ -74,6 +74,7 @@ struct GenitorManagementView: View {
     func AddChildView() -> some View {
        // ScrollView {
             VStack {
+                #warning("Utilização do ImageResource para evitar erros com nome de imagem.")
                 Image("imageAddChild")
                     .resizable()
                     .scaledToFill()

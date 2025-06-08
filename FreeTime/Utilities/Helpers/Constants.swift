@@ -7,6 +7,8 @@
 
 import SwiftUI
 
+#warning("Cuidado com magic numbers...")
+
 struct Constants {
     struct UI{
         static let cardCornerRadius: CGFloat = 20

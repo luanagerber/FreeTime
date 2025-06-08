@@ -227,6 +227,7 @@ struct NewTaskView: View {
     
     // MARK: - Methods
     
+    #warning("O método faz mais de uma função. Sugestão: quebrar em mais métodos, de salvar, passar dados de atividades, etc.")
     private func saveActivity() {
         guard let activity = selectedActivity,
               let kid = viewModel.firstKid else {
