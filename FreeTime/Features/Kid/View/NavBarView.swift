@@ -23,8 +23,8 @@ struct NavBarView: View {
                         if isSelected {
                             CustomCornerShape(radius: 20, corners: [.bottomLeft, .bottomRight])
                                 .stroke(.text, lineWidth: 2) // Cor e espessura da borda
-                                .ignoresSafeArea(edges: .top)
-                                .frame(maxHeight: .infinity)
+                                //.ignoresSafeArea(edges: .top)
+                                //.frame(maxHeight: .infinity)
                         }
                     }
                 )
@@ -39,6 +39,8 @@ struct NavBarView: View {
             }
             .padding(.top, 10)
         }
+        .padding(.bottom, 15)
+        .ignoresSafeArea(edges: .top)
         
     }
     

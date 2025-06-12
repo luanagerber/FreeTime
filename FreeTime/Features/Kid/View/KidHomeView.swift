@@ -40,9 +40,10 @@ struct KidHomeView: View {
             }
             .foregroundColor(.fontColorKid)
             .fontDesign(.rounded)
-            .ignoresSafeArea()
+            
             .frame(maxHeight: .infinity, alignment: .top)
         }
+        .ignoresSafeArea(.all)
         .navigationBarBackButtonHidden(true)
         .onAppear {
             print("KidHomeView: View appeared - Kid já carregado: \(vmKid.kid?.name ?? "nil")")
@@ -67,82 +68,77 @@ struct KidHomeView: View {
         }
         .overlay {
             if vmKid.isLoading && vmKid.kid == nil {
-                    // Só mostra overlay quando está carregando o perfil inicial
-                    ZStack {
-                        Color(.backgroundHeaderYellowKid)
-                            .ignoresSafeArea()
-                        VStack(spacing: 16) {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .fontColorKid))
-                            
-                            Text("Carregando seu perfil...")
-                                .foregroundColor(.fontColorKid)
-                                .font(.title2)
-                                .fontWeight(.medium)
-                            
-                            Text("Aguarde um momento...")
-                                .foregroundColor(.fontColorKid.opacity(0.8))
-                                .font(.caption)
-                        }
+                // Só mostra overlay quando está carregando o perfil inicial
+                ZStack {
+                    Color(.backgroundHeaderYellowKid)
+                        .ignoresSafeArea()
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .fontColorKid))
+                        
+                        Text("Carregando seu perfil...")
+                            .foregroundColor(.fontColorKid)
+                            .font(.title2)
+                            .fontWeight(.medium)
+                        
+                        Text("Aguarde um momento...")
+                            .foregroundColor(.fontColorKid.opacity(0.8))
+                            .font(.caption)
                     }
-                    .transition(.opacity)
-                    .zIndex(2)
                 }
+                .transition(.opacity)
+                .zIndex(2)
+            }
         }
     }
     
     private var HeaderView: some View {
-        CustomCornerShape(radius: 20, corners: [.bottomLeft, .bottomRight])
-            .fill(.backgroundHeaderYellowKid)
-            .frame(maxHeight: 156)
-            .overlay {
-                HStack {
-                    HStack(spacing: 24) {
-                        // ✅ CORREÇÃO: Usar dados reais do vmKid
-                        KidDataView(kidName: vmKid.kidName ?? "Carregando...", kidCoins: vmKid.kidCoins)
-                            .padding(.top, 46)
-                            .ignoresSafeArea()
-                            .frame(maxHeight: 156, alignment: .top)
-                            .onTapGesture {
-                                withAnimation {
-                                    testNumber += 5
-                                }
-                            }
-                    }
-                    Spacer()
-                    HStack(spacing: 39) {
-                        NavButton(page: .kidHome)
-                        NavButton(page: .rewardsStore)
-                    }
-                    .padding(.bottom, 15)
-                    .ignoresSafeArea()
-                    .frame(maxHeight: 156, alignment: .bottom)
+
+        ZStack{
+            CustomCornerShape(radius: 20, corners: [.bottomLeft, .bottomRight])
+                .fill(.backgroundHeaderYellowKid)
+            
+            HStack(alignment:.top) {
+                HStack(spacing: 24) {
+                    KidDataView(
+                        kidName: vmKid.kidName ?? "Carregando...",
+                        kidCoins: vmKid.kidCoins
+                    )
+                    .padding(.top, 22)
                 }
-                .ignoresSafeArea()
-                .frame(maxHeight: 156)
-                .padding(.horizontal, 36)
-                .foregroundColor(.fontColorKid)
+                Spacer()
+                
+                HStack(spacing: 39) {
+                    NavButton(page: .kidHome)
+                    NavButton(page: .rewardsStore)
+                }
             }
+            .frame(maxHeight: .infinity)
+            .padding(.horizontal, 36)
+            .foregroundColor(.fontColorKid)
+        }
+        .frame(height: 156)
+        
     }
     
     
     @ViewBuilder
     private var contentView: some View {
         switch currentPage {
-        case .kidHome:
-            ActivitiesView
-                .padding(.top, 40)
-        case .rewardsStore:
-            RewardsStoreView(store: coordinator.rewardsStore)
-        default:
-            EmptyView()
+            case .kidHome:
+                ActivitiesView
+                    .padding(.top, 40)
+            case .rewardsStore:
+                RewardsStoreView(store: coordinator.rewardsStore)
+            default:
+                EmptyView()
         }
     }
     
     private var ActivitiesView: some View {
-            // ✅ NOVO: Estados baseados no carregamento
-            return Group {
-                if vmKid.kid == nil {
+        // ✅ NOVO: Estados baseados no carregamento
+        return Group {
+            if vmKid.kid == nil {
                 // Kid ainda não carregou
                 VStack(spacing: 16) {
                     ProgressView("Carregando perfil...")
@@ -274,8 +270,8 @@ struct KidHomeView: View {
                 .padding(.leading, 133)
             }
         }
-            .fontDesign(.rounded)
-        }
+        .fontDesign(.rounded)
+    }
     
     private func NavButton(page: Page) -> some View {
         let isSelected = currentPage == page
@@ -285,9 +281,7 @@ struct KidHomeView: View {
             VStack {
                 NavBarView(isSelected: isSelected, page: page)
                     .frame(width: 137, height: 136)
-                    .frame(maxHeight: .infinity)
                     .opacity(isSelected ? 1 : 0.5)
-                    .padding(.top, 9)
             }
         }
         .disabled(isSelected)
