@@ -29,8 +29,7 @@ extension View {
     func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
         clipShape( RoundedCorner(radius: radius, corners: corners) )
     }
-    
-    #warning("Evitar uso de offset, preferir utilizar padding()")
+
     func shimmering() -> some View {
         self
             .overlay(

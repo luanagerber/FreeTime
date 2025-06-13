@@ -57,6 +57,8 @@ class GenitorViewModel: ObservableObject {
         Array(Set(rewards.map { $0.dateCollected.startOfDay })).sorted(by: { $1 < $0})
     }
     
+
+    
     var groupedRewardsByDay: [RewardsByDay] {
         var groupAux: [RewardsByDay] = []
         

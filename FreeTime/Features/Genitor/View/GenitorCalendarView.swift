@@ -8,7 +8,7 @@ import SwiftUI
 
 #warning("Violação do Princípio de Responsabilidade Única do SOLID. O arquivo contém lógica de UI, carregamento de dados e estados")
 
-#warning("Para um arquivo com número ostensivo de linhas, recomendável subdividir em outros arquivos. Exemplo: HeaderView, WeekView, TasksView, etc. Sugestão: Deixar a view principal apenas como 'orquestradora'.")
+#warning("Para um arquivo com número ostensivo de linhas, o ideal é subdividir em outros arquivos. Exemplo: HeaderView, WeekView, TasksView, etc. Sugestão: Deixar a view principal apenas como 'orquestradora'.")
 
 struct GenitorCalendarView: View {
     
@@ -18,7 +18,8 @@ struct GenitorCalendarView: View {
     @State private var createWeek: Bool = false
 
     #warning("Problemas de clareza: o dev pode assumir que esse objeto muda a cada instância da view, mas na verdade é sempre o mesmo. Se a utilização for devido a reatividade, prefira usar '@ObservedObject private var genitorViewModel = GenitorViewModel.shared'")
-    @StateObject var viewModel = GenitorViewModel.shared
+    
+    @StateObject var viewModel = GenitorViewModel()
 
     /// Animation Namespace
     @Namespace private var animation
@@ -41,7 +42,7 @@ struct GenitorCalendarView: View {
             .scrollIndicators(.hidden)
             #warning("Criar um Color Set na pasta de assets e chamar no background, mais seguro para não errar o nome da cor")
         }
-        .background(Color("backgroundGenitor"))
+        .background(Color(.backgroundGenitor))
         .vSpacing(.top)
         
         .onAppear {
@@ -150,7 +151,7 @@ struct GenitorCalendarView: View {
                 }
                 .background {
                     if isSameDate(day.date, viewModel.currentDate) {
-                        #warning("Cuidado com a utilização de magic numbers...")
+                        #warning("Cuidado com a utilização de magic numbers...@ScaledMetrics")
                         Rectangle()
                             .foregroundColor(Color("backgroundCalendarSelectedDay"))
                             .frame(width: 46, height: 68)
@@ -181,7 +182,7 @@ struct GenitorCalendarView: View {
     func TasksView() -> some View {
         
         VStack(alignment: .center, spacing: 20) {
-            
+    
             #warning("Evitar lógica pesada dentro de views. Sugestão: Colocar em um serviço ou manager.")
             // CORREÇÃO: Filtrar atividades do dia selecionado, não apenas "hoje"
             let tasksNotStarted = viewModel.records.filter { register in

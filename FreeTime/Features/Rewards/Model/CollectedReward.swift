@@ -8,7 +8,7 @@
 import Foundation
 import CloudKit
 
-#warning("REMOCAO DOS PRINTS")
+#warning("remover prints")
 
 struct CollectedReward: Identifiable {
     var id: CKRecord.ID?

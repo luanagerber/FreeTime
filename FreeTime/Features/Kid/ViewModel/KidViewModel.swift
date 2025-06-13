@@ -527,7 +527,7 @@ extension KidViewModel {
         
         // MÉTODO AUXILIAR: Para debug de todas as atividades
         #warning("Envolver esse método com #if DEBUG para evitar prints em produção")
-
+        #if DEBUG
         func debugAllActivities() {
             print("=== DEBUG ALL ACTIVITIES ===")
             print("Total de atividades: \(activities.count)")
@@ -544,6 +544,7 @@ extension KidViewModel {
             }
             print("============================")
         }
+        #endif
             
 }
 

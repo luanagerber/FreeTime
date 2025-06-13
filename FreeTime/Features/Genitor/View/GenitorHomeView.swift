@@ -11,7 +11,7 @@ struct GenitorHomeView: View {
     
     @State private var currentTab: TabSelection = .activities
     @StateObject var viewModel = GenitorViewModel.shared
-    
+
     var body: some View {
         ZStack {
             // Conteúdo principal
